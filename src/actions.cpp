@@ -20,7 +20,6 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/next_prior.hpp>
-#include <boost/foreach.hpp>
 #include "quickbook.hpp"
 #include "actions.hpp"
 #include "syntax_highlight.hpp"
@@ -103,7 +102,7 @@ namespace quickbook
             if (qbk_version_n >= 107u) {
                 char const* allowed_punctuation = "_.-";
 
-                BOOST_FOREACH(char c, id) {
+                for(char c : id) {
                     if (!std::isalnum(c) &&
                             !std::strchr(allowed_punctuation, c))
                         valid = false;
@@ -689,7 +688,7 @@ namespace quickbook
 
         state.out << markup.pre;
 
-        BOOST_FOREACH(value item, list)
+        for(value item : list)
         {
             state.out << "<listitem>";
             state.out << item.get_encoded();
@@ -893,7 +892,7 @@ namespace quickbook
         value_consumer values = image;
         attributes["fileref"] = values.consume();
 
-        BOOST_FOREACH(value pair_, values)
+        for(value pair_ : values)
         {
             value_consumer pair = pair_;
             value name = pair.consume();
@@ -1042,7 +1041,7 @@ namespace quickbook
 
         state.phrase << "<imageobject><imagedata";
         
-        BOOST_FOREACH(attribute_map::value_type const& attr, attributes)
+        for(attribute_map::value_type const& attr : attributes)
         {
             state.phrase << " " << attr.first << "=\"";
             write_plain_text(state.phrase.get(), attr.second);
@@ -1097,7 +1096,7 @@ namespace quickbook
         std::string identifier = detail::to_s(values.consume().get_quickbook());
 
         std::vector<std::string> template_values;
-        BOOST_FOREACH(value const& p, values.consume()) {
+        for(value const& p : values.consume()) {
             template_values.push_back(detail::to_s(p.get_quickbook()));
         }
 
@@ -1438,7 +1437,7 @@ namespace quickbook
 
         std::vector<value> args;
 
-        BOOST_FOREACH(value arg, values)
+        for(value arg : values)
         {
             args.push_back(arg);
         }
@@ -1601,7 +1600,7 @@ namespace quickbook
         detail::print_string(title, state.out.get());
         state.out << "</title>\n";
 
-        BOOST_FOREACH(value_consumer entry, values) {
+        for(value_consumer entry : values) {
             state.out << "<varlistentry>";
             
             if(entry.check()) {
@@ -1612,7 +1611,7 @@ namespace quickbook
             
             if(entry.check()) {
                 state.out << "<listitem>";
-                BOOST_FOREACH(value phrase, entry) state.out << phrase.get_encoded();
+                for(value phrase : entry) state.out << phrase.get_encoded();
                 state.out << "</listitem>";
             }
 
@@ -1658,7 +1657,7 @@ namespace quickbook
         int span_count = 0;
 
         value_consumer lookahead = values;
-        BOOST_FOREACH(value row, lookahead) {
+        for(value row : lookahead) {
             ++row_count;
             span_count = boost::distance(row);
         }
@@ -1692,7 +1691,7 @@ namespace quickbook
         if (row_count > 1)
         {
             state.out << "<thead>" << "<row>";
-            BOOST_FOREACH(value cell, values.consume()) {
+            for(value cell : values.consume()) {
                 state.out << "<entry>" << cell.get_encoded() << "</entry>";
             }
             state.out << "</row>\n" << "</thead>\n";
@@ -1700,9 +1699,9 @@ namespace quickbook
 
         state.out << "<tbody>\n";
 
-        BOOST_FOREACH(value row, values) {
+        for(value row : values) {
             state.out << "<row>";
-            BOOST_FOREACH(value cell, row) {
+            for(value cell : row) {
                 state.out << "<entry>" << cell.get_encoded() << "</entry>";
             }
             state.out << "</row>\n";
@@ -1864,7 +1863,7 @@ namespace quickbook
             state.templates.push();
         }
 
-        BOOST_FOREACH(template_symbol& ts, storage)
+        for(template_symbol& ts : storage)
         {
             std::string tname = ts.identifier;
             if (tname != "!")
@@ -1881,7 +1880,7 @@ namespace quickbook
 
         if (load_type == block_tags::include)
         {
-            BOOST_FOREACH(template_symbol& ts, storage)
+            for(template_symbol& ts : storage)
             {
                 std::string tname = ts.identifier;
 

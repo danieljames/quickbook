@@ -12,7 +12,6 @@
 #include "markups.hpp"
 #include "block_tags.hpp"
 #include "phrase_tags.hpp"
-#include <boost/foreach.hpp>
 #include <ostream>
 #include <map>
 
@@ -60,7 +59,7 @@ namespace quickbook
                 { phrase_tags::break_mark, "<sbr/>\n", 0 }
             };
 
-            BOOST_FOREACH(markup m, init_markups)
+            for(markup m : init_markups)
             {
                 markups[m.tag] = m;
             }

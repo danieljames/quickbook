@@ -19,7 +19,6 @@
 #include <boost/spirit/include/classic_if.hpp>
 #include <boost/spirit/include/phoenix1_primitives.hpp>
 #include <boost/spirit/include/phoenix1_casts.hpp>
-#include <boost/foreach.hpp>
 
 namespace quickbook
 {
@@ -177,7 +176,7 @@ namespace quickbook
                 cl::eps_p                           [state.values.entry(ph::arg1, ph::arg2)]
             >>  source_modes                        [state.values.entry(ph::arg1)];
 
-        BOOST_FOREACH(int tag, source_mode_tags::tags()) {
+        for(int tag : source_mode_tags::tags()) {
             source_modes.add(source_mode_tags::name(tag), tag);
             elements.add(source_mode_tags::name(tag),
                 element_info(element_info::phrase, &local.empty, tag));

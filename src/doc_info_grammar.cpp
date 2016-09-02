@@ -9,7 +9,6 @@
 =============================================================================*/
 
 #include <map>
-#include <boost/foreach.hpp>
 #include <boost/spirit/include/classic_core.hpp>
 #include <boost/spirit/include/classic_loops.hpp>
 #include <boost/spirit/include/classic_symbols.hpp>
@@ -106,12 +105,12 @@ namespace quickbook
           , "reference", "set"
         ;
 
-        BOOST_FOREACH(value::tag_type t, doc_attributes::tags()) {
+        for(value::tag_type t : doc_attributes::tags()) {
             local.doc_attributes.add(doc_attributes::name(t), t);
             local.doc_info_attributes.add(doc_attributes::name(t), t);
         }
 
-        BOOST_FOREACH(value::tag_type t, doc_info_attributes::tags()) {
+        for(value::tag_type t : doc_info_attributes::tags()) {
             local.doc_info_attributes.add(doc_info_attributes::name(t), t);
         }
 

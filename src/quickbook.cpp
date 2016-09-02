@@ -23,7 +23,6 @@
 #include <boost/range/algorithm.hpp>
 #include <boost/ref.hpp>
 #include <boost/version.hpp>
-#include <boost/foreach.hpp>
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string/classification.hpp>
 
@@ -462,7 +461,7 @@ main(int argc, char* argv[])
 
                 unsigned flags = 0;
 
-                BOOST_FOREACH(std::string const& flag, flag_names) {
+                for(std::string const& flag : flag_names) {
                     if (flag == "checked") {
                         flags |= quickbook::dependency_tracker::checked;
                     }

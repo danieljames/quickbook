@@ -11,7 +11,6 @@
 #include <boost/make_shared.hpp>
 #include <boost/unordered_map.hpp>
 #include <boost/lexical_cast.hpp>
-#include <boost/foreach.hpp>
 #include <boost/range/algorithm.hpp>
 
 // TODO: This should possibly try to always generate valid XML ids:
@@ -129,8 +128,9 @@ namespace quickbook {
 
         placeholder_index sorted_placeholders;
         sorted_placeholders.reserve(state.placeholders.size());
-        BOOST_FOREACH(id_placeholder const& p, state.placeholders)
+        for (id_placeholder const& p : state.placeholders) {
             if (order[p.index]) sorted_placeholders.push_back(&p);
+        }
         boost::sort(sorted_placeholders, placeholder_compare(order));
 
         return sorted_placeholders;

@@ -12,7 +12,6 @@
 #include <boost/unordered_map.hpp>
 #include <boost/range/algorithm/upper_bound.hpp>
 #include <boost/range/algorithm/transform.hpp>
-#include <boost/foreach.hpp>
 #include <fstream>
 #include <iterator>
 #include <vector>

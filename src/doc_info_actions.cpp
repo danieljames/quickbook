@@ -11,7 +11,6 @@
 #include <sstream>
 #include <boost/bind.hpp>
 #include <boost/algorithm/string/join.hpp>
-#include <boost/foreach.hpp>
 #include <boost/filesystem/operations.hpp>
 #include "quickbook.hpp"
 #include "utils.hpp"
@@ -406,7 +405,7 @@ namespace quickbook
         if(!authors.empty())
         {
             tmp << "    <authorgroup>\n";
-            BOOST_FOREACH(value_consumer author_values, authors)
+            for(value_consumer author_values : authors)
             {
                 while (author_values.check()) {
                     value surname = author_values.consume(doc_info_tags::author_surname);
@@ -425,7 +424,7 @@ namespace quickbook
             tmp << "    </authorgroup>\n";
         }
 
-        BOOST_FOREACH(value_consumer copyright, copyrights)
+        for(value_consumer copyright : copyrights)
         {
             while(copyright.check())
             {
@@ -487,7 +486,7 @@ namespace quickbook
                 ;
         }
 
-        BOOST_FOREACH(value_consumer values, categories) {
+        for(value_consumer values : categories) {
             value category = values.optional_consume();
             if(!category.empty()) {
                 tmp << "    <" << doc_type << "category name=\"category:"
@@ -499,7 +498,7 @@ namespace quickbook
             values.finish();
         }
 
-        BOOST_FOREACH(value_consumer biblioid, biblioids)
+        for(value_consumer biblioid : biblioids)
         {
             value class_ = biblioid.consume(doc_info_tags::biblioid_class);
             value value_ = biblioid.consume(doc_info_tags::biblioid_value);
@@ -514,7 +513,7 @@ namespace quickbook
             biblioid.finish();
         }
 
-        BOOST_FOREACH(value escaped, escaped_attributes)
+        for(value escaped : escaped_attributes)
         {
             tmp << "<!--quickbook-escape-prefix-->"
                 << escaped.get_quickbook()
