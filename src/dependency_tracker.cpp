@@ -110,8 +110,9 @@ namespace quickbook
     }
 
     void dependency_tracker::add_glob(fs::path const& f) {
-        std::pair<glob_list::iterator, bool> r = glob_dependencies.insert(
-                std::make_pair(normalize_path(f), glob_list::mapped_type()));
+        auto r = glob_dependencies.emplace(
+                normalize_path(f),
+                glob_list::mapped_type());
         last_glob = r.first;
     }
 

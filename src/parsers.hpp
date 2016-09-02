@@ -109,8 +109,7 @@ namespace quickbook {
         template <typename ScannerT>
         typename result<ScannerT>::type parse(ScannerT const &scan) const
         {
-            typedef typename ScannerT::iterator_t iterator_t;
-            iterator_t save = scan.first;
+            auto save = scan.first;
 
             scoped scope(impl_);
             if (!scope.start(arguments_))
@@ -278,11 +277,9 @@ namespace quickbook {
         template <typename Scanner>
         typename result<Scanner>::type parse(Scanner const& scan) const
         {
-            typedef typename Scanner::iterator_t iterator_t;
-
             if (scan.at_end()) return scan.no_match();
 
-            iterator_t save(scan.first);
+            auto save = scan.first;
 
             do {
                 ++scan.first;

@@ -40,8 +40,7 @@ namespace quickbook {
         // process them.
         placeholder_index placeholders = index_placeholders(state, xml);
 
-        typedef std::vector<id_placeholder const*>::iterator iterator;
-        iterator it = placeholders.begin(), end = placeholders.end();
+        auto it = placeholders.begin(), end = placeholders.end();
 
         while (it != end) {
             // We process all the ids that have the same number of dots
@@ -50,7 +49,7 @@ namespace quickbook {
             // multiple dots.
             //
             // So find the group of placeholders with the same number of dots.
-            iterator group_begin = it, group_end = it;
+            auto group_begin = it, group_end = it;
             while (group_end != end && (*group_end)->num_dots == (*it)->num_dots)
                 ++group_end;
 
@@ -169,11 +168,11 @@ namespace quickbook {
     {
         std::vector<std::string> resolved_ids;
 
-        for (placeholder_index::iterator i = begin; i != end; ++i)
+        for (auto i = begin; i != end; ++i)
             resolved_ids.push_back(resolve_id(*i));
 
         unsigned index = 0;
-        for (placeholder_index::iterator i = begin; i != end; ++i, ++index)
+        for (auto i = begin; i != end; ++i, ++index)
         {
             generated_ids[(**i).index] =
                 generate_id(*i, resolved_ids[index]);
@@ -188,7 +187,7 @@ namespace quickbook {
 
         if (p->category.c > id_category::numbered) {
             // Reserve the id if it isn't already reserved.
-            chosen_id_map::iterator pos = chosen_ids.emplace(id, p).first;
+            auto pos = chosen_ids.emplace(id, p).first;
 
             // If it was reserved by a placeholder with a lower category,
             // then overwrite it.

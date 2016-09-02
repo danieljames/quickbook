@@ -50,13 +50,10 @@ namespace quickbook
                 state.source_mode_next = 0;
             }
 
-            for(quickbook::state::string_list::iterator
-                it = state.anchors.begin(),
-                end = state.anchors.end();
-                it != end; ++it)
+            for(auto const& v : state.anchors)
             {
                 tgt << "<anchor id=\"";
-                detail::print_string(*it, tgt.get());
+                detail::print_string(v, tgt.get());
                 tgt << "\"/>";
             }
             
@@ -369,10 +366,7 @@ namespace quickbook
         std::string str;
         state.phrase.swap(str);
 
-        std::string::const_iterator
-            pos = str.begin(),
-            end = str.end();
-
+        auto pos = str.begin(), end = str.end();
         while(pos != end && cl::space_p.test(*pos)) ++pos;
 
         if(pos != end) {
@@ -870,8 +864,7 @@ namespace quickbook
         }
         else {
             boost::string_ref value = v.get_quickbook();
-            for(boost::string_ref::const_iterator
-                first = value.begin(), last  = value.end();
+            for(auto first = value.begin(), last  = value.end();
                 first != last; ++first)
             {
                 if (*first == '\\' && ++first == last) break;
@@ -886,8 +879,7 @@ namespace quickbook
 
         // Note: attributes are never encoded as boostbook, if they're
         // encoded, it's just things like escapes.
-        typedef std::map<std::string, value> attribute_map;
-        attribute_map attributes;
+        std::map<std::string, value> attributes;
 
         value_consumer values = image;
         attributes["fileref"] = values.consume();
@@ -900,7 +892,7 @@ namespace quickbook
             std::string name_str(name.get_quickbook().begin(),
                 name.get_quickbook().end());
             pair.finish();
-            if(!attributes.insert(std::make_pair(name_str, value)).second)
+            if(!attributes.emplace(name_str, value).second)
             {
                 detail::outwarn(name.get_file(), name.get_position())
                     << "Duplicate image attribute: "
@@ -960,7 +952,7 @@ namespace quickbook
         // Extract the alt tag, to use as a text description.
         // Or if there isn't one, use the stem of the file name.
 
-        attribute_map::iterator alt_pos = attributes.find("alt");
+        auto alt_pos = attributes.find("alt");
         quickbook::value alt_text =
             alt_pos != attributes.end() ? alt_pos->second :
             qbk_version_n < 106u ? encoded_value(stem) :
@@ -981,8 +973,7 @@ namespace quickbook
            //    fit in a tiny box (IE7).
            //
 
-           attributes.insert(attribute_map::value_type("format",
-                encoded_value("SVG")));
+           attributes.emplace("format", encoded_value("SVG"));
 
            //
            // Image paths are relative to the html subdirectory:
@@ -1019,10 +1010,10 @@ namespace quickbook
            b = svg_text.find('\"', a + 1);
            if(a != std::string::npos)
            {
-              attributes.insert(std::make_pair(
+              attributes.emplace(
                 "contentwidth", encoded_value(std::string(
                     svg_text.begin() + a + 1, svg_text.begin() + b))
-                ));
+                );
            }
            a = svg_text.find("height");
            a = svg_text.find('=', a);
@@ -1030,10 +1021,10 @@ namespace quickbook
            b = svg_text.find('\"', a + 1);
            if(a != std::string::npos)
            {
-              attributes.insert(std::make_pair(
+              attributes.emplace(
                 "contentdepth", encoded_value(std::string(
                     svg_text.begin() + a + 1, svg_text.begin() + b))
-                ));
+                );
            }
         }
 
@@ -1041,7 +1032,7 @@ namespace quickbook
 
         state.phrase << "<imageobject><imagedata";
         
-        for(attribute_map::value_type const& attr : attributes)
+        for(auto const& attr : attributes)
         {
             state.phrase << " " << attr.first << "=\"";
             write_plain_text(state.phrase.get(), attr.second);
@@ -1237,8 +1228,8 @@ namespace quickbook
           , quickbook::state& state
         )
         {
-            std::vector<value>::const_iterator arg = args.begin();
-            std::vector<std::string>::const_iterator tpl = params.begin();
+            auto arg = args.cbegin();
+            auto tpl = params.cbegin();
             std::vector<std::string> empty_params;
 
             // Store each of the argument passed in as local templates:
@@ -1904,13 +1895,8 @@ namespace quickbook
         path_parameter parameter = check_path(values.consume(), state);
         values.finish();
 
-        std::set<quickbook_path> search =
-            include_search(parameter, state, first);
-        std::set<quickbook_path>::iterator i = search.begin();
-        std::set<quickbook_path>::iterator e = search.end();
-        for (; i != e; ++i)
+        for (quickbook_path const& path : include_search(parameter, state, first))
         {
-            quickbook_path const & path = *i;
             try {
                 if (qbk_version_n >= 106)
                 {

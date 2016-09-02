@@ -102,8 +102,7 @@ namespace quickbook
 
     file_ptr load(fs::path const& filename, unsigned qbk_version)
     {
-        boost::unordered_map<fs::path, file_ptr>::iterator pos
-            = files.find(filename);
+        auto pos = files.find(filename);
 
         if (pos == files.end())
         {
@@ -145,7 +144,7 @@ namespace quickbook
         boost::string_ref::const_iterator iterator)
     {
         file_position pos;
-        boost::string_ref::const_iterator line_begin = begin;
+        auto line_begin = begin;
 
         while (begin != iterator)
         {
@@ -444,11 +443,10 @@ namespace quickbook
 
         if (begin != end)
         {
-            std::vector<mapped_file_section>::const_iterator start =
-                x.data->new_file->find_section(
+            auto start = x.data->new_file->find_section(
                     x.data->new_file->source().begin() + begin);
     
-            std::string::size_type size = data->new_file->source_.size();
+            auto size = data->new_file->source_.size();
     
             data->new_file->mapped_sections.push_back(mapped_file_section(
                     x.data->new_file->to_original_pos(start, begin),
@@ -472,10 +470,8 @@ namespace quickbook
     {
         unsigned count = 0;
 
-        for(boost::string_ref::const_iterator begin = x.begin(), end = x.end();
-            begin != end; ++begin)
-        {
-            switch(*begin)
+        for(auto v : x) {
+            switch(v)
             {
             case ' ':
                 ++count;
