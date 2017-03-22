@@ -431,7 +431,7 @@ namespace quickbook
         block_start =
                 (*eol)                  [start_blocks]
             >>  (   *(  local.top_level
-                    >>  !(  qbk_ver(106u)
+                    >>  !(  (qbk_ver(106u) | cl::eps_p(ph::var(state.strict_mode)))
                         >>  cl::ch_p(']')
                         >>  cl::eps_p   [error("Mismatched close bracket")]
                         )
@@ -505,8 +505,9 @@ namespace quickbook
 
         local.syntactic_block_item =
                 local.paragraph_separator       [ph::var(local.still_in_block) = false]
-            |   (cl::eps_p(~cl::ch_p(']')) | qbk_ver(0, 107u))
-                                                [ph::var(local.element_type) = element_info::nothing]
+            |   (   cl::eps_p(~cl::ch_p(']'))
+                |   cl::eps_p(!ph::var(state.strict_mode)) >> qbk_ver(0, 107u)
+                )                               [ph::var(local.element_type) = element_info::nothing]
             >>  local.common
 
                 // If the element is a block, then a newline will end the
@@ -609,7 +610,9 @@ namespace quickbook
             |   local.simple_markup
             |   escape
             |   comment
-            |   qbk_ver(106u) >> local.square_brackets
+            |   (qbk_ver(106u)
+                | cl::eps_p(ph::var(state.strict_mode)))
+            >>  local.square_brackets
             |   cl::space_p                 [raw_char]
             |   cl::anychar_p               [plain_char]
             ;
@@ -675,8 +678,11 @@ namespace quickbook
                     >>  state.templates.scope
                             [state.values.entry(ph::arg1, ph::arg2, template_tags::escape)]
                             [state.values.entry(ph::arg1, ph::arg2, template_tags::identifier)]
-                    >>  !qbk_ver(106u)
+                    >>  !(  qbk_ver(106u)
                             [error("Templates with punctuation names can't be escaped in quickbook 1.6+")]
+                         | !cl::eps_p(ph::var(state.strict_mode))
+                            [error("Templates with punctuation names can't be escaped in strict mode")]
+                        )
                     |   cl::str_p('`')
                     >>  state.templates.scope
                             [state.values.entry(ph::arg1, ph::arg2, template_tags::escape)]
@@ -970,7 +976,7 @@ namespace quickbook
         >>  space
             ;
 
-
+        // TODO: Strict mode?
         attribute_value_1_7 =
             state.values.save() [
                 +(  ~cl::eps_p(']' | cl::space_p | comment)
