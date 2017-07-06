@@ -115,6 +115,7 @@ namespace quickbook
     struct parse_document_options
     {
         parse_document_options() :
+            markup_format(quickbook::detail::markup::boostbook),
             indent(-1),
             linewidth(-1),
             pretty_print(true),
@@ -122,6 +123,7 @@ namespace quickbook
             deps_out_flags(quickbook::dependency_tracker::default_)
         {}
 
+        detail::markup::format markup_format;
         int indent;
         int linewidth;
         bool pretty_print;
@@ -146,6 +148,7 @@ namespace quickbook
         try {
             quickbook::state state(filein_, options_.xinclude_base, buffer, output);
             state.strict_mode = options_.strict_mode;
+            state.markup_format = options_.markup_format;
             set_macros(state);
 
             if (state.error_count == 0) {
@@ -290,6 +293,7 @@ main(int argc, char* argv[])
             ("input-file", PO_VALUE<command_line_string>(), "input file")
             ("output-file", PO_VALUE<command_line_string>(), "output file")
             ("no-output", "don't write out the result (overriden by --output-file)")
+            ("output-format", PO_VALUE<command_line_string>(), "boostbook/html")
             ("output-deps", PO_VALUE<command_line_string>(), "output dependency file")
             ("ms-errors", "use Microsoft Visual Studio style error & warn message format")
             ("include-path,I", PO_VALUE< std::vector<command_line_string> >(), "include path")
@@ -397,6 +401,23 @@ main(int argc, char* argv[])
 
         if (vm.count("linewidth"))
             options.linewidth = vm["linewidth"].as<int>();
+
+        if (vm.count("output-format"))
+        {
+            std::string format = quickbook::detail::command_line_to_utf8(vm["output-format"].as<command_line_string>());
+            if (format == "html") {
+                options.markup_format = quickbook::detail::markup::html;
+            } else if (format == "boostbook") {
+                options.markup_format = quickbook::detail::markup::boostbook;
+            } else {
+                quickbook::detail::outerr()
+                    << "Unknown output format: "
+                    << format
+                    << std::endl;
+
+                ++error_count;
+            }
+        }
 
         if (vm.count("debug"))
         {
