@@ -22,7 +22,8 @@ namespace quickbook
             enum format
             {
                 boostbook,
-                html
+                html,
+                format_end
             };
 
             value::tag_type tag;
