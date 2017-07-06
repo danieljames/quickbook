@@ -47,6 +47,7 @@ namespace quickbook
         , dependencies()
         , explicit_list(false)
         , strict_mode(false)
+        , markup_format(detail::markup::boostbook)
 
         , imported(false)
         , macro()
