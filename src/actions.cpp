@@ -268,7 +268,9 @@ namespace quickbook
             state.warned_about_breaks = true;
         }
 
-        state.phrase << detail::get_markup(phrase_tags::break_mark).pre;
+        state.phrase << detail::get_markup(
+                            state.markup_format, phrase_tags::break_mark)
+                            .pre;
     }
 
     void error_message_action::operator()(
@@ -302,7 +304,8 @@ namespace quickbook
     {
         write_anchors(state, state.out);
 
-        detail::markup markup = detail::get_markup(block.get_tag());
+        detail::markup markup =
+            detail::get_markup(state.markup_format, block.get_tag());
 
         value_consumer values = block;
         state.out << markup.pre << values.consume().get_encoded()
@@ -314,7 +317,8 @@ namespace quickbook
     {
         write_anchors(state, state.out);
 
-        detail::markup markup = detail::get_markup(block.get_tag());
+        detail::markup markup =
+            detail::get_markup(state.markup_format, block.get_tag());
         state.out << markup.pre;
     }
 
@@ -322,7 +326,8 @@ namespace quickbook
     {
         write_anchors(state, state.phrase);
 
-        detail::markup markup = detail::get_markup(phrase.get_tag());
+        detail::markup markup =
+            detail::get_markup(state.markup_format, phrase.get_tag());
 
         value_consumer values = phrase;
         state.phrase << markup.pre << values.consume().get_encoded()
@@ -361,7 +366,8 @@ namespace quickbook
     {
         write_anchors(state, state.phrase);
 
-        detail::markup markup = detail::get_markup(phrase.get_tag());
+        detail::markup markup =
+            detail::get_markup(state.markup_format, phrase.get_tag());
         state.phrase << markup.pre << phrase.get_quickbook() << markup.post;
     }
 
@@ -378,8 +384,10 @@ namespace quickbook
         if (pos != end) {
             detail::markup markup =
                 state.in_list
-                    ? detail::get_markup(block_tags::paragraph_in_list)
-                    : detail::get_markup(block_tags::paragraph);
+                    ? detail::get_markup(
+                          state.markup_format, block_tags::paragraph_in_list)
+                    : detail::get_markup(
+                          state.markup_format, block_tags::paragraph);
             state.out << markup.pre << str;
             write_anchors(state, state.out);
             state.out << markup.post;
@@ -519,7 +527,7 @@ namespace quickbook
                                   : mark == '=' ? phrase_tags::teletype : 0;
 
         assert(tag != 0);
-        detail::markup markup = detail::get_markup(tag);
+        detail::markup markup = detail::get_markup(state.markup_format, tag);
 
         value_consumer values = state.values.release();
         value content = values.consume();
@@ -685,7 +693,8 @@ namespace quickbook
     {
         write_anchors(state, state.out);
 
-        detail::markup markup = detail::get_markup(list.get_tag());
+        detail::markup markup =
+            detail::get_markup(state.markup_format, list.get_tag());
 
         state.out << markup.pre;
 
@@ -1442,7 +1451,8 @@ namespace quickbook
                 it would work.
 
                 quickbook::detail::markup escape_markup
-                    = detail::get_markup(phrase_tags::escape);
+                    = detail::get_markup(state.markup_format,
+                phrase_tags::escape);
 
                 state.phrase
                     << escape_markup.pre
@@ -1514,7 +1524,8 @@ namespace quickbook
     {
         write_anchors(state, state.phrase);
 
-        detail::markup markup = detail::get_markup(link.get_tag());
+        detail::markup markup =
+            detail::get_markup(state.markup_format, link.get_tag());
 
         value_consumer values = link;
         value dst_value = values.consume();
