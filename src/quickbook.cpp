@@ -545,7 +545,16 @@ main(int argc, char* argv[])
             else if (default_output)
             {
                 fileout = filein;
-                fileout.replace_extension(".xml");
+                switch (options.markup_format) {
+                case quickbook::detail::markup::html:
+                    fileout.replace_extension(".html");
+                    break;
+                case quickbook::detail::markup::boostbook:
+                    fileout.replace_extension(".xml");
+                    break;
+                default:
+                    assert(false);
+                }
             }
 
             if (vm.count("xinclude-base"))
