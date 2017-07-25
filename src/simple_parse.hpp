@@ -23,9 +23,13 @@ namespace quickbook
     }
 
     template <typename Iterator>
-    void read_past(Iterator& it, Iterator end, char const* text)
+    bool read_past(Iterator& it, Iterator end, char const* text)
     {
-        while (it != end && !read(it, end, text)) ++it;
+        while (it != end) {
+            if (read(it, end, text)) { return true; }
+            ++it;
+        }
+        return false;
     }
 
     inline bool find_char(char const* text, char c)
@@ -45,5 +49,11 @@ namespace quickbook
     void read_to_one_of(Iterator& it, Iterator end, char const* text)
     {
         while (it != end && !find_char(text, *it)) ++it;
+    }
+
+    template <typename Iterator>
+    void read_to(Iterator& it, Iterator end, char c)
+    {
+        while (it != end && *it != c) ++it;
     }
 }
