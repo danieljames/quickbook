@@ -16,6 +16,7 @@
 #include "files.hpp"
 #include "native_text.hpp"
 #include "document_state.hpp"
+#include "bb2html.hpp"
 #include <boost/program_options.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/operations.hpp>
@@ -114,8 +115,10 @@ namespace quickbook
 
     struct parse_document_options
     {
+        enum output_format { boostbook, simple_html, chunked_html };
+
         parse_document_options() :
-            markup_format(quickbook::detail::markup::boostbook),
+            format(boostbook),
             indent(-1),
             linewidth(-1),
             pretty_print(true),
@@ -123,7 +126,7 @@ namespace quickbook
             deps_out_flags(quickbook::dependency_tracker::default_)
         {}
 
-        detail::markup::format markup_format;
+        output_format format;
         int indent;
         int linewidth;
         bool pretty_print;
@@ -148,7 +151,18 @@ namespace quickbook
         try {
             quickbook::state state(filein_, options_.xinclude_base, buffer, output);
             state.strict_mode = options_.strict_mode;
-            state.markup_format = options_.markup_format;
+            switch (options_.format) {
+            case parse_document_options::boostbook:
+            case parse_document_options::chunked_html:
+                state.markup_format = quickbook::detail::markup::boostbook;
+                break;
+            case parse_document_options::simple_html:
+                state.markup_format = quickbook::detail::markup::html;
+                break;
+            default:
+                state.markup_format = quickbook::detail::markup::boostbook;
+                assert(false);
+            }
             set_macros(state);
 
             if (state.error_count == 0) {
@@ -191,6 +205,27 @@ namespace quickbook
         {
             std::string stage2 = output.replace_placeholders(buffer.str());
 
+            if (options_.pretty_print)
+            {
+                try
+                {
+                    stage2 = post_process(stage2, options_.indent,
+                        options_.linewidth);
+                }
+                catch (quickbook::post_process_failure&)
+                {
+                    // fallback!
+                    ::quickbook::detail::outerr()
+                        << "Post Processing Failed."
+                        << std::endl;
+                    result = 1;
+                }
+            }
+
+            if (options_.format == parse_document_options::chunked_html && result == 0) {
+                stage2 = quickbook::detail::boostbook_to_html(stage2);
+            }
+
             fs::ofstream fileout(fileout_);
 
             if (fileout.fail()) {
@@ -202,27 +237,7 @@ namespace quickbook
                 return 1;
             }
 
-            if (options_.pretty_print)
-            {
-                try
-                {
-                    fileout << post_process(stage2, options_.indent,
-                        options_.linewidth);
-                }
-                catch (quickbook::post_process_failure&)
-                {
-                    // fallback!
-                    ::quickbook::detail::outerr()
-                        << "Post Processing Failed."
-                        << std::endl;
-                    fileout << stage2;
-                    return 1;
-                }
-            }
-            else
-            {
-                fileout << stage2;
-            }
+            fileout << stage2;
 
             if (fileout.fail()) {
                 ::quickbook::detail::outerr()
@@ -406,9 +421,9 @@ main(int argc, char* argv[])
         {
             std::string format = quickbook::detail::command_line_to_utf8(vm["output-format"].as<command_line_string>());
             if (format == "html") {
-                options.markup_format = quickbook::detail::markup::html;
+                options.format = quickbook::parse_document_options::chunked_html;
             } else if (format == "boostbook") {
-                options.markup_format = quickbook::detail::markup::boostbook;
+                options.format = quickbook::parse_document_options::boostbook;
             } else {
                 quickbook::detail::outerr()
                     << "Unknown output format: "
@@ -545,14 +560,16 @@ main(int argc, char* argv[])
             else if (default_output)
             {
                 fileout = filein;
-                switch (options.markup_format) {
-                case quickbook::detail::markup::html:
+                switch (options.format) {
+                case quickbook::parse_document_options::simple_html:
+                case quickbook::parse_document_options::chunked_html:
                     fileout.replace_extension(".html");
                     break;
-                case quickbook::detail::markup::boostbook:
+                case quickbook::parse_document_options::boostbook:
                     fileout.replace_extension(".xml");
                     break;
                 default:
+                    fileout.replace_extension(".xml");
                     assert(false);
                 }
             }
