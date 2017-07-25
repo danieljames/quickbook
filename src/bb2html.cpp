@@ -59,10 +59,16 @@ namespace quickbook { namespace detail {
             parent_(root_) {}
 
         void add_text_node(quickbook::string_view x) {
-            add_node(xml_element::text_node(x));
+            add_element(xml_element::text_node(x));
         }
 
-        void add_node(xml_element* n) {
+        xml_element* add_node(quickbook::string_view name) {
+            xml_element* node = xml_element::node(name);
+            add_element(node);
+            return node;
+        }
+
+        void add_element(xml_element* n) {
             n->parent_ = parent_;
             if (current_) {
                 current_->next_ = n;
@@ -84,7 +90,7 @@ namespace quickbook { namespace detail {
         }
     };
 
-    void read_string(quickbook::string_view::iterator& it, quickbook::string_view::iterator end) {
+    quickbook::string_view read_string(quickbook::string_view::iterator& it, quickbook::string_view::iterator end) {
         assert(it != end && (*it == '"' || *it == '\''));
 
         quickbook::string_view::iterator start = it;
@@ -95,6 +101,7 @@ namespace quickbook { namespace detail {
             throw boostbook_parse_error("Invalid string", start);
         }
         ++it;
+        return quickbook::string_view(start, it - start);
     }
 
     void skip_question_mark_tag(quickbook::string_view::iterator& it, quickbook::string_view::iterator start, quickbook::string_view::iterator end) {
@@ -164,14 +171,58 @@ namespace quickbook { namespace detail {
         return quickbook::string_view(name_start, it - name_start);
     }
 
+    quickbook::string_view read_attribute_value(quickbook::string_view::iterator& it, quickbook::string_view::iterator start, quickbook::string_view::iterator end) {
+        read_some_of(it, end, " \t\n\r");
+        quickbook::string_view::iterator value_start = it;
+        if (*it == '"' || *it == '\'') {
+            return read_string(it, end);
+        }
+        else {
+            return read_tag_name(it, start, end);
+        }
+    }
+
     void read_tag(xml_tree_builder& builder, quickbook::string_view::iterator& it, quickbook::string_view::iterator start, quickbook::string_view::iterator end) {
         assert(it == start + 1 && it != end);
         quickbook::string_view name = read_tag_name(it, start, end);
+        xml_element* node = builder.add_node(name);
+
+        // Read attributes
+        while (true) {
+            quickbook::string_view attribute_name = read_tag_name(it, start, end);
+            read_some_of(it, end, " \t\n\r");
+            if (it == end) {
+                throw boostbook_parse_error("Invalid tag", start);
+            }
+            if (*it == '>') {
+                break;
+            }
+            quickbook::string_view attribute_value;
+            if (*it == '=') {
+                ++it;
+                attribute_value = read_attribute_value(it, start, end);
+            }
+
+            node->attributes_.push_back(std::make_pair(
+                std::string(attribute_name.begin(), attribute_name.end()),
+                std::string(attribute_value.begin(), attribute_value.end())
+            ));
+        }
+
+        builder.start_children();
     }
 
     void read_close_tag(xml_tree_builder& builder, quickbook::string_view::iterator& it, quickbook::string_view::iterator start, quickbook::string_view::iterator end) {
         assert(it == start + 1 && it != end && *it == '/');
         quickbook::string_view name = read_tag_name(it, start, end);
+        read_some_of(it, end, " \t\n\r");
+        if (it == end || *it != '>') {
+            throw boostbook_parse_error("Invalid close tag", start);
+        }
+
+        // TODO: Check close matches parent.
+
+        builder.end_children();
     }
 
     std::string boostbook_to_html(quickbook::string_view source) {
