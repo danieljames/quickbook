@@ -10,7 +10,7 @@ http://www.boost.org/LICENSE_1_0.txt)
 #include "simple_parse.hpp"
 
 namespace quickbook { namespace detail {
-    std::string boostbook_to_html(std::string const& source) {
-        return "Convert to html: " + source;
+    std::string boostbook_to_html(quickbook::string_view source) {
+        return std::string(source.begin(), source.end());
     }
 }}

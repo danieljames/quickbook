@@ -13,7 +13,7 @@
 #include "string_view.hpp"
 
 namespace quickbook { namespace detail {
-    std::string boostbook_to_html(std::string const&);
+    std::string boostbook_to_html(quickbook::string_view);
 }}
 
 #endif // BOOST_QUICKBOOK_BOOSTBOOK_TO_HTML_HPP
