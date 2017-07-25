@@ -7,6 +7,7 @@ http://www.boost.org/LICENSE_1_0.txt)
 =============================================================================*/
 
 #include "bb2html.hpp"
+#include "simple_parse.hpp"
 
 namespace quickbook { namespace detail {
     std::string boostbook_to_html(std::string const& source) {
