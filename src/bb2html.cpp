@@ -294,8 +294,11 @@ namespace quickbook
             if (it == end || *it != '>') {
                 throw boostbook_parse_error("Invalid close tag", start);
             }
+            ++it;
 
-            // TODO: Check close matches parent.
+            if (!builder.parent_ || builder.parent_->name_ != name) {
+                throw boostbook_parse_error("Close tag doesn't match", start);
+            }
 
             builder.end_children();
         }
