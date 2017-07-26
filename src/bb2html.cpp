@@ -299,6 +299,44 @@ namespace quickbook { namespace detail {
         return generate_html(builder.root_->children_);
     }
 
+    // Chunker
+
+    boost::unordered_set<std::string> chunk_types;
+
+    static struct init_chunk_type {
+        init_chunk_type() {
+            chunk_types.insert("book");
+            chunk_types.insert("article");
+            chunk_types.insert("library");
+            chunk_types.insert("chapter");
+            chunk_types.insert("part");
+            chunk_types.insert("appendix");
+            chunk_types.insert("preface");
+            chunk_types.insert("qandadiv");
+            chunk_types.insert("qandaset");
+            chunk_types.insert("reference");
+            chunk_types.insert("set");
+        }
+    } init_chunk;
+
+    struct xml_chunks : xml_element {
+        xml_element* title_;
+        xml_element* root_;
+    }
+
+    void chunk_document(xml_element* root) {
+        xml_tree_builder builder;
+
+        for (xml_element it = root->children_; it; it = it->next_) {
+            if (it->type_ == xml_element::element_node && chunk_types.find(it->name_) != chunk_types.end()) {
+                // extract node and add to chunks.
+                // recurse over contents.
+            } else {
+                // add to parent?
+            }
+        }
+    }
+
     // HTML generator
 
     struct html_gen {
