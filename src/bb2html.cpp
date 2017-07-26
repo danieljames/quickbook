@@ -54,7 +54,7 @@ namespace quickbook { namespace detail {
         xml_element* parent_;
 
         xml_tree_builder() :
-            root_(new xml_element(xml_element::element_root, 0)),
+            root_(new xml_element(xml_element::element_root)),
             current_(0),
             parent_(root_) {}
 
@@ -155,6 +155,9 @@ namespace quickbook { namespace detail {
             case '\'':
                 read_string(it, end);
                 break;
+            case '>':
+                ++it;
+                return;
             default:
                 throw boostbook_parse_error("Invalid tag", start);
             }
@@ -164,7 +167,7 @@ namespace quickbook { namespace detail {
     quickbook::string_view read_tag_name(quickbook::string_view::iterator& it, quickbook::string_view::iterator start, quickbook::string_view::iterator end) {
         read_some_of(it, end, " \t\n\r");
         quickbook::string_view::iterator name_start = it;
-        read_some_of(it, end, "abcdefghijklmnopqrstuvwzyzABCDEFGHIJKLMNOPQRSTUVWXYZ");
+        read_some_of(it, end, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ:-");
         if (name_start == it) {
             throw boostbook_parse_error("Invalid tag", start);
         }
@@ -178,7 +181,7 @@ namespace quickbook { namespace detail {
             return read_string(it, end);
         }
         else {
-            return read_tag_name(it, start, end);
+            throw boostbook_parse_error("Invalid tag", start);
         }
     }
 
@@ -189,13 +192,15 @@ namespace quickbook { namespace detail {
 
         // Read attributes
         while (true) {
+            read_some_of(it, end, " \t\n\r");
+            if (*it == '>') {
+                ++it;
+                break;
+            }
             quickbook::string_view attribute_name = read_tag_name(it, start, end);
             read_some_of(it, end, " \t\n\r");
             if (it == end) {
                 throw boostbook_parse_error("Invalid tag", start);
-            }
-            if (*it == '>') {
-                break;
             }
             quickbook::string_view attribute_value;
             if (*it == '=') {
@@ -214,6 +219,7 @@ namespace quickbook { namespace detail {
 
     void read_close_tag(xml_tree_builder& builder, quickbook::string_view::iterator& it, quickbook::string_view::iterator start, quickbook::string_view::iterator end) {
         assert(it == start + 1 && it != end && *it == '/');
+        ++it;
         quickbook::string_view name = read_tag_name(it, start, end);
         read_some_of(it, end, " \t\n\r");
         if (it == end || *it != '>') {
@@ -233,7 +239,7 @@ namespace quickbook { namespace detail {
 
         while (true) {
             iterator start = it;
-            read_to_one_of(it, end, "<");
+            read_to(it, end, '<');
             if (start != it) {
                 builder.add_text_node(quickbook::string_view(start, it - start));
             }
