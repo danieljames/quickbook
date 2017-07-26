@@ -245,7 +245,20 @@ namespace quickbook
             // Read attributes
             while (true) {
                 read_some_of(it, end, " \t\n\r");
+                if (it == end) {
+                    throw boostbook_parse_error("Invalid tag", start);
+                }
                 if (*it == '>') {
+                    ++it;
+                    builder.start_children();
+                    break;
+                }
+                if (*it == '/') {
+                    ++it;
+                    read_some_of(it, end, " \t\n\r");
+                    if (it == end || *it != '>') {
+                        throw boostbook_parse_error("Invalid tag", start);
+                    }
                     ++it;
                     break;
                 }
@@ -266,8 +279,6 @@ namespace quickbook
                     std::string(
                         attribute_value.begin(), attribute_value.end())));
             }
-
-            builder.start_children();
         }
 
         void read_close_tag(
