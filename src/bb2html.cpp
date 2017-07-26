@@ -9,6 +9,9 @@ http://www.boost.org/LICENSE_1_0.txt)
 #include "bb2html.hpp"
 #include <cassert>
 #include <vector>
+#include <boost/preprocessor/cat.hpp>
+#include <boost/preprocessor/stringize.hpp>
+#include <boost/unordered_map.hpp>
 #include "simple_parse.hpp"
 
 namespace quickbook
@@ -64,6 +67,19 @@ namespace quickbook
             {
                 return new xml_element(element_node, x);
             }
+
+            std::string* get_attribute(quickbook::string_view name)
+            {
+                for (std::vector<std::pair<std::string, std::string> >::iterator
+                         it = attributes_.begin(),
+                         end = attributes_.end();
+                     it != end; ++it) {
+                    if (name == it->first) {
+                        return &it->second;
+                    }
+                }
+                return 0;
+            }
         };
 
         struct xml_tree_builder
@@ -116,6 +132,8 @@ namespace quickbook
                 parent_ = current_->parent_;
             }
         };
+
+        std::string generate_html(xml_element*);
 
         quickbook::string_view read_string(
             quickbook::string_view::iterator& it,
@@ -273,7 +291,7 @@ namespace quickbook
                     ++it;
                     attribute_value = read_attribute_value(it, start, end);
                 }
-
+                // TODO: Decode attribute value
                 node->attributes_.push_back(std::make_pair(
                     std::string(attribute_name.begin(), attribute_name.end()),
                     std::string(
@@ -342,7 +360,341 @@ namespace quickbook
                 }
             }
 
-            return "";
+            std::string html;
+            return generate_html(builder.root_->children_);
+        }
+
+        // HTML generator
+
+        struct html_gen
+        {
+            std::string html;
+        };
+
+        void document(html_gen&, xml_element*);
+        typedef void (*node_parser)(html_gen&, xml_element*);
+        typedef boost::unordered_map<quickbook::string_view, node_parser>
+            node_parsers_type;
+        static node_parsers_type node_parsers;
+
+        void open_tag(html_gen& gen, quickbook::string_view name)
+        {
+            gen.html += "<";
+            gen.html.append(name.begin(), name.end());
+            gen.html += ">";
+        }
+
+        void close_tag(html_gen& gen, quickbook::string_view name)
+        {
+            gen.html += "</";
+            gen.html.append(name.begin(), name.end());
+            gen.html += ">";
+        }
+
+        void tag(
+            html_gen& gen, quickbook::string_view name, xml_element* children)
+        {
+            open_tag(gen, name);
+            document(gen, children);
+            close_tag(gen, name);
+        }
+
+        void document(html_gen& gen, xml_element* x)
+        {
+            for (; x; x = x->next_) {
+                switch (x->type_) {
+                case xml_element::element_text: {
+                    gen.html += x->contents_;
+                    break;
+                }
+                case xml_element::element_node: {
+                    node_parsers_type::iterator it =
+                        node_parsers.find(x->name_);
+                    if (it != node_parsers.end()) {
+                        it->second(gen, x);
+                    }
+                    else if (x->children_) {
+                        document(gen, x->children_);
+                    }
+                    break;
+                }
+                default:
+                    assert(false);
+                }
+            }
+        }
+
+#define NODE_RULE(tag_name, gen, x)                                            \
+    void BOOST_PP_CAT(parser_, tag_name)(html_gen&, xml_element*);             \
+    static struct BOOST_PP_CAT(register_parser_type_, tag_name)                \
+    {                                                                          \
+        BOOST_PP_CAT(register_parser_type_, tag_name)()                        \
+        {                                                                      \
+            node_parsers.emplace(                                              \
+                BOOST_PP_STRINGIZE(tag_name),                                  \
+                BOOST_PP_CAT(parser_, tag_name));                              \
+        }                                                                      \
+    } BOOST_PP_CAT(register_parser_, tag_name);                                \
+    void BOOST_PP_CAT(parser_, tag_name)(html_gen & gen, xml_element * x)
+
+#define NODE_MAP(tag_name, html_name)                                          \
+    NODE_RULE(tag_name, gen, x)                                                \
+    {                                                                          \
+        tag(gen, BOOST_PP_STRINGIZE(html_name), x->children_);                 \
+    }
+
+        NODE_MAP(para, p)
+        NODE_MAP(simpara, div)
+        NODE_MAP(title, h3)
+        NODE_MAP(orderedlist, ol)
+        NODE_MAP(itemizedlist, ul)
+        NODE_MAP(listitem, li)
+        NODE_MAP(blockquote, blockquote)
+        NODE_MAP(code, code)
+        NODE_MAP(macronname, code)
+        NODE_MAP(classname, code)
+        NODE_MAP(programlisting, pre)
+        NODE_MAP(literal, tt)
+        NODE_MAP(subscript, sub)
+        NODE_MAP(superscript, sup)
+
+        NODE_RULE(section, gen, x)
+        {
+            std::string* value = x->get_attribute("id");
+
+            gen.html += "<div";
+            if (value) {
+                gen.html += " id = \"";
+                gen.html += *value;
+                gen.html += "\"";
+            }
+            gen.html += ">";
+            document(gen, x->children_);
+            gen.html += "</div>";
+        }
+
+        NODE_RULE(ulink, gen, x)
+        {
+            // TODO: error if missing?
+            std::string* value = x->get_attribute("url");
+
+            gen.html += "<a";
+            if (value) {
+                gen.html += " href = \"";
+                gen.html += *value;
+                gen.html += "\"";
+            }
+            gen.html += ">";
+            document(gen, x->children_);
+            gen.html += "</a>";
+        }
+
+        NODE_RULE(link, gen, x)
+        {
+            gen.html += "<span class=\"link\">";
+            document(gen, x->children_);
+            gen.html += "</span>";
+        }
+
+        NODE_RULE(phrase, gen, x)
+        {
+            std::string* value = x->get_attribute("role");
+
+            gen.html += "<span";
+            if (value) {
+                gen.html += " class = \"";
+                gen.html += *value;
+                gen.html += "\"";
+            }
+            gen.html += ">";
+            document(gen, x->children_);
+            gen.html += "</span>";
+        }
+
+        NODE_RULE(emphasis, gen, x)
+        {
+            std::string* value = x->get_attribute("role");
+            quickbook::string_view tag_name = "em";
+            if (value && (*value == "bold" || *value == "strong")) {
+                tag_name = "strong";
+            }
+            // TODO: Error on unrecognized role + case insensitive
+            return tag(gen, tag_name, x->children_);
+        }
+
+        NODE_RULE(inlinemediaobject, gen, x)
+        {
+            std::string* image;
+
+            // Get image link
+            for (xml_element* i = x->children_; i; i = i->next_) {
+                if (i->type_ == xml_element::element_node &&
+                    i->name_ == "imageobject") {
+                    for (xml_element* j = i->children_; j; j = j->next_) {
+                        if (j->type_ == xml_element::element_node &&
+                            j->name_ == "imagedata") {
+                            image = j->get_attribute("fileref");
+                            if (image) {
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+
+            std::string alt;
+            for (xml_element* i = x->children_; i; i = i->next_) {
+                if (i->type_ == xml_element::element_node &&
+                    i->name_ == "textobject") {
+                    for (xml_element* j = i->children_; j; j = j->next_) {
+                        if (j->type_ == xml_element::element_node &&
+                            j->name_ == "pharse") {
+                            std::string* role = j->get_attribute("role");
+                            if (role && *role == "alt") {
+                                alt = generate_html(j->children_);
+                            }
+                        }
+                    }
+                }
+            }
+            // TODO: This was in the original php code, not sure why.
+            if (alt.empty()) {
+                alt = "[]";
+            }
+            if (image) {
+                gen.html += "<img src=\"";
+                gen.html += *image;
+                gen.html += "\" alt=\"";
+                gen.html += alt;
+                gen.html += "\">";
+            }
+        }
+
+        NODE_RULE(variablelist, gen, x)
+        {
+            typedef std::vector<std::pair<xml_element*, xml_element*> >
+                items_type;
+            items_type items;
+            for (xml_element* i = x->children_; i; i = i->next_) {
+                if (i && i->type_ == xml_element::element_node) {
+                    if (i->name_ == "title") {
+                        // TODO: What to do with titles?
+                        continue;
+                    }
+                    else if (i->name_ == "varlistentry") {
+                        xml_element* term = 0;
+                        xml_element* listitem = 0;
+                        for (xml_element* j = i->children_; j; j = j->next_) {
+                            if (j && j->type_ == xml_element::element_node) {
+                                if (j->name_ == "term") {
+                                    term = j;
+                                }
+                                else if (j->name_ == "listitem") {
+                                    listitem = j;
+                                }
+                            }
+                        }
+                        if (term && listitem) {
+                            items.push_back(std::make_pair(term, listitem));
+                        }
+                    }
+                }
+            }
+
+            if (!items.empty()) {
+                open_tag(gen, "dl");
+                for (items_type::iterator i = items.begin(); i != items.end();
+                     ++i) {
+                    open_tag(gen, "dt");
+                    document(gen, i->first->children_);
+                    close_tag(gen, "dt");
+                    open_tag(gen, "dd");
+                    document(gen, i->second->children_);
+                    close_tag(gen, "dd");
+                }
+                close_tag(gen, "dl");
+            }
+        }
+
+        void write_table_rows(html_gen& gen, xml_element* x, char const* td_tag)
+        {
+            for (xml_element* i = x->children_; i; i = i->next_) {
+                if (i->type_ == xml_element::element_node &&
+                    i->name_ == "row") {
+                    open_tag(gen, "tr");
+                    for (xml_element* j = i->children_; j; j = j->next_) {
+                        if (j->type_ == xml_element::element_node &&
+                            j->name_ == "entry") {
+                            open_tag(gen, td_tag);
+                            document(gen, j->children_);
+                            close_tag(gen, td_tag);
+                        }
+                    }
+                    close_tag(gen, "tr");
+                }
+            }
+        }
+
+        void write_table(html_gen& gen, xml_element* x)
+        {
+            xml_element* title = 0;
+            xml_element* tgroup = 0;
+            xml_element* thead = 0;
+            xml_element* tbody = 0;
+
+            for (xml_element* i = x->children_; i; i = i->next_) {
+                if (i->type_ == xml_element::element_node &&
+                    i->name_ == "title") {
+                    title = i;
+                }
+                if (i->type_ == xml_element::element_node &&
+                    i->name_ == "tgroup") {
+                    tgroup = i;
+                }
+            }
+
+            if (!tgroup) {
+                return;
+            }
+
+            for (xml_element* i = tgroup->children_; i; i = i->next_) {
+                if (i->type_ == xml_element::element_node &&
+                    i->name_ == "thead") {
+                    thead = i;
+                }
+                if (i->type_ == xml_element::element_node &&
+                    i->name_ == "tbody") {
+                    tbody = i;
+                }
+            }
+
+            open_tag(gen, "table");
+            if (title) {
+                open_tag(gen, "caption");
+                document(gen, title->children_);
+                close_tag(gen, "caption");
+            }
+            if (thead) {
+                open_tag(gen, "thead");
+                write_table_rows(gen, thead, "th");
+                close_tag(gen, "thead");
+            }
+            if (tbody) {
+                open_tag(gen, "tbody");
+                write_table_rows(gen, tbody, "td");
+                close_tag(gen, "tbody");
+            }
+            close_tag(gen, "table");
+        }
+
+        NODE_RULE(table, gen, x) { write_table(gen, x); }
+        NODE_RULE(informaltable, gen, x) { write_table(gen, x); }
+
+        std::string generate_html(xml_element* x)
+        {
+            html_gen gen;
+            document(gen, x);
+            return gen.html;
         }
     }
 }
