@@ -288,6 +288,24 @@ namespace quickbook { namespace detail {
         return html;
     }
 
+    void open_tag(std::string& html, quickbook::string_view name) {
+        html += "<";
+        html.append(name.begin(), name.end());
+        html += ">";
+    }
+
+    void close_tag(std::string& html, quickbook::string_view name) {
+        html += "</";
+        html.append(name.begin(), name.end());
+        html += ">";
+    }
+
+    void tag(std::string& html, quickbook::string_view name, xml_element* children) {
+        open_tag(html, name);
+        generate_html(html, children);
+        close_tag(html, name);
+    }
+
     void generate_html(std::string& html, xml_element* x) {
         for (; x; x = x->next_) {
             switch (x->type_) {
@@ -295,7 +313,10 @@ namespace quickbook { namespace detail {
                 html += x->contents_;
                 break;
             case xml_element::element_node:
-                if (x->children_) {
+                if (x->name_ == "para") {
+                    tag(html, "p", x->children_);
+                }
+                else if (x->children_) {
                     generate_html(html, x->children_);
                 }
                 break;
