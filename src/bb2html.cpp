@@ -22,6 +22,7 @@ namespace quickbook { namespace detail {
         xml_element* parent_;
         xml_element* children_;
         xml_element* next_;
+        xml_element* prev_;
         std::string contents_;
 
         explicit xml_element(element_type n) :
@@ -30,7 +31,8 @@ namespace quickbook { namespace detail {
             attributes_(),
             parent_(),
             children_(),
-            next_() {}
+            next_(),
+            prev_() {}
 
         explicit xml_element(element_type n, quickbook::string_view name) :
             type_(n),
@@ -38,7 +40,8 @@ namespace quickbook { namespace detail {
             parent_(),
             attributes_(),
             children_(),
-            next_() {}
+            next_(),
+            prev_() {}
 
         static xml_element* text_node(quickbook::string_view x) {
             xml_element* n = new xml_element(element_text);
@@ -82,6 +85,7 @@ namespace quickbook { namespace detail {
 
         void add_element(xml_element* n) {
             n->parent_ = parent_;
+            n->prev_ = current_;
             if (current_) {
                 current_->next_ = n;
             }
