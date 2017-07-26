@@ -90,7 +90,7 @@ namespace quickbook { namespace detail {
         }
     };
 
-    void generate_html(std::string&, xml_element*);
+    std::string generate_html(xml_element*);
 
     quickbook::string_view read_string(quickbook::string_view::iterator& it, quickbook::string_view::iterator end) {
         assert(it != end && (*it == '"' || *it == '\''));
@@ -284,45 +284,58 @@ namespace quickbook { namespace detail {
         }
 
         std::string html;
-        generate_html(html, builder.root_->children_);
-        return html;
+        return generate_html(builder.root_->children_);
     }
 
-    void open_tag(std::string& html, quickbook::string_view name) {
-        html += "<";
-        html.append(name.begin(), name.end());
-        html += ">";
+    // HTML generator
+
+    struct html_gen {
+        std::string html;
+    };
+
+    void document(html_gen&, xml_element*);
+
+    void open_tag(html_gen& gen, quickbook::string_view name) {
+        gen.html += "<";
+        gen.html.append(name.begin(), name.end());
+        gen.html += ">";
     }
 
-    void close_tag(std::string& html, quickbook::string_view name) {
-        html += "</";
-        html.append(name.begin(), name.end());
-        html += ">";
+    void close_tag(html_gen& gen, quickbook::string_view name) {
+        gen.html += "</";
+        gen.html.append(name.begin(), name.end());
+        gen.html += ">";
     }
 
-    void tag(std::string& html, quickbook::string_view name, xml_element* children) {
-        open_tag(html, name);
-        generate_html(html, children);
-        close_tag(html, name);
+    void tag(html_gen& gen, quickbook::string_view name, xml_element* children) {
+        open_tag(gen, name);
+        document(gen, children);
+        close_tag(gen, name);
     }
 
-    void generate_html(std::string& html, xml_element* x) {
+    void document(html_gen& gen, xml_element* x) {
         for (; x; x = x->next_) {
             switch (x->type_) {
             case xml_element::element_text:
-                html += x->contents_;
+                gen.html += x->contents_;
                 break;
             case xml_element::element_node:
                 if (x->name_ == "para") {
-                    tag(html, "p", x->children_);
+                    tag(gen, "p", x->children_);
                 }
                 else if (x->children_) {
-                    generate_html(html, x->children_);
+                    document(gen, x->children_);
                 }
                 break;
             default:
                 assert(false);
             }
         }
+    }
+
+    std::string generate_html(xml_element* x) {
+        html_gen gen;
+        document(gen, x);
+        return gen.html;
     }
 }}
