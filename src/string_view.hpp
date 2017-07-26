@@ -10,6 +10,7 @@
 #define BOOST_SPIRIT_QUICKBOOK_STRING_VIEW_HPP
 
 #include <boost/utility/string_view.hpp>
+#include <boost/functional/hash/hash_fwd.hpp>
 
 namespace quickbook {
     // boost::string_view now can't be constructed from an rvalue std::string,
@@ -29,6 +30,10 @@ namespace quickbook {
     };
 
     typedef quickbook::string_view::const_iterator string_iterator;
+
+    inline std::size_t hash_value(string_view const& x) {
+        return boost::hash_range(x.begin(), x.end());
+    }
 }
 
 #endif

@@ -10,6 +10,7 @@ http://www.boost.org/LICENSE_1_0.txt)
 #include "simple_parse.hpp"
 #include <vector>
 #include <cassert>
+#include <boost/unordered_map.hpp>
 
 namespace quickbook { namespace detail {
     struct xml_element {
@@ -294,6 +295,9 @@ namespace quickbook { namespace detail {
     };
 
     void document(html_gen&, xml_element*);
+    typedef void(*node_parser)(html_gen&, xml_element*);
+    typedef boost::unordered_map<quickbook::string_view, node_parser> node_parsers_type;
+    static node_parsers_type node_parsers;
 
     void open_tag(html_gen& gen, quickbook::string_view name) {
         gen.html += "<";
@@ -316,24 +320,38 @@ namespace quickbook { namespace detail {
     void document(html_gen& gen, xml_element* x) {
         for (; x; x = x->next_) {
             switch (x->type_) {
-            case xml_element::element_text:
+            case xml_element::element_text: {
                 gen.html += x->contents_;
                 break;
-            case xml_element::element_node:
-                if (x->name_ == "para") {
-                    tag(gen, "p", x->children_);
+            }
+            case xml_element::element_node: {
+                node_parsers_type::iterator it = node_parsers.find(x->name_);
+                if (it != node_parsers.end()) {
+                    it->second(gen, x);
                 }
                 else if (x->children_) {
                     document(gen, x->children_);
                 }
                 break;
+            }
             default:
                 assert(false);
             }
         }
     }
 
+    void parser_para(html_gen& gen, xml_element* x) {
+        tag(gen, "p", x->children_);
+    }
+
+    void fill_node_parsers() {
+        node_parsers.emplace("para", parser_para);
+    }
+
     std::string generate_html(xml_element* x) {
+        if (node_parsers.empty()) {
+            fill_node_parsers();
+        }
         html_gen gen;
         document(gen, x);
         return gen.html;
