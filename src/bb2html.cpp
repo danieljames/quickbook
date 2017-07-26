@@ -11,6 +11,8 @@ http://www.boost.org/LICENSE_1_0.txt)
 #include <vector>
 #include <cassert>
 #include <boost/unordered_map.hpp>
+#include <boost/preprocessor/cat.hpp>
+#include <boost/preprocessor/stringize.hpp>
 
 namespace quickbook { namespace detail {
     struct xml_element {
@@ -46,6 +48,15 @@ namespace quickbook { namespace detail {
 
         static xml_element* node(quickbook::string_view x) {
             return new xml_element(element_node, x);
+        }
+
+        std::string* get_attribute(quickbook::string_view name) {
+            for (std::vector<std::pair<std::string, std::string> >::iterator
+                it = attributes_.begin(), end = attributes_.end();
+                it != end; ++it) {
+                if (name == it->first) { return &it->second; }
+            }
+            return 0;
         }
     };
 
@@ -223,7 +234,7 @@ namespace quickbook { namespace detail {
                 ++it;
                 attribute_value = read_attribute_value(it, start, end);
             }
-
+            // TODO: Decode attribute value
             node->attributes_.push_back(std::make_pair(
                 std::string(attribute_name.begin(), attribute_name.end()),
                 std::string(attribute_value.begin(), attribute_value.end())
@@ -340,18 +351,130 @@ namespace quickbook { namespace detail {
         }
     }
 
-    void parser_para(html_gen& gen, xml_element* x) {
-        tag(gen, "p", x->children_);
+#define NODE_RULE(tag_name, gen, x) \
+    void BOOST_PP_CAT(parser_, tag_name)(html_gen&, xml_element*); \
+    static struct BOOST_PP_CAT(register_parser_type_, tag_name) { \
+        BOOST_PP_CAT(register_parser_type_, tag_name)() { \
+            node_parsers.emplace(BOOST_PP_STRINGIZE(tag_name), \
+                BOOST_PP_CAT(parser_, tag_name)); \
+        } \
+    } BOOST_PP_CAT(register_parser_, tag_name); \
+    void BOOST_PP_CAT(parser_, tag_name)(html_gen& gen, xml_element* x)
+
+#define NODE_MAP(tag_name, html_name) \
+    NODE_RULE(tag_name, gen, x) { \
+        tag(gen, BOOST_PP_STRINGIZE(html_name), x->children_); \
     }
 
-    void fill_node_parsers() {
-        node_parsers.emplace("para", parser_para);
+    NODE_MAP(para, p)
+    NODE_MAP(simpara, div)
+    NODE_MAP(title, h3)
+    NODE_MAP(orderedlist, ol)
+    NODE_MAP(itemizedlist, ul)
+    NODE_MAP(listitem, li)
+    NODE_MAP(blockquote, blockquote)
+    NODE_MAP(code, code)
+    NODE_MAP(macronname, code)
+    NODE_MAP(classname, code)
+    NODE_MAP(programlisting, pre)
+    NODE_MAP(literal, tt)
+    NODE_MAP(subscript, sub)
+    NODE_MAP(superscript, sup)
+
+    NODE_RULE(section, gen, x) {
+        std::string* value = x->get_attribute("id");
+
+        gen.html += "<div";
+        if (value) {
+            gen.html += " id = \"";
+            gen.html += *value;
+            gen.html += "\"";
+        }
+        gen.html += ">";
+        document(gen, x->children_);
+        gen.html += "</div>";
     }
+
+    NODE_RULE(ulink, gen, x) {
+        // TODO: error if missing?
+        std::string* value = x->get_attribute("url");
+
+        gen.html += "<a";
+        if (value) {
+            gen.html += " href = \"";
+            gen.html += *value;
+            gen.html += "\"";
+        }
+        gen.html += ">";
+        document(gen, x->children_);
+        gen.html += "</a>";
+    }
+
+    NODE_RULE(link, gen, x) {
+        gen.html += "<span class=\"link\">";
+        document(gen, x->children_);
+        gen.html += "</span>";
+    }
+
+    NODE_RULE(phrase, gen, x) {
+        std::string* value = x->get_attribute("role");
+
+        gen.html += "<span";
+        if (value) {
+            gen.html += " class = \"";
+            gen.html += *value;
+            gen.html += "\"";
+        }
+        gen.html += ">";
+        document(gen, x->children_);
+        gen.html += "</span>";
+    }
+
+    NODE_RULE(emphasis, gen, x) {
+        std::string* value = x->get_attribute("role");
+        quickbook::string_view tag_name = "em";
+        if (value && (*value == "bold" || *value == "strong")) {
+            tag_name = "strong";
+        }
+        // TODO: Error on unrecognized role + case insensitive
+        return tag(gen, tag_name, x->children_);
+    }
+
+    /* TODO: convert to C++
+    function x_inlinemediaobject($state) {
+        $image = $this->get_child_with_tag($state, 'imageobject');
+        if ($image) {
+            $image = $this->get_child_with_tag($image, 'imagedata');
+            if ($image) {
+                $image = $image->get_attribute('fileref');
+            }
+        }
+        $alt = $this->get_child_with_tag($state, 'textobject');
+        if ($alt) {
+            $alt = $this->get_child_with_tag($alt, 'phrase');
+            if ($alt && $alt->get_attribute('role') == 'alt') {
+                $alt = $this->convert_children_to_xhtml($alt);
+            }
+            else {
+                $alt = null;
+            }
+        }
+        if (!$alt) {
+            $alt = '[]';
+        }
+        $this->skip_to_end_of_tag($state);
+        if ($image) {
+            return $this->new_node('img', '', array(
+                'src' = > $image,
+                'alt' = > $alt));
+        }
+        else {
+            return '';
+        }
+    }
+    */
 
     std::string generate_html(xml_element* x) {
-        if (node_parsers.empty()) {
-            fill_node_parsers();
-        }
         html_gen gen;
         document(gen, x);
         return gen.html;
