@@ -201,7 +201,9 @@ namespace quickbook
             result = 1;
         }
 
-        if (!fileout_.empty() && result == 0)
+        if (result) { return result; }
+
+        if (!fileout_.empty())
         {
             std::string stage2 = output.replace_placeholders(buffer.str());
 
@@ -214,15 +216,21 @@ namespace quickbook
                 }
                 catch (quickbook::post_process_failure&)
                 {
-                    // fallback!
                     ::quickbook::detail::outerr()
                         << "Post Processing Failed."
                         << std::endl;
-                    result = 1;
+                    if (options_.format == parse_document_options::boostbook) {
+                        // Can still write out a boostbook file, but return an
+                        // error code.
+                        result = 1;
+                    }
+                    else {
+                        return 1;
+                    }
                 }
             }
 
-            if (options_.format == parse_document_options::chunked_html && result == 0) {
+            if (options_.format == parse_document_options::chunked_html) {
                 try {
                     stage2 = quickbook::detail::boostbook_to_html(stage2);
                 }
@@ -251,6 +259,8 @@ namespace quickbook
                         << indent
                         << "^"
                         << "\n\n";
+
+                    return 1;
                 }
             }
 
