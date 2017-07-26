@@ -115,7 +115,7 @@ namespace quickbook { namespace detail {
             throw boostbook_parse_error("Invalid string", start);
         }
         ++it;
-        return quickbook::string_view(start, it - start);
+        return quickbook::string_view(start + 1, it - start - 2);
     }
 
     void skip_question_mark_tag(quickbook::string_view::iterator& it, quickbook::string_view::iterator start, quickbook::string_view::iterator end) {
