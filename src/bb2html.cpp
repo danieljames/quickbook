@@ -226,7 +226,6 @@ namespace quickbook { namespace detail {
                 std::string(attribute_value.begin(), attribute_value.end())
             ));
         }
-
     }
 
     void read_close_tag(xml_tree_builder& builder, quickbook::string_view::iterator& it, quickbook::string_view::iterator start, quickbook::string_view::iterator end) {
