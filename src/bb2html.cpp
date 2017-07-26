@@ -11,6 +11,7 @@ http://www.boost.org/LICENSE_1_0.txt)
 #include <vector>
 #include <cassert>
 #include <boost/unordered_map.hpp>
+#include <boost/unordered_set.hpp>
 #include <boost/preprocessor/cat.hpp>
 #include <boost/preprocessor/stringize.hpp>
 
@@ -326,12 +327,12 @@ namespace quickbook { namespace detail {
     struct xml_chunks : xml_element {
         xml_element* title_;
         xml_element* root_;
-    }
+    };
 
     void chunk_document(xml_element* root) {
         xml_tree_builder builder;
 
-        for (xml_element it = root->children_; it; it = it->next_) {
+        for (xml_element* it = root->children_; it; it = it->next_) {
             if (it->type_ == xml_element::element_node && chunk_types.find(it->name_) != chunk_types.end()) {
                 // extract node and add to chunks.
                 // recurse over contents.
