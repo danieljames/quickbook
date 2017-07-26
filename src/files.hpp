@@ -42,6 +42,10 @@ namespace quickbook {
         friend std::ostream& operator<<(std::ostream&, file_position const&);
     };
 
+    file_position relative_position(
+        quickbook::string_view::const_iterator begin,
+        quickbook::string_view::const_iterator iterator);
+
     struct file
     {
     private:

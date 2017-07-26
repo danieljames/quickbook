@@ -14,7 +14,10 @@
 
 namespace quickbook { namespace detail {
     struct boostbook_parse_error {
-        boostbook_parse_error(char const*, quickbook::string_view::iterator) {}
+        char const* message;
+        quickbook::string_view::iterator pos;
+
+        boostbook_parse_error(char const* m, quickbook::string_view::iterator p) : message(m), pos(p) {}
     };
     std::string boostbook_to_html(quickbook::string_view);
 }}
