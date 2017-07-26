@@ -520,6 +520,70 @@ namespace quickbook { namespace detail {
         }
     }
 
+    void write_table_rows(html_gen& gen, xml_element* x, char const* td_tag) {
+        for(xml_element* i = x->children_; i; i = i->next_) {
+            if (i->type_ == xml_element::element_node && i->name_ == "row") {
+                open_tag(gen, "tr");
+                for(xml_element* j = i->children_; j; j = j->next_) {
+                    if (j->type_ == xml_element::element_node && j->name_ == "entry") {
+                        open_tag(gen, td_tag);
+                        document(gen, j->children_);
+                        close_tag(gen, td_tag);
+                    }
+                }
+                close_tag(gen, "tr");
+            }
+        }
+    }
+
+    void write_table(html_gen& gen, xml_element* x) {
+        xml_element* title = 0;
+        xml_element* tgroup = 0;
+        xml_element* thead = 0;
+        xml_element* tbody = 0;
+
+        for(xml_element* i = x->children_; i; i = i->next_) {
+            if (i->type_ == xml_element::element_node && i->name_ == "title") {
+                title = i;
+            }
+            if (i->type_ == xml_element::element_node && i->name_ == "tgroup") {
+                tgroup = i;
+            }
+        }
+
+        if (!tgroup) { return; }
+
+        for(xml_element* i = tgroup->children_; i; i = i->next_) {
+            if (i->type_ == xml_element::element_node && i->name_ == "thead") {
+                thead = i;
+            }
+            if (i->type_ == xml_element::element_node && i->name_ == "tbody") {
+                tbody = i;
+            }
+        }
+
+        open_tag(gen, "table");
+        if (title) {
+            open_tag(gen, "caption");
+            document(gen, title->children_);
+            close_tag(gen, "caption");
+        }
+        if (thead) {
+            open_tag(gen, "thead");
+            write_table_rows(gen, thead, "th");
+            close_tag(gen, "thead");
+        }
+        if (tbody) {
+            open_tag(gen, "tbody");
+            write_table_rows(gen, tbody, "td");
+            close_tag(gen, "tbody");
+        }
+        close_tag(gen, "table");
+    }
+
+    NODE_RULE(table, gen, x) { write_table(gen, x); }
+    NODE_RULE(informaltable, gen, x) { write_table(gen, x); }
+
     std::string generate_html(xml_element* x) {
         html_gen gen;
         document(gen, x);
