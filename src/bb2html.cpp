@@ -90,6 +90,8 @@ namespace quickbook { namespace detail {
         }
     };
 
+    void generate_html(std::string&, xml_element*);
+
     quickbook::string_view read_string(quickbook::string_view::iterator& it, quickbook::string_view::iterator end) {
         assert(it != end && (*it == '"' || *it == '\''));
 
@@ -281,6 +283,25 @@ namespace quickbook { namespace detail {
             }
         }
 
-        return "";
+        std::string html;
+        generate_html(html, builder.root_->children_);
+        return html;
+    }
+
+    void generate_html(std::string& html, xml_element* x) {
+        for (; x; x = x->next_) {
+            switch (x->type_) {
+            case xml_element::element_text:
+                html += x->contents_;
+                break;
+            case xml_element::element_node:
+                if (x->children_) {
+                    generate_html(html, x->children_);
+                }
+                break;
+            default:
+                assert(false);
+            }
+        }
     }
 }}
