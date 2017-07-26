@@ -440,39 +440,44 @@ namespace quickbook { namespace detail {
         return tag(gen, tag_name, x->children_);
     }
 
-    /* TODO: convert to C++
-    function x_inlinemediaobject($state) {
-        $image = $this->get_child_with_tag($state, 'imageobject');
-        if ($image) {
-            $image = $this->get_child_with_tag($image, 'imagedata');
-            if ($image) {
-                $image = $image->get_attribute('fileref');
+    NODE_RULE(inlinemediaobject, gen, x) {
+        std::string* image;
+
+        // Get image link
+        for(xml_element* i = x->children_; i; i = i->next_) {
+            if (i->type_ == xml_element::element_node && i->name_ == "imageobject") {
+                for(xml_element* j = i->children_; j; j = j->next_) {
+                    if (j->type_ == xml_element::element_node && j->name_ == "imagedata") {
+                        image = j->get_attribute("fileref");
+                        if (image) { break; }
+                    }
+                }
             }
         }
-        $alt = $this->get_child_with_tag($state, 'textobject');
-        if ($alt) {
-            $alt = $this->get_child_with_tag($alt, 'phrase');
-            if ($alt && $alt->get_attribute('role') == 'alt') {
-                $alt = $this->convert_children_to_xhtml($alt);
+
+        std::string alt;
+        for(xml_element* i = x->children_; i; i = i->next_) {
+            if (i->type_ == xml_element::element_node && i->name_ == "textobject") {
+                for(xml_element* j = i->children_; j; j = j->next_) {
+                    if (j->type_ == xml_element::element_node && j->name_ == "pharse") {
+                        std::string* role = j->get_attribute("role");
+                        if (role && *role == "alt") {
+                            alt = generate_html(j->children_);
+                        }
+                    }
+                }
             }
-            else {
-                $alt = null;
-            }
         }
-        if (!$alt) {
-            $alt = '[]';
-        }
-        $this->skip_to_end_of_tag($state);
-        if ($image) {
-            return $this->new_node('img', '', array(
-                'src' = > $image,
-                'alt' = > $alt));
-        }
-        else {
-            return '';
+        // TODO: This was in the original php code, not sure why.
+        if (alt.empty()) { alt = "[]"; }
+        if (image) {
+            gen.html += "<img src=\"";
+            gen.html += *image;
+            gen.html += "\" alt=\"";
+            gen.html += alt;
+            gen.html += "\">";
         }
     }
-    */
 
     std::string generate_html(xml_element* x) {
         html_gen gen;
