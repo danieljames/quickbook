@@ -479,6 +479,47 @@ namespace quickbook { namespace detail {
         }
     }
 
+    NODE_RULE(variablelist, gen, x) {
+        typedef std::vector<std::pair<xml_element*, xml_element*> > items_type;
+        items_type items;
+        for (xml_element* i = x->children_; i; i = i->next_) {
+            if (i && i->type_ == xml_element::element_node) {
+                if (i->name_ == "title") {
+                    // TODO: What to do with titles?
+                    continue;
+                } else if (i->name_ == "varlistentry") {
+                    xml_element* term = 0;
+                    xml_element* listitem = 0;
+                    for (xml_element* j = i->children_; j; j = j->next_) {
+                        if (j && j->type_ == xml_element::element_node) {
+                            if (j->name_ == "term") {
+                                term = j;
+                            } else if (j->name_ == "listitem") {
+                                listitem = j;
+                            }
+                        }
+                    }
+                    if (term && listitem) {
+                        items.push_back(std::make_pair(term, listitem));
+                    }
+                }
+            }
+        }
+
+        if (!items.empty()) {
+            open_tag(gen, "dl");
+            for(items_type::iterator i = items.begin(); i != items.end(); ++i) {
+                open_tag(gen, "dt");
+                document(gen, i->first->children_);
+                close_tag(gen, "dt");
+                open_tag(gen, "dd");
+                document(gen, i->second->children_);
+                close_tag(gen, "dd");
+            }
+            close_tag(gen, "dl");
+        }
+    }
+
     std::string generate_html(xml_element* x) {
         html_gen gen;
         document(gen, x);
