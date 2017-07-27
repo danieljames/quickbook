@@ -9,10 +9,17 @@ http://www.boost.org/LICENSE_1_0.txt)
 #include "bb2html.hpp"
 #include <cassert>
 #include <vector>
+#include <boost/filesystem/fstream.hpp>
 #include <boost/preprocessor/cat.hpp>
 #include <boost/preprocessor/stringize.hpp>
 #include <boost/unordered_map.hpp>
 #include "simple_parse.hpp"
+#include "stream.hpp"
+
+namespace quickbook
+{
+    namespace fs = boost::filesystem;
+}
 
 namespace quickbook
 {
@@ -321,7 +328,9 @@ namespace quickbook
             builder.end_children();
         }
 
-        std::string boostbook_to_html(quickbook::string_view source)
+        int boostbook_to_html(
+            quickbook::string_view source,
+            boost::filesystem::path const& fileout_)
         {
             typedef quickbook::string_view::const_iterator iterator;
             iterator it = source.begin(), end = source.end();
@@ -360,8 +369,25 @@ namespace quickbook
                 }
             }
 
-            std::string html;
-            return generate_html(builder.root_->children_);
+            std::string output = generate_html(builder.root_->children_);
+
+            fs::ofstream fileout(fileout_);
+
+            if (fileout.fail()) {
+                ::quickbook::detail::outerr()
+                    << "Error opening output file " << fileout_ << std::endl;
+
+                return 1;
+            }
+
+            fileout << output;
+
+            if (fileout.fail()) {
+                ::quickbook::detail::outerr()
+                    << "Error writing to output file " << fileout_ << std::endl;
+
+                return 1;
+            }
         }
 
         // HTML generator
