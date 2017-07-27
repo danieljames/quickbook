@@ -16,6 +16,7 @@ http://www.boost.org/LICENSE_1_0.txt)
 #include <boost/preprocessor/cat.hpp>
 #include <boost/preprocessor/stringize.hpp>
 #include <boost/filesystem/fstream.hpp>
+#include <boost/lexical_cast.hpp>
 
 namespace quickbook {
     namespace fs = boost::filesystem;
@@ -286,7 +287,7 @@ namespace quickbook { namespace detail {
         builder.end_children();
     }
 
-    std::string generate_chunk_html(xml_element*);
+    void generate_chunks(xml_element* root, fs::path const& fileout_);
 
     int boostbook_to_html(quickbook::string_view source, boost::filesystem::path const& fileout_) {
         typedef quickbook::string_view::const_iterator iterator;
@@ -324,48 +325,70 @@ namespace quickbook { namespace detail {
             }
         }
 
-        std::string output = generate_chunk_html(chunk_document(builder.root_));
-
-        fs::ofstream fileout(fileout_);
-
-        if (fileout.fail()) {
-            ::quickbook::detail::outerr()
-                << "Error opening output file "
-                << fileout_
-                << std::endl;
-
-            return 1;
-        }
-
-        fileout << output;
-
-        if (fileout.fail()) {
-            ::quickbook::detail::outerr()
-                << "Error writing to output file "
-                << fileout_
-                << std::endl;
-
-            return 1;
-        }
+        generate_chunks(chunk_document(builder.root_), fileout_);
+        return 0;
     }
 
-    std::string generate_chunk_html(xml_element* chunk_root) {
+    struct chunk_writer {
+        fs::path const& path;
+        int count;
+
+        chunk_writer(fs::path const& p) : path(p), count(0) {}
+
+        fs::path next_path_name() {
+            fs::path result = path;
+            if (count) {
+                result.replace_extension("");
+                result += "-";
+                result.concat(boost::lexical_cast<std::string>(count));
+                result += path.extension();
+            }
+            ++count;
+            return result;
+        }
+    };
+
+    void generate_chunks_impl(chunk_writer&, xml_element*);
+
+    void generate_chunks(xml_element* root, fs::path const& fileout_) {
+        chunk_writer writer(fileout_);
+        generate_chunks_impl(writer, root);
+    }
+
+    void generate_chunks_impl(chunk_writer& writer, xml_element* chunk_root) {
         std::string output;
         for (xml_chunk* it = static_cast<xml_chunk*>(chunk_root->children_);
             it; it = static_cast<xml_chunk*>(it->next_))
         {
-            output += "Chunk ";
-            output += it->root_->name_;
-            output += "\n\n";
-            output += generate_html(it->root_->children_);
-            output += "\n\n";
-            output += generate_chunk_html(it);
-            output += "\n\n";
-            output += "End chunk ";
-            output += it->root_->name_;
-            output += "\n\n";
+            output = generate_html(it->root_->children_);
+            fs::path fileout_ = writer.next_path_name();
+
+            std::cout << fileout_ << std::endl;
+
+            fs::ofstream fileout(fileout_);
+
+            if (fileout.fail()) {
+                ::quickbook::detail::outerr()
+                    << "Error opening output file "
+                    << fileout_
+                    << std::endl;
+
+                return /*1*/;
+            }
+
+            fileout << output;
+
+            if (fileout.fail()) {
+                ::quickbook::detail::outerr()
+                    << "Error writing to output file "
+                    << fileout_
+                    << std::endl;
+
+                return /*1*/;
+            }
+
+            generate_chunks_impl(writer, it);
         }
-        return output;
     }
 
     // Chunker
