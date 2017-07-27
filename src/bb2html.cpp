@@ -17,7 +17,7 @@ http://www.boost.org/LICENSE_1_0.txt)
 
 namespace quickbook { namespace detail {
     struct xml_element {
-        enum element_type { element_root, element_node, element_text } type_;
+        enum element_type { element_root, element_node, element_text, element_chunk } type_;
         std::string name_;
         std::vector<std::pair<std::string, std::string> > attributes_;
         xml_element* parent_;
@@ -61,6 +61,14 @@ namespace quickbook { namespace detail {
                 if (name == it->first) { return &it->second; }
             }
             return 0;
+        }
+
+        xml_element* extract() {
+            xml_element* next = next_;
+            if (parent_ && !prev_) { parent_->children_ = next; }
+            if (prev_) { prev_->next_ = next_; }
+            if (next_) { next_->prev_ = prev_; }
+            return next_;
         }
     };
 
@@ -107,7 +115,15 @@ namespace quickbook { namespace detail {
         }
     };
 
+    struct xml_chunk : xml_element {
+        xml_element* title_;
+        xml_element* root_;
+
+        xml_chunk() : xml_element(element_chunk), title_(), root_() {}
+    };
+
     std::string generate_html(xml_element*);
+    xml_element* chunk_document(xml_element*);
 
     quickbook::string_view read_string(quickbook::string_view::iterator& it, quickbook::string_view::iterator end) {
         assert(it != end && (*it == '"' || *it == '\''));
@@ -264,6 +280,8 @@ namespace quickbook { namespace detail {
         builder.end_children();
     }
 
+    std::string generate_chunk_html(xml_element*);
+
     std::string boostbook_to_html(quickbook::string_view source) {
         typedef quickbook::string_view::const_iterator iterator;
         iterator it = source.begin(), end = source.end();
@@ -300,8 +318,26 @@ namespace quickbook { namespace detail {
             }
         }
 
-        std::string html;
-        return generate_html(builder.root_->children_);
+        return generate_chunk_html(chunk_document(builder.root_));
+    }
+
+    std::string generate_chunk_html(xml_element* chunk_root) {
+        std::string output;
+        for (xml_chunk* it = static_cast<xml_chunk*>(chunk_root->children_);
+            it; it = static_cast<xml_chunk*>(it->next_))
+        {
+            output += "Chunk ";
+            output += it->root_->name_;
+            output += "\n\n";
+            output += generate_html(it->root_->children_);
+            output += "\n\n";
+            output += generate_chunk_html(it);
+            output += "\n\n";
+            output += "End chunk ";
+            output += it->root_->name_;
+            output += "\n\n";
+        }
+        return output;
     }
 
     // Chunker
@@ -321,23 +357,30 @@ namespace quickbook { namespace detail {
             chunk_types.insert("qandaset");
             chunk_types.insert("reference");
             chunk_types.insert("set");
+            chunk_types.insert("section");
         }
     } init_chunk;
 
-    struct xml_chunks : xml_element {
-        xml_element* title_;
-        xml_element* root_;
-    };
+    void chunk(xml_tree_builder& builder, xml_element* node);
 
-    void chunk_document(xml_element* root) {
+    xml_element* chunk_document(xml_element* root) {
         xml_tree_builder builder;
+        chunk(builder, root);
+        return builder.root_;
+    }
 
-        for (xml_element* it = root->children_; it; it = it->next_) {
+    void chunk(xml_tree_builder& builder, xml_element* node) {
+        for (xml_element* it = node->children_; it;) {
             if (it->type_ == xml_element::element_node && chunk_types.find(it->name_) != chunk_types.end()) {
-                // extract node and add to chunks.
-                // recurse over contents.
+                xml_chunk* chunk_node = new xml_chunk();
+                chunk_node->root_ = it;
+                it = it->extract();
+                builder.add_element(chunk_node);
+                builder.start_children();
+                chunk(builder, chunk_node->root_);
+                builder.end_children();
             } else {
-                // add to parent?
+                it = it->next_;
             }
         }
     }
