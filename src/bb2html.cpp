@@ -8,12 +8,18 @@ http://www.boost.org/LICENSE_1_0.txt)
 
 #include "bb2html.hpp"
 #include "simple_parse.hpp"
+#include "native_text.hpp"
 #include <vector>
 #include <cassert>
 #include <boost/unordered_map.hpp>
 #include <boost/unordered_set.hpp>
 #include <boost/preprocessor/cat.hpp>
 #include <boost/preprocessor/stringize.hpp>
+#include <boost/filesystem/fstream.hpp>
+
+namespace quickbook {
+    namespace fs = boost::filesystem;
+}
 
 namespace quickbook { namespace detail {
     struct xml_element {
@@ -282,7 +288,7 @@ namespace quickbook { namespace detail {
 
     std::string generate_chunk_html(xml_element*);
 
-    std::string boostbook_to_html(quickbook::string_view source) {
+    int boostbook_to_html(quickbook::string_view source, boost::filesystem::path const& fileout_) {
         typedef quickbook::string_view::const_iterator iterator;
         iterator it = source.begin(), end = source.end();
 
@@ -318,7 +324,29 @@ namespace quickbook { namespace detail {
             }
         }
 
-        return generate_chunk_html(chunk_document(builder.root_));
+        std::string output = generate_chunk_html(chunk_document(builder.root_));
+
+        fs::ofstream fileout(fileout_);
+
+        if (fileout.fail()) {
+            ::quickbook::detail::outerr()
+                << "Error opening output file "
+                << fileout_
+                << std::endl;
+
+            return 1;
+        }
+
+        fileout << output;
+
+        if (fileout.fail()) {
+            ::quickbook::detail::outerr()
+                << "Error writing to output file "
+                << fileout_
+                << std::endl;
+
+            return 1;
+        }
     }
 
     std::string generate_chunk_html(xml_element* chunk_root) {

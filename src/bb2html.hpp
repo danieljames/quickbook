@@ -10,6 +10,7 @@
 #define BOOST_QUICKBOOK_BOOSTBOOK_TO_HTML_HPP
 
 #include <string>
+#include <boost/filesystem/path.hpp>
 #include "string_view.hpp"
 
 namespace quickbook { namespace detail {
@@ -19,7 +20,7 @@ namespace quickbook { namespace detail {
 
         boostbook_parse_error(char const* m, quickbook::string_view::iterator p) : message(m), pos(p) {}
     };
-    std::string boostbook_to_html(quickbook::string_view);
+    int boostbook_to_html(quickbook::string_view, boost::filesystem::path const&);
 }}
 
 #endif // BOOST_QUICKBOOK_BOOSTBOOK_TO_HTML_HPP

@@ -232,7 +232,8 @@ namespace quickbook
 
             if (options_.format == parse_document_options::chunked_html) {
                 try {
-                    stage2 = quickbook::detail::boostbook_to_html(stage2);
+                    if (result) { return result; }
+                    return quickbook::detail::boostbook_to_html(stage2, fileout_);
                 }
                 catch (quickbook::detail::boostbook_parse_error e) {
                     string_view stage2_view(stage2);
@@ -262,28 +263,28 @@ namespace quickbook
 
                     return 1;
                 }
-            }
+            } else {
+                fs::ofstream fileout(fileout_);
 
-            fs::ofstream fileout(fileout_);
+                if (fileout.fail()) {
+                    ::quickbook::detail::outerr()
+                        << "Error opening output file "
+                        << fileout_
+                        << std::endl;
 
-            if (fileout.fail()) {
-                ::quickbook::detail::outerr()
-                    << "Error opening output file "
-                    << fileout_
-                    << std::endl;
+                    return 1;
+                }
 
-                return 1;
-            }
+                fileout << stage2;
 
-            fileout << stage2;
+                if (fileout.fail()) {
+                    ::quickbook::detail::outerr()
+                        << "Error writing to output file "
+                        << fileout_
+                        << std::endl;
 
-            if (fileout.fail()) {
-                ::quickbook::detail::outerr()
-                    << "Error writing to output file "
-                    << fileout_
-                    << std::endl;
-
-                return 1;
+                    return 1;
+                }
             }
         }
 
