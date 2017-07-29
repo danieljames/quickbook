@@ -125,12 +125,13 @@ namespace quickbook { namespace detail {
     struct xml_chunk : xml_element {
         xml_element* title_;
         xml_element* root_;
+        fs::path path_;
 
         xml_chunk() : xml_element(element_chunk), title_(), root_() {}
     };
 
     std::string generate_html(xml_element*);
-    xml_element* chunk_document(xml_element*);
+    xml_element* chunk_document(xml_element*, fs::path const&);
 
     quickbook::string_view read_string(quickbook::string_view::iterator& it, quickbook::string_view::iterator end) {
         assert(it != end && (*it == '"' || *it == '\''));
@@ -287,7 +288,7 @@ namespace quickbook { namespace detail {
         builder.end_children();
     }
 
-    void generate_chunks(xml_element* root, fs::path const& fileout_);
+    void generate_chunks(xml_element* root);
 
     int boostbook_to_html(quickbook::string_view source, boost::filesystem::path const& fileout_) {
         typedef quickbook::string_view::const_iterator iterator;
@@ -325,33 +326,17 @@ namespace quickbook { namespace detail {
             }
         }
 
-        generate_chunks(chunk_document(builder.root_), fileout_);
+        generate_chunks(chunk_document(builder.root_, fileout_));
         return 0;
     }
 
     struct chunk_writer {
-        fs::path const& path;
-        int count;
-
-        chunk_writer(fs::path const& p) : path(p), count(0) {}
-
-        fs::path next_path_name() {
-            fs::path result = path;
-            if (count) {
-                result.replace_extension("");
-                result += "-";
-                result.concat(boost::lexical_cast<std::string>(count));
-                result += path.extension();
-            }
-            ++count;
-            return result;
-        }
     };
 
     void generate_chunks_impl(chunk_writer&, xml_element*);
 
-    void generate_chunks(xml_element* root, fs::path const& fileout_) {
-        chunk_writer writer(fileout_);
+    void generate_chunks(xml_element* root) {
+        chunk_writer writer;
         generate_chunks_impl(writer, root);
     }
 
@@ -361,16 +346,15 @@ namespace quickbook { namespace detail {
             it; it = static_cast<xml_chunk*>(it->next_))
         {
             output = generate_html(it->root_->children_);
-            fs::path fileout_ = writer.next_path_name();
 
-            std::cout << fileout_ << std::endl;
+            std::cout << it->path_ << std::endl;
 
-            fs::ofstream fileout(fileout_);
+            fs::ofstream fileout(it->path_);
 
             if (fileout.fail()) {
                 ::quickbook::detail::outerr()
                     << "Error opening output file "
-                    << fileout_
+                    << it->path_
                     << std::endl;
 
                 return /*1*/;
@@ -381,7 +365,7 @@ namespace quickbook { namespace detail {
             if (fileout.fail()) {
                 ::quickbook::detail::outerr()
                     << "Error writing to output file "
-                    << fileout_
+                    << it->path_
                     << std::endl;
 
                 return /*1*/;
@@ -412,19 +396,39 @@ namespace quickbook { namespace detail {
         }
     } init_chunk;
 
-    void chunk(xml_tree_builder& builder, xml_element* node);
+    struct xml_chunk_builder : xml_tree_builder {
+        fs::path const& path;
+        int count;
 
-    xml_element* chunk_document(xml_element* root) {
-        xml_tree_builder builder;
+        xml_chunk_builder(fs::path const& p) : path(p), count(0) {}
+
+        fs::path next_path_name() {
+            fs::path result = path;
+            if (count) {
+                result.replace_extension("");
+                result += "-";
+                result.concat(boost::lexical_cast<std::string>(count));
+                result += path.extension();
+            }
+            ++count;
+            return result;
+        }
+    };
+
+    void chunk(xml_chunk_builder& builder, xml_element* node);
+
+    xml_element* chunk_document(xml_element* root, fs::path const& p) {
+        xml_chunk_builder builder(p);
         chunk(builder, root);
         return builder.root_;
     }
 
-    void chunk(xml_tree_builder& builder, xml_element* node) {
+    void chunk(xml_chunk_builder& builder, xml_element* node) {
         for (xml_element* it = node->children_; it;) {
             if (it->type_ == xml_element::element_node && chunk_types.find(it->name_) != chunk_types.end()) {
                 xml_chunk* chunk_node = new xml_chunk();
                 chunk_node->root_ = it;
+                chunk_node->path_ = builder.next_path_name();
                 it = it->extract();
                 builder.add_element(chunk_node);
                 builder.start_children();
