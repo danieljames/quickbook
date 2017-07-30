@@ -427,8 +427,16 @@ namespace quickbook { namespace detail {
     }
 
     void chunk(xml_chunk_builder& builder, xml_element* node) {
+        xml_chunk* parent = builder.parent_ && builder.parent_->type_ == xml_element::element_chunk ?
+            static_cast<xml_chunk*>(builder.parent_) : 0;
+
         for (xml_element* it = node->children_; it;) {
-            if (it->type_ == xml_element::element_node && chunk_types.find(it->name_) != chunk_types.end()) {
+            if (parent && it->type_ == xml_element::element_node && it->name_ == "title")
+            {
+                parent->title_ = it;
+                it = it->extract();
+            }
+            else if (it->type_ == xml_element::element_node && chunk_types.find(it->name_) != chunk_types.end()) {
                 xml_chunk* chunk_node = new xml_chunk();
                 chunk_node->root_ = it;
                 chunk_node->path_ = builder.next_path_name();
