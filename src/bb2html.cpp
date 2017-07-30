@@ -125,7 +125,7 @@ namespace quickbook { namespace detail {
     struct xml_chunk : xml_element {
         xml_element* title_;
         xml_element* root_;
-        fs::path path_;
+        std::string path_;
 
         xml_chunk() : xml_element(element_chunk), title_(), root_() {}
     };
@@ -288,7 +288,7 @@ namespace quickbook { namespace detail {
         builder.end_children();
     }
 
-    void generate_chunks(xml_element* root);
+    void generate_chunks(xml_element* root, fs::path const& root_path);
 
     int boostbook_to_html(quickbook::string_view source, boost::filesystem::path const& fileout_) {
         typedef quickbook::string_view::const_iterator iterator;
@@ -326,17 +326,20 @@ namespace quickbook { namespace detail {
             }
         }
 
-        generate_chunks(chunk_document(builder.root_, fileout_));
+        generate_chunks(chunk_document(builder.root_, fileout_), fileout_.parent_path());
         return 0;
     }
 
     struct chunk_writer {
+        fs::path const& root_path;
+
+        explicit chunk_writer(fs::path const& r) : root_path(r) {}
     };
 
     void generate_chunks_impl(chunk_writer&, xml_element*);
 
-    void generate_chunks(xml_element* root) {
-        chunk_writer writer;
+    void generate_chunks(xml_element* root, fs::path const& root_path) {
+        chunk_writer writer(root_path);
         generate_chunks_impl(writer, root);
     }
 
@@ -347,9 +350,9 @@ namespace quickbook { namespace detail {
         {
             output = generate_html(it->root_->children_);
 
-            std::cout << it->path_ << std::endl;
-
-            fs::ofstream fileout(it->path_);
+            fs::path path = writer.root_path / generic_to_path(it->path_);
+            std::cout << it->path_ << " => " << path << std::endl;
+            fs::ofstream fileout(path);
 
             if (fileout.fail()) {
                 ::quickbook::detail::outerr()
@@ -397,19 +400,19 @@ namespace quickbook { namespace detail {
     } init_chunk;
 
     struct xml_chunk_builder : xml_tree_builder {
-        fs::path const& path;
+        std::string path;
+        std::string extension;
         int count;
 
-        xml_chunk_builder(fs::path const& p) : path(p), count(0) {}
+        xml_chunk_builder(std::string const& p, std::string const& e) : path(p), extension(e), count(0) {}
 
-        fs::path next_path_name() {
-            fs::path result = path;
+        std::string next_path_name() {
+            std::string result = path;
             if (count) {
-                result.replace_extension("");
                 result += "-";
-                result.concat(boost::lexical_cast<std::string>(count));
-                result += path.extension();
+                result += boost::lexical_cast<std::string>(count);
             }
+            result += extension;
             ++count;
             return result;
         }
@@ -418,7 +421,9 @@ namespace quickbook { namespace detail {
     void chunk(xml_chunk_builder& builder, xml_element* node);
 
     xml_element* chunk_document(xml_element* root, fs::path const& p) {
-        xml_chunk_builder builder(p);
+        xml_chunk_builder builder(
+            path_to_generic(p.stem()),
+            path_to_generic(p.extension()));
         chunk(builder, root);
         return builder.root_;
     }
