@@ -326,7 +326,8 @@ namespace quickbook { namespace detail {
             }
         }
 
-        generate_chunks(chunk_document(builder.root_, fileout_), fileout_.parent_path());
+        xml_element* chunked = chunk_document(builder.root_, fileout_);
+        generate_chunks(chunked, fileout_.parent_path());
         return 0;
     }
 
@@ -334,6 +335,30 @@ namespace quickbook { namespace detail {
         fs::path const& root_path;
 
         explicit chunk_writer(fs::path const& r) : root_path(r) {}
+        void write_file(std::string const& generic_path, std::string const& content) {
+            fs::path path = root_path / generic_to_path(generic_path);
+            fs::ofstream fileout(path);
+
+            if (fileout.fail()) {
+                ::quickbook::detail::outerr()
+                    << "Error opening output file "
+                    << generic_path
+                    << std::endl;
+
+                return /*1*/;
+            }
+
+            fileout << content;
+
+            if (fileout.fail()) {
+                ::quickbook::detail::outerr()
+                    << "Error writing to output file "
+                    << generic_path
+                    << std::endl;
+
+                return /*1*/;
+            }
+        }
     };
 
     void generate_chunks_impl(chunk_writer&, xml_element*);
@@ -349,31 +374,7 @@ namespace quickbook { namespace detail {
             it; it = static_cast<xml_chunk*>(it->next_))
         {
             output = generate_html(it->root_->children_);
-
-            fs::path path = writer.root_path / generic_to_path(it->path_);
-            std::cout << it->path_ << " => " << path << std::endl;
-            fs::ofstream fileout(path);
-
-            if (fileout.fail()) {
-                ::quickbook::detail::outerr()
-                    << "Error opening output file "
-                    << it->path_
-                    << std::endl;
-
-                return /*1*/;
-            }
-
-            fileout << output;
-
-            if (fileout.fail()) {
-                ::quickbook::detail::outerr()
-                    << "Error writing to output file "
-                    << it->path_
-                    << std::endl;
-
-                return /*1*/;
-            }
-
+            writer.write_file(it->path_, output);
             generate_chunks_impl(writer, it);
         }
     }
