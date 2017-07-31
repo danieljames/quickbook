@@ -337,7 +337,7 @@ namespace quickbook { namespace detail {
     void generate_chunks(xml_element* root, fs::path const& root_path);
 
     void generate_documentation(xml_element* chunked, fs::path const& path) {
-        write_file(path, generate_contents(chunked));
+        //write_file(path, generate_contents(chunked));
         generate_chunks(chunked, path.parent_path());
     }
 
