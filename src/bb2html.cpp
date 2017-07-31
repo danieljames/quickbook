@@ -9,6 +9,7 @@ http://www.boost.org/LICENSE_1_0.txt)
 #include "bb2html.hpp"
 #include "simple_parse.hpp"
 #include "native_text.hpp"
+#include "utils.hpp"
 #include <vector>
 #include <cassert>
 #include <boost/unordered_map.hpp>
@@ -288,7 +289,7 @@ namespace quickbook { namespace detail {
         builder.end_children();
     }
 
-    void generate_chunks(xml_element* root, fs::path const& root_path);
+    void generate_documentation(xml_element* root, fs::path const& root_path);
 
     int boostbook_to_html(quickbook::string_view source, boost::filesystem::path const& fileout_) {
         typedef quickbook::string_view::const_iterator iterator;
@@ -327,39 +328,61 @@ namespace quickbook { namespace detail {
         }
 
         xml_element* chunked = chunk_document(builder.root_, fileout_);
-        generate_chunks(chunked, fileout_.parent_path());
+        generate_documentation(chunked, fileout_);
         return 0;
+    }
+
+    void write_file(fs::path const& path, std::string const& content);
+    std::string generate_contents(xml_element* root);
+    void generate_chunks(xml_element* root, fs::path const& root_path);
+
+    void generate_documentation(xml_element* chunked, fs::path const& path) {
+        write_file(path, generate_contents(chunked));
+        generate_chunks(chunked, path.parent_path());
     }
 
     struct chunk_writer {
         fs::path const& root_path;
 
         explicit chunk_writer(fs::path const& r) : root_path(r) {}
+
         void write_file(std::string const& generic_path, std::string const& content) {
             fs::path path = root_path / generic_to_path(generic_path);
-            fs::ofstream fileout(path);
-
-            if (fileout.fail()) {
-                ::quickbook::detail::outerr()
-                    << "Error opening output file "
-                    << generic_path
-                    << std::endl;
-
-                return /*1*/;
-            }
-
-            fileout << content;
-
-            if (fileout.fail()) {
-                ::quickbook::detail::outerr()
-                    << "Error writing to output file "
-                    << generic_path
-                    << std::endl;
-
-                return /*1*/;
-            }
+            quickbook::detail::write_file(path, content);
         }
     };
+
+    std::string generate_contents_impl(xml_element*);
+
+    std::string generate_contents(xml_element* root) {
+        std::string output;
+        output += "<h1>";
+        output += "Contents";
+        output += "</h1>";
+        output += generate_contents_impl(root);
+        return output;
+    }
+
+    std::string generate_contents_impl(xml_element* chunk_root) {
+        std::string output;
+        output += "<ul>";
+        for (xml_chunk* it = static_cast<xml_chunk*>(chunk_root->children_);
+            it; it = static_cast<xml_chunk*>(it->next_))
+        {
+            output += "<li>";
+            output += "<a href=\"";
+            output += encode_string(it->path_);
+            output += "\">";
+            output += generate_html(it->title_->children_);
+            output += "</a>";
+            if (it->children_) {
+                output += generate_contents_impl(it);
+            }
+            output += "</li>";
+        }
+        output += "</ul>";
+        return output;
+    }
 
     void generate_chunks_impl(chunk_writer&, xml_element*);
 
@@ -376,6 +399,30 @@ namespace quickbook { namespace detail {
             output = generate_html(it->root_->children_);
             writer.write_file(it->path_, output);
             generate_chunks_impl(writer, it);
+        }
+    }
+
+    void write_file(fs::path const& path, std::string const& content) {
+        fs::ofstream fileout(path);
+
+        if (fileout.fail()) {
+            ::quickbook::detail::outerr()
+                << "Error opening output file "
+                << path
+                << std::endl;
+
+            return /*1*/;
+        }
+
+        fileout << content;
+
+        if (fileout.fail()) {
+            ::quickbook::detail::outerr()
+                << "Error writing to output file "
+                << path
+                << std::endl;
+
+            return /*1*/;
         }
     }
 
