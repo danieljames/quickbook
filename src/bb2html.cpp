@@ -398,6 +398,9 @@ namespace quickbook { namespace detail {
             it; it = static_cast<xml_chunk*>(it->next_))
         {
             output = generate_html(it->title_);
+            if (it->children_) {
+                output += generate_contents_impl(it);
+            }
             output += generate_html(it->root_->children_);
             writer.write_file(it->path_, output);
             generate_chunks_impl(writer, it);
