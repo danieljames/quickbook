@@ -162,10 +162,13 @@ namespace quickbook
         struct xml_chunk : xml_element
         {
             xml_element* title_;
+            xml_element* info_;
             xml_element* root_;
             std::string path_;
 
-            xml_chunk() : xml_element(element_chunk), title_(), root_() {}
+            xml_chunk() : xml_element(element_chunk), title_(), info_(), root_()
+            {
+            }
         };
 
         std::string generate_html(xml_element*);
@@ -470,6 +473,7 @@ namespace quickbook
             for (xml_chunk* it = static_cast<xml_chunk*>(chunk_root); it;
                  it = static_cast<xml_chunk*>(it->next_)) {
                 output = generate_html(it->title_);
+                output += generate_html(it->info_);
                 if (it->children_) {
                     output += generate_contents_impl(it);
                 }
@@ -503,6 +507,7 @@ namespace quickbook
         // Chunker
 
         boost::unordered_set<std::string> chunk_types;
+        boost::unordered_set<std::string> chunkinfo_types;
 
         static struct init_chunk_type
         {
@@ -520,6 +525,12 @@ namespace quickbook
                 chunk_types.insert("reference");
                 chunk_types.insert("set");
                 chunk_types.insert("section");
+
+                for (boost::unordered_set<std::string>::const_iterator it =
+                         chunk_types.begin();
+                     it != chunk_types.end(); ++it) {
+                    chunkinfo_types.insert(*it + "info");
+                }
             }
         } init_chunk;
 
@@ -565,6 +576,12 @@ namespace quickbook
                 if (parent && it->type_ == xml_element::element_node &&
                     it->name_ == "title") {
                     parent->title_ = it;
+                    it = it->extract();
+                }
+                else if (
+                    parent && it->type_ == xml_element::element_node &&
+                    chunkinfo_types.find(it->name_) != chunkinfo_types.end()) {
+                    parent->info_ = it;
                     it = it->extract();
                 }
                 else if (
