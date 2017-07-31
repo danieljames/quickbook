@@ -17,6 +17,7 @@ http://www.boost.org/LICENSE_1_0.txt)
 #include <boost/unordered_set.hpp>
 #include "simple_parse.hpp"
 #include "stream.hpp"
+#include "utils.hpp"
 
 namespace quickbook
 {
@@ -404,36 +405,56 @@ namespace quickbook
             return 0;
         }
 
+        void write_file(fs::path const& path, std::string const& content);
+        std::string generate_contents(xml_element* root);
+
         struct chunk_writer
         {
             fs::path const& root_path;
 
             explicit chunk_writer(fs::path const& r) : root_path(r) {}
+
             void write_file(
                 std::string const& generic_path, std::string const& content)
             {
                 fs::path path = root_path / generic_to_path(generic_path);
-                fs::ofstream fileout(path);
-
-                if (fileout.fail()) {
-                    ::quickbook::detail::outerr()
-                        << "Error opening output file " << generic_path
-                        << std::endl;
-
-                    return /*1*/;
-                }
-
-                fileout << content;
-
-                if (fileout.fail()) {
-                    ::quickbook::detail::outerr()
-                        << "Error writing to output file " << generic_path
-                        << std::endl;
-
-                    return /*1*/;
-                }
+                quickbook::detail::write_file(path, content);
             }
         };
+
+        std::string generate_contents_impl(xml_element*);
+
+        std::string generate_contents(xml_element* root)
+        {
+            assert(root->children_ && !root->children_->next_);
+            xml_chunk* root_chunk = static_cast<xml_chunk*>(root->children_);
+            std::string output;
+            output += generate_html(root_chunk->title_);
+            output += generate_html(root_chunk->root_->children_);
+            output += generate_contents_impl(root_chunk);
+            return output;
+        }
+
+        std::string generate_contents_impl(xml_element* chunk_root)
+        {
+            std::string output;
+            output += "<ul>";
+            for (xml_chunk* it = static_cast<xml_chunk*>(chunk_root->children_);
+                 it; it = static_cast<xml_chunk*>(it->next_)) {
+                output += "<li>";
+                output += "<a href=\"";
+                output += encode_string(it->path_);
+                output += "\">";
+                output += generate_html(it->title_->children_);
+                output += "</a>";
+                if (it->children_) {
+                    output += generate_contents_impl(it);
+                }
+                output += "</li>";
+            }
+            output += "</ul>";
+            return output;
+        }
 
         void generate_chunks_impl(chunk_writer&, xml_element*);
 
@@ -448,9 +469,34 @@ namespace quickbook
             std::string output;
             for (xml_chunk* it = static_cast<xml_chunk*>(chunk_root->children_);
                  it; it = static_cast<xml_chunk*>(it->next_)) {
-                output = generate_html(it->root_->children_);
+                output = generate_html(it->title_);
+                if (it->children_) {
+                    output += generate_contents_impl(it);
+                }
+                output += generate_html(it->root_->children_);
                 writer.write_file(it->path_, output);
                 generate_chunks_impl(writer, it);
+            }
+        }
+
+        void write_file(fs::path const& path, std::string const& content)
+        {
+            fs::ofstream fileout(path);
+
+            if (fileout.fail()) {
+                ::quickbook::detail::outerr()
+                    << "Error opening output file " << path << std::endl;
+
+                return /*1*/;
+            }
+
+            fileout << content;
+
+            if (fileout.fail()) {
+                ::quickbook::detail::outerr()
+                    << "Error writing to output file " << path << std::endl;
+
+                return /*1*/;
             }
         }
 
