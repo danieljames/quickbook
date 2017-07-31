@@ -355,11 +355,12 @@ namespace quickbook { namespace detail {
     std::string generate_contents_impl(xml_element*);
 
     std::string generate_contents(xml_element* root) {
+        assert(root->children_ && !root->children_->next_);
+        xml_chunk* root_chunk = static_cast<xml_chunk*>(root->children_);
         std::string output;
-        output += "<h1>";
-        output += "Contents";
-        output += "</h1>";
-        output += generate_contents_impl(root);
+        output += generate_html(root_chunk->title_);
+        output += generate_html(root_chunk->root_->children_);
+        output += generate_contents_impl(root_chunk);
         return output;
     }
 
@@ -396,7 +397,8 @@ namespace quickbook { namespace detail {
         for (xml_chunk* it = static_cast<xml_chunk*>(chunk_root->children_);
             it; it = static_cast<xml_chunk*>(it->next_))
         {
-            output = generate_html(it->root_->children_);
+            output = generate_html(it->title_);
+            output += generate_html(it->root_->children_);
             writer.write_file(it->path_, output);
             generate_chunks_impl(writer, it);
         }
