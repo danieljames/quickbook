@@ -460,11 +460,13 @@ namespace quickbook { namespace detail {
         xml_chunk_builder(std::string const& p, std::string const& e) : path(p), extension(e), count(0) {}
 
         std::string next_path_name() {
-            ++count;
             std::string result = path;
-            result += "-";
-            result += boost::lexical_cast<std::string>(count);
+            if (count) {
+                result += "-";
+                result += boost::lexical_cast<std::string>(count);
+            }
             result += extension;
+            ++count;
             return result;
         }
     };
