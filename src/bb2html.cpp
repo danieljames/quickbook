@@ -25,7 +25,7 @@ namespace quickbook {
 
 namespace quickbook { namespace detail {
     struct xml_element {
-        enum element_type { element_root, element_node, element_text, element_chunk } type_;
+        enum element_type { element_node, element_text, element_chunk } type_;
         std::string name_;
         std::vector<std::pair<std::string, std::string> > attributes_;
         xml_element* parent_;
@@ -76,7 +76,10 @@ namespace quickbook { namespace detail {
             if (parent_ && !prev_) { parent_->children_ = next; }
             if (prev_) { prev_->next_ = next_; }
             if (next_) { next_->prev_ = prev_; }
-            return next_;
+            parent_ = 0;
+            next_ = 0;
+            prev_ = 0;
+            return next;
         }
     };
 
@@ -86,7 +89,7 @@ namespace quickbook { namespace detail {
         xml_element* parent_;
 
         xml_tree_builder() :
-            root_(new xml_element(xml_element::element_root)),
+            root_(0),
             current_(0),
             parent_(root_) {}
 
@@ -106,8 +109,11 @@ namespace quickbook { namespace detail {
             if (current_) {
                 current_->next_ = n;
             }
-            else {
+            else if (parent_) {
                 parent_->children_ = n;
+            }
+            else {
+                root_ = n;
             }
             current_ = n;
         }
@@ -394,7 +400,7 @@ namespace quickbook { namespace detail {
 
     void generate_chunks_impl(chunk_writer& writer, xml_element* chunk_root) {
         std::string output;
-        for (xml_chunk* it = static_cast<xml_chunk*>(chunk_root->children_);
+        for (xml_chunk* it = static_cast<xml_chunk*>(chunk_root);
             it; it = static_cast<xml_chunk*>(it->next_))
         {
             output = generate_html(it->title_);
@@ -403,7 +409,7 @@ namespace quickbook { namespace detail {
             }
             output += generate_html(it->root_->children_);
             writer.write_file(it->path_, output);
-            generate_chunks_impl(writer, it);
+            generate_chunks_impl(writer, it->children_);
         }
     }
 
@@ -482,10 +488,9 @@ namespace quickbook { namespace detail {
     }
 
     void chunk(xml_chunk_builder& builder, xml_element* node) {
-        xml_chunk* parent = builder.parent_ && builder.parent_->type_ == xml_element::element_chunk ?
-            static_cast<xml_chunk*>(builder.parent_) : 0;
+        xml_chunk* parent = static_cast<xml_chunk*>(builder.parent_);
 
-        for (xml_element* it = node->children_; it;) {
+        for (xml_element* it = node; it;) {
             if (parent && it->type_ == xml_element::element_node && it->name_ == "title")
             {
                 parent->title_ = it;
@@ -498,7 +503,7 @@ namespace quickbook { namespace detail {
                 it = it->extract();
                 builder.add_element(chunk_node);
                 builder.start_children();
-                chunk(builder, chunk_node->root_);
+                chunk(builder, chunk_node->root_->children_);
                 builder.end_children();
             } else {
                 it = it->next_;
