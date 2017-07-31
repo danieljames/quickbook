@@ -17,7 +17,9 @@ http://www.boost.org/LICENSE_1_0.txt)
 #include <boost/preprocessor/cat.hpp>
 #include <boost/preprocessor/stringize.hpp>
 #include <boost/filesystem/fstream.hpp>
+#include <boost/filesystem/operations.hpp>
 #include <boost/lexical_cast.hpp>
+#include <boost/algorithm/string/replace.hpp>
 
 namespace quickbook {
     namespace fs = boost::filesystem;
@@ -140,6 +142,7 @@ namespace quickbook { namespace detail {
 
     std::string generate_html(xml_element*);
     xml_element* chunk_document(xml_element*, fs::path const&);
+    std::string id_to_path(quickbook::string_view);
 
     quickbook::string_view read_string(quickbook::string_view::iterator& it, quickbook::string_view::iterator end) {
         assert(it != end && (*it == '"' || *it == '\''));
@@ -355,6 +358,7 @@ namespace quickbook { namespace detail {
 
         void write_file(std::string const& generic_path, std::string const& content) {
             fs::path path = root_path / generic_to_path(generic_path);
+            fs::create_directories(path.parent_path());
             quickbook::detail::write_file(path, content);
         }
     };
@@ -511,7 +515,8 @@ namespace quickbook { namespace detail {
             else if (it->type_ == xml_element::element_node && chunk_types.find(it->name_) != chunk_types.end()) {
                 xml_chunk* chunk_node = new xml_chunk();
                 chunk_node->root_ = it;
-                chunk_node->path_ = builder.next_path_name();
+                auto id = it->get_attribute("id");
+                chunk_node->path_ = id ? id_to_path(*id) : builder.next_path_name();
                 it = it->extract();
                 builder.add_element(chunk_node);
                 builder.start_children();
@@ -812,5 +817,12 @@ namespace quickbook { namespace detail {
         html_gen gen;
         document(gen, x);
         return gen.html;
+    }
+
+    std::string id_to_path(quickbook::string_view id) {
+        std::string result(id.begin(), id.end());
+        boost::replace_all(result, ".", "/");
+        result += ".html";
+        return result;
     }
 }}
