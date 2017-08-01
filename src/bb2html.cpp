@@ -562,7 +562,7 @@ namespace quickbook { namespace detail {
             else if (it->type_ == xml_element::element_node && chunk_types.find(it->name_) != chunk_types.end()) {
                 xml_chunk* chunk_node = new xml_chunk();
                 chunk_node->root_ = it;
-                auto id = it->get_attribute("id");
+                std::string* id = it->get_attribute("id");
                 chunk_node->path_ = id ? id_to_path(*id) : builder.next_path_name();
                 it = it->extract();
                 builder.add_element(chunk_node);
