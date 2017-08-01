@@ -352,9 +352,6 @@ namespace quickbook { namespace detail {
 
         xml_chunk* chunked = chunk_document(builder.root_, fileout_);
         id_paths_type id_paths = get_id_paths(chunked);
-        for (auto const& i : id_paths) {
-            std::cout << i.first << " => " << i.second << std::endl;
-        }
         generate_documentation(chunked, id_paths, fileout_);
         return 0;
     }
