@@ -48,8 +48,8 @@ namespace quickbook { namespace detail {
         explicit xml_element(element_type n, quickbook::string_view name) :
             type_(n),
             name_(name.begin(), name.end()),
-            parent_(),
             attributes_(),
+            parent_(),
             children_(),
             next_(),
             prev_() {}
