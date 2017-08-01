@@ -176,6 +176,8 @@ namespace quickbook
         std::string generate_html(xml_element*);
         xml_element* chunk_document(xml_element*, fs::path const&);
         std::string id_to_path(quickbook::string_view);
+        std::string relative_path_from(
+            quickbook::string_view, quickbook::string_view);
 
         quickbook::string_view read_string(
             quickbook::string_view::iterator& it,
@@ -429,7 +431,7 @@ namespace quickbook
             }
         };
 
-        std::string generate_contents_impl(xml_element*);
+        std::string generate_contents_impl(xml_chunk*, xml_element*);
 
         std::string generate_contents(xml_element* root)
         {
@@ -438,11 +440,13 @@ namespace quickbook
             std::string output;
             output += generate_html(root_chunk->title_);
             output += generate_html(root_chunk->root_->children_);
-            output += generate_contents_impl(root_chunk);
+            // TODO: root_chunk is wrong.....
+            output += generate_contents_impl(root_chunk, root_chunk);
             return output;
         }
 
-        std::string generate_contents_impl(xml_element* chunk_root)
+        std::string generate_contents_impl(
+            xml_chunk* page, xml_element* chunk_root)
         {
             std::string output;
             output += "<ul>";
@@ -450,12 +454,13 @@ namespace quickbook
                  it; it = static_cast<xml_chunk*>(it->next_)) {
                 output += "<li>";
                 output += "<a href=\"";
-                output += encode_string(it->path_);
+                output +=
+                    encode_string(relative_path_from(it->path_, page->path_));
                 output += "\">";
                 output += generate_html(it->title_->children_);
                 output += "</a>";
                 if (it->children_) {
-                    output += generate_contents_impl(it);
+                    output += generate_contents_impl(page, it);
                 }
                 output += "</li>";
             }
@@ -479,7 +484,7 @@ namespace quickbook
                 output = generate_html(it->title_);
                 output += generate_html(it->info_);
                 if (it->children_) {
-                    output += generate_contents_impl(it);
+                    output += generate_contents_impl(it, it);
                 }
                 output += generate_html(it->root_->children_);
                 writer.write_file(it->path_, output);
@@ -946,6 +951,36 @@ namespace quickbook
             std::string result(id.begin(), id.end());
             boost::replace_all(result, ".", "/");
             result += ".html";
+            return result;
+        }
+
+        std::string relative_path_from(
+            quickbook::string_view path, quickbook::string_view base)
+        {
+            string_iterator path_it = path.begin();
+            string_iterator base_it = base.begin();
+            string_iterator path_diff_start = path_it;
+            string_iterator base_diff_start = base_it;
+
+            for (; path_it != path.end() && base_it != base.end() &&
+                   *path_it == *base_it;
+                 ++path_it, ++base_it) {
+                if (*path_it == '/') {
+                    path_diff_start = path_it + 1;
+                    base_diff_start = base_it + 1;
+                }
+            }
+
+            int up_count = std::count(base_diff_start, base.end(), '/');
+
+            std::string result;
+            for (int i = 0; i < up_count; ++i) {
+                result += "../";
+            }
+            result.append(path_diff_start, path.end());
+            if (result.empty()) {
+                result = '.';
+            }
             return result;
         }
     }
