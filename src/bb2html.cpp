@@ -140,8 +140,19 @@ namespace quickbook { namespace detail {
         xml_chunk() : xml_element(element_chunk), title_(), info_(), root_() {}
     };
 
-    std::string generate_html(xml_element*);
-    xml_element* chunk_document(xml_element*, fs::path const&);
+    typedef boost::unordered_map<string_view, std::string> id_paths_type;
+
+    struct html_gen {
+        id_paths_type const& id_paths;
+        string_view path;
+        std::string html;
+
+        html_gen(html_gen const& x) : id_paths(x.id_paths), path(x.path) {}
+        explicit html_gen(id_paths_type const& ip, string_view p) : id_paths(ip), path(p) {}
+    };
+
+    void generate_html(html_gen&, xml_element*);
+    xml_chunk* chunk_document(xml_element*, fs::path const&);
     std::string id_to_path(quickbook::string_view);
     std::string relative_path_from(quickbook::string_view, quickbook::string_view);
 
@@ -300,7 +311,8 @@ namespace quickbook { namespace detail {
         builder.end_children();
     }
 
-    void generate_documentation(xml_element* root, fs::path const& root_path);
+    id_paths_type get_id_paths(xml_chunk* chunk);
+    void generate_documentation(xml_element* root, id_paths_type const&, fs::path const& root_path);
 
     int boostbook_to_html(quickbook::string_view source, boost::filesystem::path const& fileout_) {
         typedef quickbook::string_view::const_iterator iterator;
@@ -338,24 +350,64 @@ namespace quickbook { namespace detail {
             }
         }
 
-        xml_element* chunked = chunk_document(builder.root_, fileout_);
-        generate_documentation(chunked, fileout_);
+        xml_chunk* chunked = chunk_document(builder.root_, fileout_);
+        id_paths_type id_paths = get_id_paths(chunked);
+        for (auto const& i : id_paths) {
+            std::cout << i.first << " => " << i.second << std::endl;
+        }
+        generate_documentation(chunked, id_paths, fileout_);
         return 0;
     }
 
-    void write_file(fs::path const& path, std::string const& content);
-    std::string generate_contents(xml_element* root);
-    void generate_chunks(xml_element* root, fs::path const& root_path);
+    void get_id_paths_impl(id_paths_type&, xml_chunk*);
+    void get_id_paths_impl2(id_paths_type&, string_view, xml_element*);
 
-    void generate_documentation(xml_element* chunked, fs::path const& path) {
+    id_paths_type get_id_paths(xml_chunk* chunk) {
+        id_paths_type id_paths;
+        get_id_paths_impl(id_paths, chunk);
+        return id_paths;
+    }
+
+    void get_id_paths_impl(id_paths_type& id_paths, xml_chunk* chunk) {
+        get_id_paths_impl2(id_paths, chunk->path_, chunk->title_);
+        get_id_paths_impl2(id_paths, chunk->path_, chunk->info_);
+        get_id_paths_impl2(id_paths, chunk->path_, chunk->root_);
+        for(xml_chunk* i = static_cast<xml_chunk*>(chunk->children_); i;
+            i = static_cast<xml_chunk*>(i->next_))
+        {
+            get_id_paths_impl(id_paths, i);
+        }
+    }
+
+    void get_id_paths_impl2(id_paths_type& id_paths, string_view path, xml_element* node) {
+        if (!node) { return; }
+        std::string* id = node->get_attribute("id");
+        if (id) {
+            // TODO: No need for fragment when id matches chunk.
+            std::string p(path.begin(), path.end());
+            p += '#';
+            p += *id;
+            id_paths.emplace(*id, boost::move(p));
+        }
+        for (xml_element* i = node->children_; i; i = i->next_) {
+            get_id_paths_impl2(id_paths, path, i);
+        }
+    }
+
+    void write_file(fs::path const& path, std::string const& content);
+    void generate_contents(html_gen& gen, xml_element* root);
+    void generate_chunks(xml_element* root, id_paths_type const& id_paths, fs::path const& root_path);
+
+    void generate_documentation(xml_element* chunked, id_paths_type const& id_paths, fs::path const& path) {
         //write_file(path, generate_contents(chunked));
-        generate_chunks(chunked, path.parent_path());
+        generate_chunks(chunked, id_paths, path.parent_path());
     }
 
     struct chunk_writer {
         fs::path const& root_path;
+        id_paths_type const& id_paths;
 
-        explicit chunk_writer(fs::path const& r) : root_path(r) {}
+        explicit chunk_writer(fs::path const& r, id_paths_type const& ip) : root_path(r), id_paths(ip) {}
 
         void write_file(std::string const& generic_path, std::string const& content) {
             fs::path path = root_path / generic_to_path(generic_path);
@@ -364,59 +416,55 @@ namespace quickbook { namespace detail {
         }
     };
 
-    std::string generate_contents_impl(xml_chunk*, xml_element*);
+    void generate_contents_impl(html_gen& gen, xml_chunk*, xml_element*);
 
-    std::string generate_contents(xml_element* root) {
+    void generate_contents(html_gen& gen, xml_element* root) {
         assert(root->children_ && !root->children_->next_);
         xml_chunk* root_chunk = static_cast<xml_chunk*>(root->children_);
-        std::string output;
-        output += generate_html(root_chunk->title_);
-        output += generate_html(root_chunk->root_->children_);
+        generate_html(gen, root_chunk->title_);
+        generate_html(gen, root_chunk->root_->children_);
         // TODO: root_chunk is wrong.....
-        output += generate_contents_impl(root_chunk, root_chunk);
-        return output;
+        generate_contents_impl(gen, root_chunk, root_chunk);
     }
 
-    std::string generate_contents_impl(xml_chunk* page, xml_element* chunk_root) {
-        std::string output;
-        output += "<ul>";
+    void generate_contents_impl(html_gen& gen, xml_chunk* page, xml_element* chunk_root) {
+        gen.html += "<ul>";
         for (xml_chunk* it = static_cast<xml_chunk*>(chunk_root->children_);
             it; it = static_cast<xml_chunk*>(it->next_))
         {
-            output += "<li>";
-            output += "<a href=\"";
-            output += encode_string(relative_path_from(it->path_, page->path_));
-            output += "\">";
-            output += generate_html(it->title_->children_);
-            output += "</a>";
+            gen.html += "<li>";
+            gen.html += "<a href=\"";
+            gen.html += encode_string(relative_path_from(it->path_, page->path_));
+            gen.html += "\">";
+            generate_html(gen, it->title_->children_);
+            gen.html += "</a>";
             if (it->children_) {
-                output += generate_contents_impl(page, it);
+                generate_contents_impl(gen, page, it);
             }
-            output += "</li>";
+            gen.html += "</li>";
         }
-        output += "</ul>";
-        return output;
+        gen.html += "</ul>";
     }
 
     void generate_chunks_impl(chunk_writer&, xml_element*);
 
-    void generate_chunks(xml_element* root, fs::path const& root_path) {
-        chunk_writer writer(root_path);
+    void generate_chunks(xml_element* root, id_paths_type const& id_paths, fs::path const& root_path) {
+        chunk_writer writer(root_path, id_paths);
         generate_chunks_impl(writer, root);
     }
 
     void generate_chunks_impl(chunk_writer& writer, xml_element* chunk_root) {
-        std::string output;
         for (xml_chunk* it = static_cast<xml_chunk*>(chunk_root);
             it; it = static_cast<xml_chunk*>(it->next_))
         {
-            output = generate_html(it->title_);
-            output += generate_html(it->info_);
+            html_gen gen(writer.id_paths, it->path_);
+            generate_html(gen, it->title_);
+            generate_html(gen, it->info_);
             if (it->children_) {
-                output += generate_contents_impl(it, it);
+                generate_contents_impl(gen, it, it);
             }
-            output += generate_html(it->root_->children_);
-            writer.write_file(it->path_, output);
+            generate_html(gen, it->root_->children_);
+            writer.write_file(it->path_, gen.html);
             generate_chunks_impl(writer, it->children_);
         }
     }
@@ -492,12 +540,12 @@ namespace quickbook { namespace detail {
 
     void chunk(xml_chunk_builder& builder, xml_element* node);
 
-    xml_element* chunk_document(xml_element* root, fs::path const& p) {
+    xml_chunk* chunk_document(xml_element* root, fs::path const& p) {
         xml_chunk_builder builder(
             path_to_generic(p.stem()),
             path_to_generic(p.extension()));
         chunk(builder, root);
-        return builder.root_;
+        return static_cast<xml_chunk*>(builder.root_);
     }
 
     void chunk(xml_chunk_builder& builder, xml_element* node) {
@@ -531,10 +579,6 @@ namespace quickbook { namespace detail {
     }
 
     // HTML generator
-
-    struct html_gen {
-        std::string html;
-    };
 
     void document(html_gen&, xml_element*);
     typedef void(*node_parser)(html_gen&, xml_element*);
@@ -632,7 +676,7 @@ namespace quickbook { namespace detail {
 
         gen.html += "<a";
         if (value) {
-            gen.html += " href = \"";
+            gen.html += " href=\"";
             gen.html += *value;
             gen.html += "\"";
         }
@@ -642,9 +686,21 @@ namespace quickbook { namespace detail {
     }
 
     NODE_RULE(link, gen, x) {
-        gen.html += "<span class=\"link\">";
+        // TODO: error if missing?
+        std::string* value = x->get_attribute("linkend");
+
+        id_paths_type::const_iterator it = gen.id_paths.end();
+        if (value) { it = gen.id_paths.find(*value); }
+
+        gen.html += "<a";
+        if (it != gen.id_paths.end()) {
+            gen.html += " href=\"";
+            gen.html += relative_path_from(it->second, gen.path);
+            gen.html += "\"";
+        }
+        gen.html += ">";
         document(gen, x->children_);
-        gen.html += "</span>";
+        gen.html += "</a>";
     }
 
     NODE_RULE(phrase, gen, x) {
@@ -693,7 +749,9 @@ namespace quickbook { namespace detail {
                     if (j->type_ == xml_element::element_node && j->name_ == "pharse") {
                         std::string* role = j->get_attribute("role");
                         if (role && *role == "alt") {
-                            alt = generate_html(j->children_);
+                            html_gen gen2(gen);
+                            generate_html(gen2, j->children_);
+                            alt = gen2.html;
                         }
                     }
                 }
@@ -815,10 +873,8 @@ namespace quickbook { namespace detail {
     NODE_RULE(table, gen, x) { write_table(gen, x); }
     NODE_RULE(informaltable, gen, x) { write_table(gen, x); }
 
-    std::string generate_html(xml_element* x) {
-        html_gen gen;
+    void generate_html(html_gen& gen, xml_element* x) {
         document(gen, x);
-        return gen.html;
     }
 
     std::string id_to_path(quickbook::string_view id) {
