@@ -714,11 +714,31 @@ namespace quickbook
             node_parsers_type;
         static node_parsers_type node_parsers;
 
-        void open_tag(html_gen& gen, quickbook::string_view name)
+        void tag_start(html_gen& gen, quickbook::string_view name)
         {
             gen.html += "<";
             gen.html.append(name.begin(), name.end());
-            gen.html += ">";
+        }
+
+        void tag_attribute(
+            html_gen& gen,
+            quickbook::string_view name,
+            quickbook::string_view value)
+        {
+            gen.html += " ";
+            gen.html.append(name.begin(), name.end());
+            gen.html += "=\"";
+            gen.html += "\"";
+        }
+
+        void tag_end(html_gen& gen) { gen.html += ">"; }
+
+        void tag_end_close(html_gen& gen) { gen.html += "/>"; }
+
+        void open_tag(html_gen& gen, quickbook::string_view name)
+        {
+            tag_start(gen, name);
+            tag_end(gen);
         }
 
         void close_tag(html_gen& gen, quickbook::string_view name)
@@ -728,11 +748,10 @@ namespace quickbook
             gen.html += ">";
         }
 
-        void tag(
-            html_gen& gen, quickbook::string_view name, xml_element* children)
+        void tag(html_gen& gen, quickbook::string_view name, xml_element* x)
         {
             open_tag(gen, name);
-            document(gen, children);
+            document(gen, x->children());
             close_tag(gen, name);
         }
 
@@ -775,10 +794,7 @@ namespace quickbook
     void BOOST_PP_CAT(parser_, tag_name)(html_gen & gen, xml_element * x)
 
 #define NODE_MAP(tag_name, html_name)                                          \
-    NODE_RULE(tag_name, gen, x)                                                \
-    {                                                                          \
-        tag(gen, BOOST_PP_STRINGIZE(html_name), x->children());                \
-    }
+    NODE_RULE(tag_name, gen, x) { tag(gen, BOOST_PP_STRINGIZE(html_name), x); }
 
         NODE_MAP(para, p)
         NODE_MAP(simpara, div)
@@ -870,7 +886,7 @@ namespace quickbook
                 tag_name = "strong";
             }
             // TODO: Error on unrecognized role + case insensitive
-            return tag(gen, tag_name, x->children());
+            return tag(gen, tag_name, x);
         }
 
         NODE_RULE(inlinemediaobject, gen, x)
