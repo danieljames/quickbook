@@ -422,8 +422,6 @@ int main(int argc, char* argv[])
 
         options.strict_mode = !!vm.count("strict");
 
-        quickbook::self_linked_headers = !vm.count("no-self-linked-headers");
-
         if (vm.count("indent")) options.indent = vm["indent"].as<int>();
 
         if (vm.count("linewidth"))
@@ -446,6 +444,10 @@ int main(int argc, char* argv[])
                 ++error_count;
             }
         }
+
+        quickbook::self_linked_headers =
+            options.format != quickbook::parse_document_options::chunked_html &&
+            !vm.count("no-self-linked-headers");
 
         if (vm.count("debug")) {
             static tm timeinfo;
