@@ -468,7 +468,9 @@ namespace quickbook
         id_paths_type get_id_paths(chunk* chunk)
         {
             id_paths_type id_paths;
-            get_id_paths_impl(id_paths, chunk);
+            if (chunk) {
+                get_id_paths_impl(id_paths, chunk);
+            }
             return id_paths;
         }
 
