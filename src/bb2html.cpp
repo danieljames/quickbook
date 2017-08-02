@@ -30,7 +30,80 @@ namespace quickbook
 {
     namespace detail
     {
-        struct xml_element
+        struct tree_node
+        {
+            tree_node* parent_;
+            tree_node* children_;
+            tree_node* next_;
+            tree_node* prev_;
+
+            tree_node() : parent_(), children_(), next_(), prev_() {}
+        };
+
+        template <typename T> struct tree_node_impl : tree_node
+        {
+            T* extract()
+            {
+                T* next = static_cast<T*>(next_);
+                if (parent_ && !prev_) {
+                    parent_->children_ = next;
+                }
+                if (prev_) {
+                    prev_->next_ = next_;
+                }
+                if (next_) {
+                    next_->prev_ = prev_;
+                }
+                parent_ = 0;
+                next_ = 0;
+                prev_ = 0;
+                return next;
+            }
+
+            T* parent() const { return static_cast<T*>(parent_); }
+            T* children() const { return static_cast<T*>(children_); }
+            T* next() const { return static_cast<T*>(next_); }
+            T* prev() const { return static_cast<T*>(prev_); }
+        };
+
+        template <typename T> struct tree_builder
+        {
+            T* root_;
+            T* current_;
+            T* parent_;
+
+            tree_builder() : root_(0), current_(0), parent_(0) {}
+
+            void add_element(T* n)
+            {
+                n->parent_ = parent_;
+                n->prev_ = current_;
+                if (current_) {
+                    current_->next_ = n;
+                }
+                else if (parent_) {
+                    parent_->children_ = n;
+                }
+                else {
+                    root_ = n;
+                }
+                current_ = n;
+            }
+
+            void start_children()
+            {
+                parent_ = current_;
+                current_ = 0;
+            }
+
+            void end_children()
+            {
+                current_ = parent_;
+                parent_ = current_->parent();
+            }
+        };
+
+        struct xml_element : tree_node_impl<xml_element>
         {
             enum element_type
             {
@@ -40,31 +113,12 @@ namespace quickbook
             } type_;
             std::string name_;
             std::vector<std::pair<std::string, std::string> > attributes_;
-            xml_element* parent_;
-            xml_element* children_;
-            xml_element* next_;
-            xml_element* prev_;
             std::string contents_;
 
-            explicit xml_element(element_type n)
-                : type_(n)
-                , name_()
-                , attributes_()
-                , parent_()
-                , children_()
-                , next_()
-                , prev_()
-            {
-            }
+            explicit xml_element(element_type n) : type_(n) {}
 
             explicit xml_element(element_type n, quickbook::string_view name)
-                : type_(n)
-                , name_(name.begin(), name.end())
-                , attributes_()
-                , parent_()
-                , children_()
-                , next_()
-                , prev_()
+                : type_(n), name_(name.begin(), name.end())
             {
             }
 
@@ -92,74 +146,9 @@ namespace quickbook
                 }
                 return 0;
             }
-
-            xml_element* extract()
-            {
-                xml_element* next = next_;
-                if (parent_ && !prev_) {
-                    parent_->children_ = next;
-                }
-                if (prev_) {
-                    prev_->next_ = next_;
-                }
-                if (next_) {
-                    next_->prev_ = prev_;
-                }
-                parent_ = 0;
-                next_ = 0;
-                prev_ = 0;
-                return next;
-            }
         };
 
-        struct xml_tree_builder
-        {
-            xml_element* root_;
-            xml_element* current_;
-            xml_element* parent_;
-
-            xml_tree_builder() : root_(0), current_(0), parent_(root_) {}
-
-            void add_text_node(quickbook::string_view x)
-            {
-                add_element(xml_element::text_node(x));
-            }
-
-            xml_element* add_node(quickbook::string_view name)
-            {
-                xml_element* node = xml_element::node(name);
-                add_element(node);
-                return node;
-            }
-
-            void add_element(xml_element* n)
-            {
-                n->parent_ = parent_;
-                n->prev_ = current_;
-                if (current_) {
-                    current_->next_ = n;
-                }
-                else if (parent_) {
-                    parent_->children_ = n;
-                }
-                else {
-                    root_ = n;
-                }
-                current_ = n;
-            }
-
-            void start_children()
-            {
-                parent_ = current_;
-                current_ = 0;
-            }
-
-            void end_children()
-            {
-                current_ = parent_;
-                parent_ = current_->parent_;
-            }
-        };
+        typedef tree_builder<xml_element> xml_tree_builder;
 
         struct xml_chunk : xml_element
         {
@@ -317,7 +306,8 @@ namespace quickbook
         {
             assert(it == start + 1 && it != end);
             quickbook::string_view name = read_tag_name(it, start, end);
-            xml_element* node = builder.add_node(name);
+            xml_element* node = xml_element::node(name);
+            builder.add_element(node);
 
             // Read attributes
             while (true) {
@@ -398,8 +388,8 @@ namespace quickbook
                 iterator start = it;
                 read_to(it, end, '<');
                 if (start != it) {
-                    builder.add_text_node(
-                        quickbook::string_view(start, it - start));
+                    builder.add_element(xml_element::text_node(
+                        quickbook::string_view(start, it - start)));
                 }
 
                 if (it == end) {
@@ -447,8 +437,8 @@ namespace quickbook
             get_id_paths_impl2(id_paths, chunk->path_, chunk->title_);
             get_id_paths_impl2(id_paths, chunk->path_, chunk->info_);
             get_id_paths_impl2(id_paths, chunk->path_, chunk->root_);
-            for (xml_chunk* i = static_cast<xml_chunk*>(chunk->children_); i;
-                 i = static_cast<xml_chunk*>(i->next_)) {
+            for (xml_chunk* i = static_cast<xml_chunk*>(chunk->children()); i;
+                 i = static_cast<xml_chunk*>(i->next())) {
                 get_id_paths_impl(id_paths, i);
             }
         }
@@ -467,7 +457,7 @@ namespace quickbook
                 p += *id;
                 id_paths.emplace(*id, boost::move(p));
             }
-            for (xml_element* i = node->children_; i; i = i->next_) {
+            for (xml_element* i = node->children(); i; i = i->next()) {
                 get_id_paths_impl2(id_paths, path, i);
             }
         }
@@ -498,10 +488,10 @@ namespace quickbook
 
         void generate_contents(html_gen& gen, xml_element* root)
         {
-            assert(root->children_ && !root->children_->next_);
-            xml_chunk* root_chunk = static_cast<xml_chunk*>(root->children_);
+            assert(root->children() && !root->children()->next());
+            xml_chunk* root_chunk = static_cast<xml_chunk*>(root->children());
             generate_html(gen, root_chunk->title_);
-            generate_html(gen, root_chunk->root_->children_);
+            generate_html(gen, root_chunk->root_->children());
             // TODO: root_chunk is wrong.....
             generate_contents_impl(gen, root_chunk, root_chunk);
         }
@@ -510,16 +500,17 @@ namespace quickbook
             html_gen& gen, xml_chunk* page, xml_element* chunk_root)
         {
             gen.html += "<ul>";
-            for (xml_chunk* it = static_cast<xml_chunk*>(chunk_root->children_);
-                 it; it = static_cast<xml_chunk*>(it->next_)) {
+            for (xml_chunk* it =
+                     static_cast<xml_chunk*>(chunk_root->children());
+                 it; it = static_cast<xml_chunk*>(it->next())) {
                 gen.html += "<li>";
                 gen.html += "<a href=\"";
                 gen.html +=
                     encode_string(relative_path_from(it->path_, page->path_));
                 gen.html += "\">";
-                generate_html(gen, it->title_->children_);
+                generate_html(gen, it->title_->children());
                 gen.html += "</a>";
-                if (it->children_) {
+                if (it->children()) {
                     generate_contents_impl(gen, page, it);
                 }
                 gen.html += "</li>";
@@ -541,16 +532,16 @@ namespace quickbook
         void generate_chunks_impl(chunk_writer& writer, xml_element* chunk_root)
         {
             for (xml_chunk* it = static_cast<xml_chunk*>(chunk_root); it;
-                 it = static_cast<xml_chunk*>(it->next_)) {
+                 it = static_cast<xml_chunk*>(it->next())) {
                 html_gen gen(writer.id_paths, it->path_);
                 generate_html(gen, it->title_);
                 generate_html(gen, it->info_);
-                if (it->children_) {
+                if (it->children()) {
                     generate_contents_impl(gen, it, it);
                 }
-                generate_html(gen, it->root_->children_);
+                generate_html(gen, it->root_->children());
                 writer.write_file(it->path_, gen.html);
-                generate_chunks_impl(writer, it->children_);
+                generate_chunks_impl(writer, it->children());
             }
         }
 
@@ -666,11 +657,11 @@ namespace quickbook
                     it = it->extract();
                     builder.add_element(chunk_node);
                     builder.start_children();
-                    chunk(builder, chunk_node->root_->children_);
+                    chunk(builder, chunk_node->root_->children());
                     builder.end_children();
                 }
                 else {
-                    it = it->next_;
+                    it = it->next();
                 }
             }
         }
@@ -707,7 +698,7 @@ namespace quickbook
 
         void document(html_gen& gen, xml_element* x)
         {
-            for (; x; x = x->next_) {
+            for (; x; x = x->next()) {
                 switch (x->type_) {
                 case xml_element::element_text: {
                     gen.html += x->contents_;
@@ -719,8 +710,8 @@ namespace quickbook
                     if (it != node_parsers.end()) {
                         it->second(gen, x);
                     }
-                    else if (x->children_) {
-                        document(gen, x->children_);
+                    else if (x->children()) {
+                        document(gen, x->children());
                     }
                     break;
                 }
@@ -746,7 +737,7 @@ namespace quickbook
 #define NODE_MAP(tag_name, html_name)                                          \
     NODE_RULE(tag_name, gen, x)                                                \
     {                                                                          \
-        tag(gen, BOOST_PP_STRINGIZE(html_name), x->children_);                 \
+        tag(gen, BOOST_PP_STRINGIZE(html_name), x->children());                \
     }
 
         NODE_MAP(para, p)
@@ -775,7 +766,7 @@ namespace quickbook
                 gen.html += "\"";
             }
             gen.html += ">";
-            document(gen, x->children_);
+            document(gen, x->children());
             gen.html += "</div>";
         }
 
@@ -791,7 +782,7 @@ namespace quickbook
                 gen.html += "\"";
             }
             gen.html += ">";
-            document(gen, x->children_);
+            document(gen, x->children());
             gen.html += "</a>";
         }
 
@@ -812,7 +803,7 @@ namespace quickbook
                 gen.html += "\"";
             }
             gen.html += ">";
-            document(gen, x->children_);
+            document(gen, x->children());
             gen.html += "</a>";
         }
 
@@ -827,7 +818,7 @@ namespace quickbook
                 gen.html += "\"";
             }
             gen.html += ">";
-            document(gen, x->children_);
+            document(gen, x->children());
             gen.html += "</span>";
         }
 
@@ -839,7 +830,7 @@ namespace quickbook
                 tag_name = "strong";
             }
             // TODO: Error on unrecognized role + case insensitive
-            return tag(gen, tag_name, x->children_);
+            return tag(gen, tag_name, x->children());
         }
 
         NODE_RULE(inlinemediaobject, gen, x)
@@ -847,10 +838,10 @@ namespace quickbook
             std::string* image;
 
             // Get image link
-            for (xml_element* i = x->children_; i; i = i->next_) {
+            for (xml_element* i = x->children(); i; i = i->next()) {
                 if (i->type_ == xml_element::element_node &&
                     i->name_ == "imageobject") {
-                    for (xml_element* j = i->children_; j; j = j->next_) {
+                    for (xml_element* j = i->children(); j; j = j->next()) {
                         if (j->type_ == xml_element::element_node &&
                             j->name_ == "imagedata") {
                             image = j->get_attribute("fileref");
@@ -863,16 +854,16 @@ namespace quickbook
             }
 
             std::string alt;
-            for (xml_element* i = x->children_; i; i = i->next_) {
+            for (xml_element* i = x->children(); i; i = i->next()) {
                 if (i->type_ == xml_element::element_node &&
                     i->name_ == "textobject") {
-                    for (xml_element* j = i->children_; j; j = j->next_) {
+                    for (xml_element* j = i->children(); j; j = j->next()) {
                         if (j->type_ == xml_element::element_node &&
                             j->name_ == "pharse") {
                             std::string* role = j->get_attribute("role");
                             if (role && *role == "alt") {
                                 html_gen gen2(gen);
-                                generate_html(gen2, j->children_);
+                                generate_html(gen2, j->children());
                                 alt = gen2.html;
                             }
                         }
@@ -897,7 +888,7 @@ namespace quickbook
             typedef std::vector<std::pair<xml_element*, xml_element*> >
                 items_type;
             items_type items;
-            for (xml_element* i = x->children_; i; i = i->next_) {
+            for (xml_element* i = x->children(); i; i = i->next()) {
                 if (i && i->type_ == xml_element::element_node) {
                     if (i->name_ == "title") {
                         // TODO: What to do with titles?
@@ -906,7 +897,7 @@ namespace quickbook
                     else if (i->name_ == "varlistentry") {
                         xml_element* term = 0;
                         xml_element* listitem = 0;
-                        for (xml_element* j = i->children_; j; j = j->next_) {
+                        for (xml_element* j = i->children(); j; j = j->next()) {
                             if (j && j->type_ == xml_element::element_node) {
                                 if (j->name_ == "term") {
                                     term = j;
@@ -928,10 +919,10 @@ namespace quickbook
                 for (items_type::iterator i = items.begin(); i != items.end();
                      ++i) {
                     open_tag(gen, "dt");
-                    document(gen, i->first->children_);
+                    document(gen, i->first->children());
                     close_tag(gen, "dt");
                     open_tag(gen, "dd");
-                    document(gen, i->second->children_);
+                    document(gen, i->second->children());
                     close_tag(gen, "dd");
                 }
                 close_tag(gen, "dl");
@@ -940,15 +931,15 @@ namespace quickbook
 
         void write_table_rows(html_gen& gen, xml_element* x, char const* td_tag)
         {
-            for (xml_element* i = x->children_; i; i = i->next_) {
+            for (xml_element* i = x->children(); i; i = i->next()) {
                 if (i->type_ == xml_element::element_node &&
                     i->name_ == "row") {
                     open_tag(gen, "tr");
-                    for (xml_element* j = i->children_; j; j = j->next_) {
+                    for (xml_element* j = i->children(); j; j = j->next()) {
                         if (j->type_ == xml_element::element_node &&
                             j->name_ == "entry") {
                             open_tag(gen, td_tag);
-                            document(gen, j->children_);
+                            document(gen, j->children());
                             close_tag(gen, td_tag);
                         }
                     }
@@ -964,7 +955,7 @@ namespace quickbook
             xml_element* thead = 0;
             xml_element* tbody = 0;
 
-            for (xml_element* i = x->children_; i; i = i->next_) {
+            for (xml_element* i = x->children(); i; i = i->next()) {
                 if (i->type_ == xml_element::element_node &&
                     i->name_ == "title") {
                     title = i;
@@ -979,7 +970,7 @@ namespace quickbook
                 return;
             }
 
-            for (xml_element* i = tgroup->children_; i; i = i->next_) {
+            for (xml_element* i = tgroup->children(); i; i = i->next()) {
                 if (i->type_ == xml_element::element_node &&
                     i->name_ == "thead") {
                     thead = i;
@@ -993,7 +984,7 @@ namespace quickbook
             open_tag(gen, "table");
             if (title) {
                 open_tag(gen, "caption");
-                document(gen, title->children_);
+                document(gen, title->children());
                 close_tag(gen, "caption");
             }
             if (thead) {
