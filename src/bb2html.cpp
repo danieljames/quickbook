@@ -714,12 +714,6 @@ namespace quickbook
             node_parsers_type;
         static node_parsers_type node_parsers;
 
-        void tag_start(html_gen& gen, quickbook::string_view name)
-        {
-            gen.html += "<";
-            gen.html.append(name.begin(), name.end());
-        }
-
         void tag_attribute(
             html_gen& gen,
             quickbook::string_view name,
@@ -728,16 +722,40 @@ namespace quickbook
             gen.html += " ";
             gen.html.append(name.begin(), name.end());
             gen.html += "=\"";
+            gen.html.append(value.begin(), value.end());
             gen.html += "\"";
+        }
+
+        void tag_start(html_gen& gen, quickbook::string_view name)
+        {
+            gen.html += "<";
+            gen.html.append(name.begin(), name.end());
+        }
+
+        void tag_start_with_id(
+            html_gen& gen, quickbook::string_view name, xml_element* x)
+        {
+            tag_start(gen, name);
+            std::string* id = x->get_attribute("id");
+            if (id) {
+                tag_attribute(gen, "id", *id);
+            }
         }
 
         void tag_end(html_gen& gen) { gen.html += ">"; }
 
-        void tag_end_close(html_gen& gen) { gen.html += "/>"; }
+        void tag_end_self_close(html_gen& gen) { gen.html += "/>"; }
 
         void open_tag(html_gen& gen, quickbook::string_view name)
         {
             tag_start(gen, name);
+            tag_end(gen);
+        }
+
+        void open_tag_with_id(
+            html_gen& gen, quickbook::string_view name, xml_element* x)
+        {
+            tag_start_with_id(gen, name, x);
             tag_end(gen);
         }
 
@@ -750,7 +768,7 @@ namespace quickbook
 
         void tag(html_gen& gen, quickbook::string_view name, xml_element* x)
         {
-            open_tag(gen, name);
+            open_tag_with_id(gen, name, x);
             document(gen, x->children());
             close_tag(gen, name);
         }
@@ -810,36 +828,20 @@ namespace quickbook
         NODE_MAP(literal, tt)
         NODE_MAP(subscript, sub)
         NODE_MAP(superscript, sup)
-
-        NODE_RULE(section, gen, x)
-        {
-            std::string* value = x->get_attribute("id");
-
-            gen.html += "<div";
-            if (value) {
-                gen.html += " id = \"";
-                gen.html += *value;
-                gen.html += "\"";
-            }
-            gen.html += ">";
-            document(gen, x->children());
-            gen.html += "</div>";
-        }
+        NODE_MAP(section, div)
 
         NODE_RULE(ulink, gen, x)
         {
             // TODO: error if missing?
             std::string* value = x->get_attribute("url");
 
-            gen.html += "<a";
+            tag_start_with_id(gen, "a", x);
             if (value) {
-                gen.html += " href=\"";
-                gen.html += *value;
-                gen.html += "\"";
+                tag_attribute(gen, "href", *value);
             }
-            gen.html += ">";
+            tag_end(gen);
             document(gen, x->children());
-            gen.html += "</a>";
+            close_tag(gen, "a");
         }
 
         NODE_RULE(link, gen, x)
@@ -852,30 +854,27 @@ namespace quickbook
                 it = gen.id_paths.find(*value);
             }
 
-            gen.html += "<a";
+            tag_start_with_id(gen, "a", x);
             if (it != gen.id_paths.end()) {
-                gen.html += " href=\"";
-                gen.html += relative_path_from(it->second, gen.path);
-                gen.html += "\"";
+                tag_attribute(
+                    gen, "href", relative_path_from(it->second, gen.path));
             }
-            gen.html += ">";
+            tag_end(gen);
             document(gen, x->children());
-            gen.html += "</a>";
+            close_tag(gen, "a");
         }
 
         NODE_RULE(phrase, gen, x)
         {
             std::string* value = x->get_attribute("role");
 
-            gen.html += "<span";
+            tag_start_with_id(gen, "span", x);
             if (value) {
-                gen.html += " class = \"";
-                gen.html += *value;
-                gen.html += "\"";
+                tag_attribute(gen, "class", *value);
             }
-            gen.html += ">";
+            tag_end(gen);
             document(gen, x->children());
-            gen.html += "</span>";
+            close_tag(gen, "span");
         }
 
         NODE_RULE(emphasis, gen, x)
@@ -915,7 +914,7 @@ namespace quickbook
                     i->name_ == "textobject") {
                     for (xml_element* j = i->children(); j; j = j->next()) {
                         if (j->type_ == xml_element::element_node &&
-                            j->name_ == "pharse") {
+                            j->name_ == "phrase") {
                             std::string* role = j->get_attribute("role");
                             if (role && *role == "alt") {
                                 html_gen gen2(gen);
@@ -931,11 +930,10 @@ namespace quickbook
                 alt = "[]";
             }
             if (image) {
-                gen.html += "<img src=\"";
-                gen.html += *image;
-                gen.html += "\" alt=\"";
-                gen.html += alt;
-                gen.html += "\">";
+                tag_start_with_id(gen, "img", x);
+                tag_attribute(gen, "src", *image);
+                tag_attribute(gen, "alt", alt);
+                tag_end_self_close(gen);
             }
         }
 
@@ -951,6 +949,7 @@ namespace quickbook
                         continue;
                     }
                     else if (i->name_ == "varlistentry") {
+                        // TODO: What if i has an id?
                         xml_element* term = 0;
                         xml_element* listitem = 0;
                         for (xml_element* j = i->children(); j; j = j->next()) {
@@ -971,15 +970,11 @@ namespace quickbook
             }
 
             if (!items.empty()) {
-                open_tag(gen, "dl");
+                open_tag_with_id(gen, "dl", x);
                 for (items_type::iterator i = items.begin(); i != items.end();
                      ++i) {
-                    open_tag(gen, "dt");
-                    document(gen, i->first->children());
-                    close_tag(gen, "dt");
-                    open_tag(gen, "dd");
-                    document(gen, i->second->children());
-                    close_tag(gen, "dd");
+                    tag(gen, "dt", i->first);
+                    tag(gen, "dd", i->second);
                 }
                 close_tag(gen, "dl");
             }
@@ -990,11 +985,11 @@ namespace quickbook
             for (xml_element* i = x->children(); i; i = i->next()) {
                 if (i->type_ == xml_element::element_node &&
                     i->name_ == "row") {
-                    open_tag(gen, "tr");
+                    open_tag_with_id(gen, "tr", i);
                     for (xml_element* j = i->children(); j; j = j->next()) {
                         if (j->type_ == xml_element::element_node &&
                             j->name_ == "entry") {
-                            open_tag(gen, td_tag);
+                            open_tag_with_id(gen, td_tag, j);
                             document(gen, j->children());
                             close_tag(gen, td_tag);
                         }
@@ -1037,11 +1032,9 @@ namespace quickbook
                 }
             }
 
-            open_tag(gen, "table");
+            open_tag_with_id(gen, "table", x);
             if (title) {
-                open_tag(gen, "caption");
-                document(gen, title->children());
-                close_tag(gen, "caption");
+                tag(gen, "caption", title);
             }
             if (thead) {
                 open_tag(gen, "thead");
