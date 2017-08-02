@@ -42,37 +42,71 @@ namespace quickbook
 
         template <typename T> struct tree_node_impl : tree_node
         {
-            T* extract()
-            {
-                T* next = static_cast<T*>(next_);
-                if (parent_ && !prev_) {
-                    parent_->children_ = next;
-                }
-                if (prev_) {
-                    prev_->next_ = next_;
-                }
-                if (next_) {
-                    next_->prev_ = prev_;
-                }
-                parent_ = 0;
-                next_ = 0;
-                prev_ = 0;
-                return next;
-            }
-
             T* parent() const { return static_cast<T*>(parent_); }
             T* children() const { return static_cast<T*>(children_); }
             T* next() const { return static_cast<T*>(next_); }
             T* prev() const { return static_cast<T*>(prev_); }
         };
 
+        template <typename Node> void delete_nodes(Node* n)
+        {
+            while (n) {
+                Node* to_delete = n;
+                n = n->next();
+                delete_nodes(to_delete->children());
+                delete_nodes(to_delete);
+            }
+        }
+
         template <typename T> struct tree_builder
         {
+          private:
+            tree_builder(tree_builder const&);
+            tree_builder& operator=(tree_builder const&);
+
+          public:
             T* root_;
             T* current_;
             T* parent_;
 
             tree_builder() : root_(0), current_(0), parent_(0) {}
+
+            ~tree_builder() { delete_nodes(root_); }
+
+            T* extract(T* x)
+            {
+                T* next = static_cast<T*>(x->next_);
+                if (!x->prev_) {
+                    if (x->parent_) {
+                        x->parent_->children_ = next;
+                    }
+                    else {
+                        assert(x == root_);
+                        root_ = next;
+                        parent_ = 0;
+                        current_ = next;
+                    }
+                }
+                else {
+                    x->prev_->next_ = x->next_;
+                }
+                if (x->next_) {
+                    x->next_->prev_ = x->prev_;
+                }
+                x->parent_ = 0;
+                x->next_ = 0;
+                x->prev_ = 0;
+                return next;
+            }
+
+            T* release()
+            {
+                T* n = root_;
+                root_ = 0;
+                current_ = 0;
+                parent_ = 0;
+                return n;
+            }
 
             void add_element(T* n)
             {
@@ -157,6 +191,13 @@ namespace quickbook
             std::string path_;
 
             chunk() : title_(), info_(), root_() {}
+
+            ~chunk()
+            {
+                delete_nodes(title_);
+                delete_nodes(info_);
+                delete_nodes(root_);
+            }
         };
 
         typedef boost::unordered_map<string_view, std::string> id_paths_type;
@@ -175,7 +216,7 @@ namespace quickbook
         };
 
         void generate_html(html_gen&, xml_element*);
-        chunk* chunk_document(xml_element*, fs::path const&);
+        chunk* chunk_document(xml_tree_builder&, fs::path const&);
         std::string id_to_path(quickbook::string_view);
         std::string relative_path_from(
             quickbook::string_view, quickbook::string_view);
@@ -414,9 +455,10 @@ namespace quickbook
                 }
             }
 
-            chunk* chunked = chunk_document(builder.root_, fileout_);
+            chunk* chunked = chunk_document(builder, fileout_);
             id_paths_type id_paths = get_id_paths(chunked);
             generate_chunks(chunked, id_paths, fileout_.parent_path());
+            delete_nodes(chunked);
             return 0;
         }
 
@@ -614,17 +656,19 @@ namespace quickbook
             }
         };
 
-        void chunk_nodes(chunk_builder& builder, xml_element* node);
+        void chunk_nodes(
+            chunk_builder& builder, xml_tree_builder& tree, xml_element* node);
 
-        chunk* chunk_document(xml_element* root, fs::path const& p)
+        chunk* chunk_document(xml_tree_builder& tree, fs::path const& p)
         {
             chunk_builder builder(
                 path_to_generic(p.stem()), path_to_generic(p.extension()));
-            chunk_nodes(builder, root);
-            return builder.root_;
+            chunk_nodes(builder, tree, tree.root_);
+            return builder.release();
         }
 
-        void chunk_nodes(chunk_builder& builder, xml_element* node)
+        void chunk_nodes(
+            chunk_builder& builder, xml_tree_builder& tree, xml_element* node)
         {
             chunk* parent = builder.parent_;
 
@@ -632,13 +676,13 @@ namespace quickbook
                 if (parent && it->type_ == xml_element::element_node &&
                     it->name_ == "title") {
                     parent->title_ = it;
-                    it = it->extract();
+                    it = tree.extract(it);
                 }
                 else if (
                     parent && it->type_ == xml_element::element_node &&
                     chunkinfo_types.find(it->name_) != chunkinfo_types.end()) {
                     parent->info_ = it;
-                    it = it->extract();
+                    it = tree.extract(it);
                 }
                 else if (
                     it->type_ == xml_element::element_node &&
@@ -648,10 +692,10 @@ namespace quickbook
                     std::string* id = it->get_attribute("id");
                     chunk_node->path_ =
                         id ? id_to_path(*id) : builder.next_path_name();
-                    it = it->extract();
+                    it = tree.extract(it);
                     builder.add_element(chunk_node);
                     builder.start_children();
-                    chunk_nodes(builder, chunk_node->root_->children());
+                    chunk_nodes(builder, tree, chunk_node->root_->children());
                     builder.end_children();
                 }
                 else {
