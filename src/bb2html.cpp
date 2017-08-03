@@ -720,13 +720,23 @@ namespace quickbook { namespace detail {
         tag(gen, BOOST_PP_STRINGIZE(html_name), x); \
     }
 
+#define NODE_MAP_CLASS(tag_name, html_name, class_name) \
+    NODE_RULE(tag_name, gen, x) { \
+        tag_start_with_id(gen, BOOST_PP_STRINGIZE(html_name), x); \
+        tag_attribute(gen, "class", BOOST_PP_STRINGIZE(class_name)); \
+        tag_end(gen); \
+        document(gen, x->children()); \
+        close_tag(gen, BOOST_PP_STRINGIZE(html_name)); \
+    }
+
+
     NODE_MAP(para, p)
     NODE_MAP(simpara, div)
-    NODE_MAP(title, h3)
     NODE_MAP(orderedlist, ol)
     NODE_MAP(itemizedlist, ul)
     NODE_MAP(listitem, li)
     NODE_MAP(blockquote, blockquote)
+    NODE_MAP(quote, q)
     NODE_MAP(code, code)
     NODE_MAP(macronname, code)
     NODE_MAP(classname, code)
@@ -735,6 +745,14 @@ namespace quickbook { namespace detail {
     NODE_MAP(subscript, sub)
     NODE_MAP(superscript, sup)
     NODE_MAP(section, div)
+
+    // TODO: Header levels
+    NODE_MAP(title, h3)
+    NODE_MAP(bridgehead, h3)
+
+    NODE_MAP_CLASS(note, div, note)
+    NODE_MAP_CLASS(tip, div, tip)
+    NODE_MAP_CLASS(sidebar, div, sidebar)
 
     NODE_RULE(ulink, gen, x) {
         // TODO: error if missing?
