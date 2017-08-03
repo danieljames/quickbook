@@ -283,8 +283,11 @@ namespace quickbook
                 case xml_element::element_text:
                     std::cout << "Text";
                     break;
+                default:
+                    std::cout << "Unknown node type";
+                    break;
                 }
-                std::cout << "\n";
+                std::cout << std::endl;
                 write_xml_tree(it->children(), depth + 1);
             }
         }
