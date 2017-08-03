@@ -8,6 +8,7 @@ http://www.boost.org/LICENSE_1_0.txt)
 
 #include "bb2html.hpp"
 #include <cassert>
+#include <iostream>
 #include <vector>
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/filesystem/fstream.hpp>
@@ -214,6 +215,25 @@ namespace quickbook
             {
             }
         };
+
+        void write_xml_tree(xml_element* it, unsigned int depth = 0)
+        {
+            for (; it; it = it->next()) {
+                for (unsigned i = 0; i < depth; ++i) {
+                    std::cout << "  ";
+                }
+                switch (it->type_) {
+                case xml_element::element_node:
+                    std::cout << "Node: " << it->name_;
+                    break;
+                case xml_element::element_text:
+                    std::cout << "Text";
+                    break;
+                }
+                std::cout << "\n";
+                write_xml_tree(it->children(), depth + 1);
+            }
+        }
 
         void generate_html(html_gen&, xml_element*);
         chunk* chunk_document(xml_tree_builder&, fs::path const&);
