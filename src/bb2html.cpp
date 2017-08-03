@@ -808,6 +808,8 @@ namespace quickbook
                         it->second(gen, x);
                     }
                     else if (x->children()) {
+                        std::cout << "Unsupported tag: " << x->name_
+                                  << std::endl;
                         document(gen, x->children());
                     }
                     break;
