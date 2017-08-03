@@ -606,21 +606,21 @@ namespace quickbook { namespace detail {
 
     void generate_chunks(chunk* root, id_paths_type const& id_paths, fs::path const& root_path) {
         chunk_writer writer(root_path, id_paths);
-        generate_chunks_impl(writer, root);
+        if (root) { generate_chunks_impl(writer, root); }
     }
 
     void generate_chunks_impl(chunk_writer& writer, chunk* chunk_root) {
-        for (chunk* it = chunk_root; it; it = it->next())
+        html_gen gen(writer.id_paths, chunk_root->path_);
+        generate_html(gen, chunk_root->title_);
+        generate_html(gen, chunk_root->info_);
+        if (chunk_root->children()) {
+            generate_contents_impl(gen, chunk_root, chunk_root);
+        }
+        generate_html(gen, chunk_root->root_->children());
+        writer.write_file(chunk_root->path_, gen.html);
+        for (chunk* it = chunk_root->children(); it; it = it->next())
         {
-            html_gen gen(writer.id_paths, it->path_);
-            generate_html(gen, it->title_);
-            generate_html(gen, it->info_);
-            if (it->children()) {
-                generate_contents_impl(gen, it, it);
-            }
-            generate_html(gen, it->root_->children());
-            writer.write_file(it->path_, gen.html);
-            generate_chunks_impl(writer, it->children());
+            generate_chunks_impl(writer, it);
         }
     }
 
