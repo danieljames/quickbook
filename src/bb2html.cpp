@@ -20,6 +20,7 @@ http://www.boost.org/LICENSE_1_0.txt)
 #include <boost/filesystem/operations.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/algorithm/string/replace.hpp>
+#include <iostream>
 
 namespace quickbook {
     namespace fs = boost::filesystem;
@@ -179,6 +180,24 @@ namespace quickbook { namespace detail {
         html_gen(html_gen const& x) : id_paths(x.id_paths), path(x.path) {}
         explicit html_gen(id_paths_type const& ip, string_view p) : id_paths(ip), path(p) {}
     };
+
+    void write_xml_tree(xml_element* it, unsigned int depth = 0) {
+        for (; it; it = it->next()) {
+            for(unsigned i = 0; i < depth; ++i) {
+                std::cout << "  ";
+            }
+            switch (it->type_) {
+            case xml_element::element_node:
+                std::cout << "Node: " << it->name_;
+                break;
+            case xml_element::element_text:
+                std::cout << "Text";
+                break;
+            }
+            std::cout << "\n";
+            write_xml_tree(it->children(), depth + 1);
+        }
+    }
 
     void generate_html(html_gen&, xml_element*);
     chunk* chunk_document(xml_tree_builder&, fs::path const&);
