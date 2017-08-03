@@ -884,10 +884,12 @@ namespace quickbook
                     if (it != node_parsers.end()) {
                         it->second(gen, x);
                     }
-                    else if (x->children()) {
+                    else {
                         std::cout << "Unsupported tag: " << x->name_
                                   << std::endl;
-                        document(gen, x->children());
+                        if (x->children()) {
+                            document(gen, x->children());
+                        }
                     }
                     break;
                 }
