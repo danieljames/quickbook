@@ -29,7 +29,9 @@ namespace quickbook
             }
         };
         int boostbook_to_html(
-            quickbook::string_view, boost::filesystem::path const&);
+            quickbook::string_view,
+            boost::filesystem::path const&,
+            bool chunked_output);
     }
 }
 
