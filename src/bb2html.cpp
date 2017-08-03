@@ -812,6 +812,7 @@ namespace quickbook { namespace detail {
     NODE_MAP(superscript, sup)
     NODE_MAP(section, div)
     NODE_MAP(anchor, span)
+    NODE_MAP(sbr, br)
 
     // TODO: Header levels
     NODE_MAP(title, h3)
@@ -820,6 +821,9 @@ namespace quickbook { namespace detail {
     NODE_MAP_CLASS(note, div, note)
     NODE_MAP_CLASS(tip, div, tip)
     NODE_MAP_CLASS(sidebar, div, sidebar)
+    NODE_MAP_CLASS(caution, div, caution)
+    NODE_MAP_CLASS(important, div, important)
+    NODE_MAP_CLASS(warning, div, warning)
 
     NODE_RULE(ulink, gen, x) {
         // TODO: error if missing?
