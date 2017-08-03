@@ -227,7 +227,8 @@ namespace quickbook
                 try {
                     if (result) { return result; }
                     // TODO: Support for an output file.
-                    return quickbook::detail::boostbook_to_html(stage2, options_.output_path);
+                    return quickbook::detail::boostbook_to_html(stage2, options_.output_path,
+                        options_.style == parse_document_options::output_chunked);
                 }
                 catch (quickbook::detail::boostbook_parse_error e) {
                     string_view stage2_view(stage2);

@@ -159,9 +159,11 @@ namespace quickbook { namespace detail {
         xml_element* title_;
         xml_element* info_;
         xml_element* root_;
+        bool inline_;
+        std::string id_;
         std::string path_;
 
-        chunk() : title_(), info_(), root_() {}
+        chunk() : title_(), info_(), root_(), inline_(false) {}
 
         ~chunk() {
             delete_nodes(title_);
@@ -180,6 +182,51 @@ namespace quickbook { namespace detail {
         html_gen(html_gen const& x) : id_paths(x.id_paths), path(x.path) {}
         explicit html_gen(id_paths_type const& ip, string_view p) : id_paths(ip), path(p) {}
     };
+
+    void tag_attribute(html_gen& gen, quickbook::string_view name, quickbook::string_view value) {
+        gen.html += " ";
+        gen.html.append(name.begin(), name.end());
+        gen.html += "=\"";
+        gen.html.append(value.begin(), value.end());
+        gen.html += "\"";
+    }
+
+    void tag_start(html_gen& gen, quickbook::string_view name) {
+        gen.html += "<";
+        gen.html.append(name.begin(), name.end());
+    }
+
+    void tag_start_with_id(html_gen& gen, quickbook::string_view name, xml_element* x) {
+        tag_start(gen, name);
+        std::string* id = x->get_attribute("id");
+        if (id) {
+            tag_attribute(gen, "id", *id);
+        }
+    }
+
+    void tag_end(html_gen& gen) {
+        gen.html += ">";
+    }
+
+    void tag_end_self_close(html_gen& gen) {
+        gen.html += "/>";
+    }
+
+    void open_tag(html_gen& gen, quickbook::string_view name) {
+        tag_start(gen, name);
+        tag_end(gen);
+    }
+
+    void open_tag_with_id(html_gen& gen, quickbook::string_view name, xml_element* x) {
+        tag_start_with_id(gen, name, x);
+        tag_end(gen);
+    }
+
+    void close_tag(html_gen& gen, quickbook::string_view name) {
+        gen.html += "</";
+        gen.html.append(name.begin(), name.end());
+        gen.html += ">";
+    }
 
     void write_xml_tree(xml_element* it, unsigned int depth = 0) {
         for (; it; it = it->next()) {
@@ -361,9 +408,20 @@ namespace quickbook { namespace detail {
     }
 
     id_paths_type get_id_paths(chunk* chunk);
-    void generate_documentation(chunk* root, id_paths_type const&, fs::path const& root_path);
+    void generate_chunked_documentation(chunk* root, id_paths_type const&, fs::path const& root_path);
+    void generate_file_documentation(chunk* root, id_paths_type const&, fs::path const& path);
 
-    int boostbook_to_html(quickbook::string_view source, boost::filesystem::path const& output_path) {
+    void inline_chunks(chunk* c, string_view path) {
+        for(;c; c = c->next()) {
+            c->inline_ = true;
+            c->path_.assign(path.begin(), path.end());
+            inline_chunks(c->children(), path);
+        }
+    }
+
+    int boostbook_to_html(quickbook::string_view source, boost::filesystem::path const& output_path,
+        bool chunked_output)
+    {
         typedef quickbook::string_view::const_iterator iterator;
         iterator it = source.begin(), end = source.end();
 
@@ -401,8 +459,21 @@ namespace quickbook { namespace detail {
         }
 
         chunk* chunked = chunk_document(builder);
+        // Overwrite paths depending on whether output is chunked or not.
+        // Really want to do something better, e.g. incorporate many section chunks into their parent.
+        if (chunked_output) {
+            chunked->path_ = "index.html";
+        } else {
+            std::string path = path_to_generic(output_path.filename());
+            chunked->path_ = path;
+            inline_chunks(chunked->children(), path);
+        }
         id_paths_type id_paths = get_id_paths(chunked);
-        generate_documentation(chunked, id_paths, output_path);
+        if (chunked_output) {
+            generate_chunked_documentation(chunked, id_paths, output_path);
+        } else {
+            generate_file_documentation(chunked, id_paths, output_path);
+        }
         delete_nodes(chunked);
         return 0;
     }
@@ -417,6 +488,13 @@ namespace quickbook { namespace detail {
     }
 
     void get_id_paths_impl(id_paths_type& id_paths, chunk* c) {
+        std::string p = c->path_;
+        if (c->inline_) {
+            p += '#';
+            p += c->id_;
+        }
+        id_paths.emplace(c->id_, boost::move(p));
+
         get_id_paths_impl2(id_paths, c->path_, c->title_);
         get_id_paths_impl2(id_paths, c->path_, c->info_);
         get_id_paths_impl2(id_paths, c->path_, c->root_);
@@ -444,12 +522,19 @@ namespace quickbook { namespace detail {
     void write_file(fs::path const& path, std::string const& content);
     void generate_contents(html_gen& gen, chunk* root);
     void generate_chunks(chunk* root, id_paths_type const& id_paths, fs::path const& root_path);
+    void generate_inline_chunks(html_gen& gen, chunk* root);
 
-    void generate_documentation(chunk* chunked, id_paths_type const& id_paths, fs::path const& path) {
+    void generate_chunked_documentation(chunk* chunked, id_paths_type const& id_paths, fs::path const& path) {
         //write_file(path, generate_contents(chunked));
         //TODO: Error check this:
         fs::create_directory(path);
         generate_chunks(chunked, id_paths, path);
+    }
+
+    void generate_file_documentation(chunk* chunked, id_paths_type const& id_paths, fs::path const& path) {
+        html_gen gen(id_paths, chunked->path_);
+        generate_inline_chunks(gen, chunked);
+        write_file(path, gen.html);
     }
 
     struct chunk_writer {
@@ -481,18 +566,40 @@ namespace quickbook { namespace detail {
         gen.html += "<ul>";
         for (chunk* it = chunk_root->children(); it; it = it->next())
         {
+            id_paths_type::const_iterator link = gen.id_paths.find(it->id_);
             gen.html += "<li>";
-            gen.html += "<a href=\"";
-            gen.html += encode_string(relative_path_from(it->path_, page->path_));
-            gen.html += "\">";
-            generate_html(gen, it->title_->children());
-            gen.html += "</a>";
+            if (link != gen.id_paths.end()) {
+                gen.html += "<a href=\"";
+                gen.html += encode_string(relative_path_from(link->second, page->path_));
+                gen.html += "\">";
+                generate_html(gen, it->title_->children());
+                gen.html += "</a>";
+            } else {
+                generate_html(gen, it->title_->children());
+            }
             if (it->children()) {
                 generate_contents_impl(gen, page, it);
             }
             gen.html += "</li>";
         }
         gen.html += "</ul>";
+    }
+
+    void generate_inline_chunks(html_gen& gen, chunk* root) {
+        for (chunk* it = root; it; it = it->next())
+        {
+            tag_start(gen, "div");
+            tag_attribute(gen, "id", it->id_);
+            tag_end(gen);
+            generate_html(gen, it->title_);
+            generate_html(gen, it->info_);
+            if (it->children()) {
+                generate_contents_impl(gen, it, it);
+            }
+            generate_html(gen, it->root_->children());
+            generate_inline_chunks(gen, it->children());
+            close_tag(gen, "div");
+        }
     }
 
     void generate_chunks_impl(chunk_writer&, chunk*);
@@ -576,7 +683,6 @@ namespace quickbook { namespace detail {
             ++count;
             std::string result = "page-";
             result += boost::lexical_cast<std::string>(count);
-            result += ".html";
             ++count;
             return result;
         }
@@ -608,7 +714,8 @@ namespace quickbook { namespace detail {
                 chunk* chunk_node = new chunk();
                 chunk_node->root_ = it;
                 std::string* id = it->get_attribute("id");
-                chunk_node->path_ = id ? id_to_path(*id) : builder.next_path_name();
+                chunk_node->id_ = id ? *id : builder.next_path_name();
+                chunk_node->path_ = id_to_path(chunk_node->id_);
                 it = tree.extract(it);
                 builder.add_element(chunk_node);
                 builder.start_children();
@@ -626,51 +733,6 @@ namespace quickbook { namespace detail {
     typedef void(*node_parser)(html_gen&, xml_element*);
     typedef boost::unordered_map<quickbook::string_view, node_parser> node_parsers_type;
     static node_parsers_type node_parsers;
-
-    void tag_attribute(html_gen& gen, quickbook::string_view name, quickbook::string_view value) {
-        gen.html += " ";
-        gen.html.append(name.begin(), name.end());
-        gen.html += "=\"";
-        gen.html.append(value.begin(), value.end());
-        gen.html += "\"";
-    }
-
-    void tag_start(html_gen& gen, quickbook::string_view name) {
-        gen.html += "<";
-        gen.html.append(name.begin(), name.end());
-    }
-
-    void tag_start_with_id(html_gen& gen, quickbook::string_view name, xml_element* x) {
-        tag_start(gen, name);
-        std::string* id = x->get_attribute("id");
-        if (id) {
-            tag_attribute(gen, "id", *id);
-        }
-    }
-
-    void tag_end(html_gen& gen) {
-        gen.html += ">";
-    }
-
-    void tag_end_self_close(html_gen& gen) {
-        gen.html += "/>";
-    }
-
-    void open_tag(html_gen& gen, quickbook::string_view name) {
-        tag_start(gen, name);
-        tag_end(gen);
-    }
-
-    void open_tag_with_id(html_gen& gen, quickbook::string_view name, xml_element* x) {
-        tag_start_with_id(gen, name, x);
-        tag_end(gen);
-    }
-
-    void close_tag(html_gen& gen, quickbook::string_view name) {
-        gen.html += "</";
-        gen.html.append(name.begin(), name.end());
-        gen.html += ">";
-    }
 
     void tag(html_gen& gen, quickbook::string_view name, xml_element* x) {
         open_tag_with_id(gen, name, x);
@@ -967,7 +1029,6 @@ namespace quickbook { namespace detail {
         std::string result;
         for (int i = 0; i < up_count; ++i) { result += "../"; }
         result.append(path_diff_start, path.end());
-        if (result.empty()) { result = '.'; }
         return result;
     }
 }}
