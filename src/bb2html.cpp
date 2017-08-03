@@ -210,8 +210,12 @@ namespace quickbook
             id_paths_type const& id_paths;
             string_view path;
             std::string html;
+            bool in_contents;
 
-            html_gen(html_gen const& x) : id_paths(x.id_paths), path(x.path) {}
+            html_gen(html_gen const& x)
+                : id_paths(x.id_paths), path(x.path), in_contents(false)
+            {
+            }
             explicit html_gen(id_paths_type const& ip, string_view p)
                 : id_paths(ip), path(p)
             {
@@ -240,9 +244,11 @@ namespace quickbook
             html_gen& gen, quickbook::string_view name, xml_element* x)
         {
             tag_start(gen, name);
-            std::string* id = x->get_attribute("id");
-            if (id) {
-                tag_attribute(gen, "id", *id);
+            if (!gen.in_contents) {
+                std::string* id = x->get_attribute("id");
+                if (id) {
+                    tag_attribute(gen, "id", *id);
+                }
             }
         }
 
@@ -293,6 +299,7 @@ namespace quickbook
         }
 
         void generate_html(html_gen&, xml_element*);
+        void generate_contents_html(html_gen&, xml_element*);
         chunk* chunk_document(xml_tree_builder&);
         std::string id_to_path(quickbook::string_view);
         std::string relative_path_from(
@@ -682,11 +689,11 @@ namespace quickbook
                     gen.html += encode_string(
                         relative_path_from(link->second, page->path_));
                     gen.html += "\">";
-                    generate_html(gen, it->title_->children());
+                    generate_contents_html(gen, it->title_->children());
                     gen.html += "</a>";
                 }
                 else {
-                    generate_html(gen, it->title_->children());
+                    generate_contents_html(gen, it->title_->children());
                 }
                 if (it->children()) {
                     generate_contents_impl(gen, page, it);
@@ -940,6 +947,7 @@ namespace quickbook
         NODE_MAP(subscript, sub)
         NODE_MAP(superscript, sup)
         NODE_MAP(section, div)
+        NODE_MAP(anchor, span)
 
         // TODO: Header levels
         NODE_MAP(title, h3)
@@ -1170,6 +1178,14 @@ namespace quickbook
 
         NODE_RULE(table, gen, x) { write_table(gen, x); }
         NODE_RULE(informaltable, gen, x) { write_table(gen, x); }
+
+        void generate_contents_html(html_gen& gen, xml_element* x)
+        {
+            bool old = gen.in_contents;
+            gen.in_contents = true;
+            document(gen, x);
+            gen.in_contents = false;
+        }
 
         void generate_html(html_gen& gen, xml_element* x) { document(gen, x); }
 
