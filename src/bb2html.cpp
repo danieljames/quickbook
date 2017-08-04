@@ -498,12 +498,12 @@ namespace quickbook
         void generate_file_documentation(
             chunk* root, id_paths_type const&, fs::path const& path);
 
-        void inline_chunks(chunk* c, string_view path)
+        void inline_chunks(chunk* c)
         {
             for (; c; c = c->next()) {
                 c->inline_ = true;
-                c->path_.assign(path.begin(), path.end());
-                inline_chunks(c->children(), path);
+                c->path_ = c->parent()->path_;
+                inline_chunks(c->children());
             }
         }
 
@@ -512,7 +512,7 @@ namespace quickbook
             // When depth is 0, inline leading sections.
             if (depth == 0) {
                 for (; c && c->root_->name_ == "section"; c = c->next()) {
-                    inline_chunks(c, c->parent()->path_);
+                    inline_chunks(c);
                 }
             }
 
@@ -579,7 +579,7 @@ namespace quickbook
             else {
                 std::string path = path_to_generic(output_path.filename());
                 chunked->path_ = path;
-                inline_chunks(chunked->children(), path);
+                inline_chunks(chunked->children());
             }
             id_paths_type id_paths = get_id_paths(chunked);
             if (chunked_output) {
