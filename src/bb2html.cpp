@@ -810,6 +810,7 @@ namespace quickbook { namespace detail {
     }
 
 
+    // TODO: For some reason 'hr' generates an empty paragraph?
     NODE_MAP(para, p)
     NODE_MAP(simpara, div)
     NODE_MAP(orderedlist, ol)
@@ -832,12 +833,12 @@ namespace quickbook { namespace detail {
     NODE_MAP(title, h3)
     NODE_MAP(bridgehead, h3)
 
-    NODE_MAP_CLASS(note, div, note)
-    NODE_MAP_CLASS(tip, div, tip)
-    NODE_MAP_CLASS(sidebar, div, sidebar)
+    NODE_MAP_CLASS(sidebar, div, sidebar) // TODO: sidebar role="blurb"
+    NODE_MAP_CLASS(warning, div, warning)
     NODE_MAP_CLASS(caution, div, caution)
     NODE_MAP_CLASS(important, div, important)
-    NODE_MAP_CLASS(warning, div, warning)
+    NODE_MAP_CLASS(note, div, note)
+    NODE_MAP_CLASS(tip, div, tip)
 
     NODE_RULE(ulink, gen, x) {
         // TODO: error if missing?
