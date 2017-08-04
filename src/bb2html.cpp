@@ -881,11 +881,21 @@ namespace quickbook { namespace detail {
     NODE_RULE(emphasis, gen, x) {
         std::string* value = x->get_attribute("role");
         quickbook::string_view tag_name = "em";
-        if (value && (*value == "bold" || *value == "strong")) {
-            tag_name = "strong";
+        quickbook::string_view class_name = "";
+        // TODO: case insensitive?
+        if (value) {
+            if (*value == "bold" || *value == "strong") {
+                tag_name = "strong";
+            } else {
+                tag_name = "span";
+                class_name = *value;
+            }
         }
-        // TODO: Error on unrecognized role + case insensitive
-        return tag(gen, tag_name, x);
+        tag_start_with_id(gen, tag_name, x);
+        if (!class_name.empty()) { tag_attribute(gen, "class", class_name); }
+        tag_end(gen);
+        document(gen, x->children());
+        close_tag(gen, tag_name);
     }
 
     NODE_RULE(inlinemediaobject, gen, x) {
