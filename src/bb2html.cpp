@@ -507,6 +507,25 @@ namespace quickbook
             }
         }
 
+        void inline_sections(chunk* c, int depth)
+        {
+            // When depth is 0, inline leading sections.
+            if (depth == 0) {
+                for (; c && c->root_->name_ == "section"; c = c->next()) {
+                    inline_chunks(c, c->parent()->path_);
+                }
+            }
+
+            for (; c; c = c->next()) {
+                if (c->root_->name_ == "section" && depth > 1) {
+                    inline_sections(c->children(), depth - 1);
+                }
+                else {
+                    inline_sections(c->children(), depth);
+                }
+            }
+        }
+
         int boostbook_to_html(
             quickbook::string_view source,
             boost::filesystem::path const& output_path,
@@ -555,6 +574,7 @@ namespace quickbook
             // chunks into their parent.
             if (chunked_output) {
                 chunked->path_ = "index.html";
+                inline_sections(chunked, 0);
             }
             else {
                 std::string path = path_to_generic(output_path.filename());
@@ -705,19 +725,20 @@ namespace quickbook
 
         void generate_inline_chunks(html_gen& gen, chunk* root)
         {
-            for (chunk* it = root; it; it = it->next()) {
-                tag_start(gen, "div");
-                tag_attribute(gen, "id", it->id_);
-                tag_end(gen);
-                generate_html(gen, it->title_);
-                generate_html(gen, it->info_);
-                if (it->children()) {
-                    generate_contents_impl(gen, it, it);
-                }
-                generate_html(gen, it->root_->children());
-                generate_inline_chunks(gen, it->children());
-                close_tag(gen, "div");
+            tag_start(gen, "div");
+            tag_attribute(gen, "id", root->id_);
+            tag_end(gen);
+            generate_html(gen, root->title_);
+            generate_html(gen, root->info_);
+            if (root->children()) {
+                generate_contents_impl(gen, root, root);
             }
+            generate_html(gen, root->root_->children());
+            for (chunk* it = root->children(); it; it = it->next()) {
+                assert(it->inline_);
+                generate_inline_chunks(gen, it);
+            }
+            close_tag(gen, "div");
         }
 
         void generate_chunks_impl(chunk_writer&, chunk*);
@@ -742,8 +763,13 @@ namespace quickbook
                 generate_contents_impl(gen, chunk_root, chunk_root);
             }
             generate_html(gen, chunk_root->root_->children());
+            chunk* it = chunk_root->children();
+            for (; it && it->inline_; it = it->next()) {
+                generate_inline_chunks(gen, it);
+            }
             writer.write_file(chunk_root->path_, gen.html);
-            for (chunk* it = chunk_root->children(); it; it = it->next()) {
+            for (; it; it = it->next()) {
+                assert(!it->inline_);
                 generate_chunks_impl(writer, it);
             }
         }
