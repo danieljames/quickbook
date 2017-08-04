@@ -495,8 +495,6 @@ namespace quickbook
         id_paths_type get_id_paths(chunk* chunk);
         void generate_chunked_documentation(
             chunk* root, id_paths_type const&, fs::path const& root_path);
-        void generate_file_documentation(
-            chunk* root, id_paths_type const&, fs::path const& path);
 
         void inline_chunks(chunk* c)
         {
@@ -531,6 +529,12 @@ namespace quickbook
             boost::filesystem::path const& output_path,
             bool chunked_output)
         {
+            fs::path root_dir =
+                chunked_output ? output_path : output_path.parent_path();
+            std::string root_filename =
+                chunked_output ? "index.html"
+                               : path_to_generic(output_path.filename());
+
             typedef quickbook::string_view::const_iterator iterator;
             iterator it = source.begin(), end = source.end();
 
@@ -572,22 +576,15 @@ namespace quickbook
             // Overwrite paths depending on whether output is chunked or not.
             // Really want to do something better, e.g. incorporate many section
             // chunks into their parent.
+            chunked->path_ = root_filename;
             if (chunked_output) {
-                chunked->path_ = "index.html";
                 inline_sections(chunked, 0);
             }
             else {
-                std::string path = path_to_generic(output_path.filename());
-                chunked->path_ = path;
                 inline_chunks(chunked->children());
             }
             id_paths_type id_paths = get_id_paths(chunked);
-            if (chunked_output) {
-                generate_chunked_documentation(chunked, id_paths, output_path);
-            }
-            else {
-                generate_file_documentation(chunked, id_paths, output_path);
-            }
+            generate_chunked_documentation(chunked, id_paths, output_path);
             delete_nodes(chunked);
             return 0;
         }
@@ -651,18 +648,8 @@ namespace quickbook
         void generate_chunked_documentation(
             chunk* chunked, id_paths_type const& id_paths, fs::path const& path)
         {
-            // write_file(path, generate_contents(chunked));
-            // TODO: Error check this:
             fs::create_directory(path);
             generate_chunks(chunked, id_paths, path);
-        }
-
-        void generate_file_documentation(
-            chunk* chunked, id_paths_type const& id_paths, fs::path const& path)
-        {
-            html_gen gen(id_paths, chunked->path_);
-            generate_inline_chunks(gen, chunked);
-            write_file(path, gen.html);
         }
 
         struct chunk_writer
