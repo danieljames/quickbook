@@ -974,6 +974,7 @@ namespace quickbook
         NODE_MAP_CLASS(important, div, important)
         NODE_MAP_CLASS(note, div, note)
         NODE_MAP_CLASS(tip, div, tip)
+        NODE_MAP_CLASS(replaceable, em, replaceable)
 
         NODE_RULE(ulink, gen, x)
         {
