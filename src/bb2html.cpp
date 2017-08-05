@@ -625,7 +625,35 @@ namespace quickbook { namespace detail {
     }
 
     void generate_chunks_impl(chunk_writer& writer, chunk* chunk_root) {
+        chunk* next = 0;
+        for (chunk* it = chunk_root->children(); it; it = it->next()) {
+            if (!it->inline_) {
+                next = it;
+                break;
+            }
+        }
+        if (!next) { next = chunk_root->next(); }
+        chunk* prev = chunk_root->prev() ? chunk_root->prev() : chunk_root->parent();
+
         html_gen gen(writer.id_paths, chunk_root->path_);
+        if (prev) {
+            open_tag(gen, "div");
+            tag_start(gen, "a");
+            tag_attribute(gen, "href", relative_path_from(prev->path_, chunk_root->path_));
+            tag_end(gen);
+            gen.html += "prev";
+            close_tag(gen, "a");
+            close_tag(gen, "div");
+        }
+        if (next) {
+            open_tag(gen, "div");
+            tag_start(gen, "a");
+            tag_attribute(gen, "href", relative_path_from(next->path_, chunk_root->path_));
+            tag_end(gen);
+            gen.html += "next";
+            close_tag(gen, "a");
+            close_tag(gen, "div");
+        }
         generate_html(gen, chunk_root->title_);
         generate_html(gen, chunk_root->info_);
         if (chunk_root->children()) {
