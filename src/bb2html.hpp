@@ -16,9 +16,9 @@
 namespace quickbook { namespace detail {
     struct boostbook_parse_error {
         char const* message;
-        quickbook::string_view::iterator pos;
+        string_iterator pos;
 
-        boostbook_parse_error(char const* m, quickbook::string_view::iterator p) : message(m), pos(p) {}
+        boostbook_parse_error(char const* m, string_iterator p) : message(m), pos(p) {}
     };
     int boostbook_to_html(quickbook::string_view, boost::filesystem::path const&, bool chunked_output);
 }}

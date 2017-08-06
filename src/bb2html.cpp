@@ -258,10 +258,10 @@ namespace quickbook { namespace detail {
     std::string id_to_path(quickbook::string_view);
     std::string relative_path_from(quickbook::string_view, quickbook::string_view);
 
-    quickbook::string_view read_string(quickbook::string_view::iterator& it, quickbook::string_view::iterator end) {
+    quickbook::string_view read_string(string_iterator& it, string_iterator end) {
         assert(it != end && (*it == '"' || *it == '\''));
 
-        quickbook::string_view::iterator start = it;
+        string_iterator start = it;
         char deliminator = *it;
         ++it;
         read_to(it, end, deliminator);
@@ -272,7 +272,7 @@ namespace quickbook { namespace detail {
         return quickbook::string_view(start + 1, it - start - 2);
     }
 
-    void skip_question_mark_tag(quickbook::string_view::iterator& it, quickbook::string_view::iterator start, quickbook::string_view::iterator end) {
+    void skip_question_mark_tag(string_iterator& it, string_iterator start, string_iterator end) {
         assert(it == start + 1 && it != end && *it == '?');
         ++it;
 
@@ -300,7 +300,7 @@ namespace quickbook { namespace detail {
         }
     }
 
-    void skip_exclamation_mark_tag(quickbook::string_view::iterator& it, quickbook::string_view::iterator start, quickbook::string_view::iterator end) {
+    void skip_exclamation_mark_tag(string_iterator& it, string_iterator start, string_iterator end) {
         assert(it == start + 1 && it != end && *it == '!');
         ++it;
 
@@ -332,9 +332,9 @@ namespace quickbook { namespace detail {
         }
     }
 
-    quickbook::string_view read_tag_name(quickbook::string_view::iterator& it, quickbook::string_view::iterator start, quickbook::string_view::iterator end) {
+    quickbook::string_view read_tag_name(string_iterator& it, string_iterator start, string_iterator end) {
         read_some_of(it, end, " \t\n\r");
-        quickbook::string_view::iterator name_start = it;
+        string_iterator name_start = it;
         read_some_of(it, end, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ:-");
         if (name_start == it) {
             throw boostbook_parse_error("Invalid tag", start);
@@ -342,9 +342,9 @@ namespace quickbook { namespace detail {
         return quickbook::string_view(name_start, it - name_start);
     }
 
-    quickbook::string_view read_attribute_value(quickbook::string_view::iterator& it, quickbook::string_view::iterator start, quickbook::string_view::iterator end) {
+    quickbook::string_view read_attribute_value(string_iterator& it, string_iterator start, string_iterator end) {
         read_some_of(it, end, " \t\n\r");
-        quickbook::string_view::iterator value_start = it;
+        string_iterator value_start = it;
         if (*it == '"' || *it == '\'') {
             return read_string(it, end);
         }
@@ -353,7 +353,7 @@ namespace quickbook { namespace detail {
         }
     }
 
-    void read_tag(xml_tree_builder& builder, quickbook::string_view::iterator& it, quickbook::string_view::iterator start, quickbook::string_view::iterator end) {
+    void read_tag(xml_tree_builder& builder, string_iterator& it, string_iterator start, string_iterator end) {
         assert(it == start + 1 && it != end);
         quickbook::string_view name = read_tag_name(it, start, end);
         xml_element* node = xml_element::node(name);
@@ -397,7 +397,7 @@ namespace quickbook { namespace detail {
         }
     }
 
-    void read_close_tag(xml_tree_builder& builder, quickbook::string_view::iterator& it, quickbook::string_view::iterator start, quickbook::string_view::iterator end) {
+    void read_close_tag(xml_tree_builder& builder, string_iterator& it, string_iterator start, string_iterator end) {
         assert(it == start + 1 && it != end && *it == '/');
         ++it;
         quickbook::string_view name = read_tag_name(it, start, end);
@@ -449,7 +449,7 @@ namespace quickbook { namespace detail {
         std::string root_filename = chunked_output ? "index.html" :
             path_to_generic(output_path.filename());
 
-        typedef quickbook::string_view::const_iterator iterator;
+        typedef string_iterator iterator;
         iterator it = source.begin(), end = source.end();
 
         xml_tree_builder builder;

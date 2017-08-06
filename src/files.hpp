@@ -43,8 +43,8 @@ namespace quickbook {
     };
 
     file_position relative_position(
-        quickbook::string_view::const_iterator begin,
-        quickbook::string_view::const_iterator iterator);
+        string_iterator begin,
+        string_iterator iterator);
 
     struct file
     {
