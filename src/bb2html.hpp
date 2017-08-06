@@ -20,10 +20,9 @@ namespace quickbook
         struct boostbook_parse_error
         {
             char const* message;
-            quickbook::string_view::iterator pos;
+            string_iterator pos;
 
-            boostbook_parse_error(
-                char const* m, quickbook::string_view::iterator p)
+            boostbook_parse_error(char const* m, string_iterator p)
                 : message(m), pos(p)
             {
             }

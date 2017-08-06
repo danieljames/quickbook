@@ -306,12 +306,11 @@ namespace quickbook
             quickbook::string_view, quickbook::string_view);
 
         quickbook::string_view read_string(
-            quickbook::string_view::iterator& it,
-            quickbook::string_view::iterator end)
+            string_iterator& it, string_iterator end)
         {
             assert(it != end && (*it == '"' || *it == '\''));
 
-            quickbook::string_view::iterator start = it;
+            string_iterator start = it;
             char deliminator = *it;
             ++it;
             read_to(it, end, deliminator);
@@ -323,9 +322,7 @@ namespace quickbook
         }
 
         void skip_question_mark_tag(
-            quickbook::string_view::iterator& it,
-            quickbook::string_view::iterator start,
-            quickbook::string_view::iterator end)
+            string_iterator& it, string_iterator start, string_iterator end)
         {
             assert(it == start + 1 && it != end && *it == '?');
             ++it;
@@ -355,9 +352,7 @@ namespace quickbook
         }
 
         void skip_exclamation_mark_tag(
-            quickbook::string_view::iterator& it,
-            quickbook::string_view::iterator start,
-            quickbook::string_view::iterator end)
+            string_iterator& it, string_iterator start, string_iterator end)
         {
             assert(it == start + 1 && it != end && *it == '!');
             ++it;
@@ -391,12 +386,10 @@ namespace quickbook
         }
 
         quickbook::string_view read_tag_name(
-            quickbook::string_view::iterator& it,
-            quickbook::string_view::iterator start,
-            quickbook::string_view::iterator end)
+            string_iterator& it, string_iterator start, string_iterator end)
         {
             read_some_of(it, end, " \t\n\r");
-            quickbook::string_view::iterator name_start = it;
+            string_iterator name_start = it;
             read_some_of(
                 it, end,
                 "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ:-");
@@ -407,9 +400,7 @@ namespace quickbook
         }
 
         quickbook::string_view read_attribute_value(
-            quickbook::string_view::iterator& it,
-            quickbook::string_view::iterator start,
-            quickbook::string_view::iterator end)
+            string_iterator& it, string_iterator start, string_iterator end)
         {
             read_some_of(it, end, " \t\n\r");
             if (*it == '"' || *it == '\'') {
@@ -422,9 +413,9 @@ namespace quickbook
 
         void read_tag(
             xml_tree_builder& builder,
-            quickbook::string_view::iterator& it,
-            quickbook::string_view::iterator start,
-            quickbook::string_view::iterator end)
+            string_iterator& it,
+            string_iterator start,
+            string_iterator end)
         {
             assert(it == start + 1 && it != end);
             quickbook::string_view name = read_tag_name(it, start, end);
@@ -472,9 +463,9 @@ namespace quickbook
 
         void read_close_tag(
             xml_tree_builder& builder,
-            quickbook::string_view::iterator& it,
-            quickbook::string_view::iterator start,
-            quickbook::string_view::iterator end)
+            string_iterator& it,
+            string_iterator start,
+            string_iterator end)
         {
             assert(it == start + 1 && it != end && *it == '/');
             ++it;
@@ -535,7 +526,7 @@ namespace quickbook
                 chunked_output ? "index.html"
                                : path_to_generic(output_path.filename());
 
-            typedef quickbook::string_view::const_iterator iterator;
+            typedef string_iterator iterator;
             iterator it = source.begin(), end = source.end();
 
             xml_tree_builder builder;
