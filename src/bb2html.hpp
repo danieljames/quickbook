@@ -33,6 +33,7 @@ namespace quickbook
             bool chunked_output;
             boost::filesystem::path output_path;
             boost::filesystem::path css_path;
+            boost::filesystem::path graphics_path;
 
             html_options() : chunked_output(false) {}
         };
