@@ -30,6 +30,7 @@ exe quickbook
     files.cpp
     native_text.cpp
     glob.cpp
+    path.cpp
     include_paths.cpp
     values.cpp
     document_state.cpp
