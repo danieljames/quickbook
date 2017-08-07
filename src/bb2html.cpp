@@ -1010,7 +1010,7 @@ namespace quickbook
         NODE_MAP(code, code)
         NODE_MAP(macronname, code)
         NODE_MAP(classname, code)
-        NODE_MAP(programlisting, pre)
+        NODE_MAP_CLASS(programlisting, pre, programlisting)
         NODE_MAP(literal, tt)
         NODE_MAP(subscript, sub)
         NODE_MAP(superscript, sup)
