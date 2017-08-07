@@ -233,9 +233,9 @@ namespace quickbook
         //std::string include_doc_id_, id_;
 
         if (!include_doc_id.empty())
-            info.include_doc_id_ = include_doc_id.get_quickbook().to_s());
+            info.include_doc_id_ = include_doc_id.get_quickbook().to_s();
         if (!info.id.empty())
-            info.id_ = info.id.get_quickbook().to_s());
+            info.id_ = info.id.get_quickbook().to_s();
 
         // Quickbook version
 
