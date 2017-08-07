@@ -194,7 +194,10 @@ namespace quickbook
             std::string id_;
             std::string path_;
 
-            chunk() : title_(), info_(), root_(), inline_(false) {}
+            explicit chunk(xml_element* root)
+                : title_(), info_(), root_(root), inline_(false)
+            {
+            }
 
             ~chunk()
             {
@@ -926,8 +929,7 @@ namespace quickbook
             else if (
                 node->type_ == xml_element::element_node &&
                 chunk_types.find(node->name_) != chunk_types.end()) {
-                chunk* chunk_node = new chunk();
-                chunk_node->root_ = node;
+                chunk* chunk_node = new chunk(node);
                 builder.add_element(chunk_node);
                 xml_element* next = tree.extract(node);
 
