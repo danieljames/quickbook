@@ -20,7 +20,16 @@ namespace quickbook { namespace detail {
 
         boostbook_parse_error(char const* m, string_iterator p) : message(m), pos(p) {}
     };
-    int boostbook_to_html(quickbook::string_view, boost::filesystem::path const&, bool chunked_output);
+
+    struct html_options {
+        bool chunked_output;
+        boost::filesystem::path output_path;
+        boost::filesystem::path css_path;
+
+        html_options() : chunked_output(false) {}
+    };
+
+    int boostbook_to_html(quickbook::string_view, html_options const&);
 }}
 
 #endif // BOOST_QUICKBOOK_BOOSTBOOK_TO_HTML_HPP

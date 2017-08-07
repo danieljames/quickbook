@@ -442,12 +442,17 @@ namespace quickbook { namespace detail {
         }
     }
 
-    int boostbook_to_html(quickbook::string_view source, boost::filesystem::path const& output_path,
-        bool chunked_output)
+    int boostbook_to_html(quickbook::string_view source, html_options const& options)
     {
-        fs::path root_dir = chunked_output ? output_path : output_path.parent_path();
-        std::string root_filename = chunked_output ? "index.html" :
-            path_to_generic(output_path.filename());
+        fs::path root_dir;
+        std::string root_filename;
+        if (options.chunked_output) {
+            root_dir = options.output_path;
+            root_filename = "index.html";
+        } else {
+            root_dir = options.output_path.parent_path();
+            root_filename = path_to_generic(options.output_path.filename());
+        }
 
         typedef string_iterator iterator;
         iterator it = source.begin(), end = source.end();
@@ -489,13 +494,13 @@ namespace quickbook { namespace detail {
         // Overwrite paths depending on whether output is chunked or not.
         // Really want to do something better, e.g. incorporate many section chunks into their parent.
         chunked->path_ = root_filename;
-        if (chunked_output) {
+        if (options.chunked_output) {
             inline_sections(chunked, 0);
         } else {
             inline_chunks(chunked->children());
         }
         id_paths_type id_paths = get_id_paths(chunked);
-        generate_chunked_documentation(chunked, id_paths, output_path);
+        generate_chunked_documentation(chunked, id_paths, root_dir);
         delete_nodes(chunked);
         return 0;
     }
