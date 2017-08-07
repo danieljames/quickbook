@@ -674,6 +674,23 @@ namespace quickbook { namespace detail {
             close_tag(gen, "a");
             close_tag(gen, "div");
         }
+        if (chunk_root->parent()) {
+            open_tag(gen, "div");
+            tag_start(gen, "a");
+            tag_attribute(gen, "href", relative_path_from(chunk_root->parent()->path_, chunk_root->path_));
+            tag_end(gen);
+            gen.html += "parent";
+            close_tag(gen, "a");
+            close_tag(gen, "div");            
+
+            open_tag(gen, "div");
+            tag_start(gen, "a");
+            tag_attribute(gen, "href", relative_path_from("index.html", chunk_root->path_));
+            tag_end(gen);
+            gen.html += "home";
+            close_tag(gen, "a");
+            close_tag(gen, "div");
+        }
         if (next) {
             open_tag(gen, "div");
             tag_start(gen, "a");
