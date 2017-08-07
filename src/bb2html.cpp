@@ -651,7 +651,6 @@ namespace quickbook
         }
 
         void write_file(fs::path const& path, std::string const& content);
-        void generate_contents(html_gen& gen, chunk* root);
         void generate_chunks(
             chunk* root,
             id_paths_type const& id_paths,
@@ -695,19 +694,6 @@ namespace quickbook
                 quickbook::detail::write_file(path, content);
             }
         };
-
-        void generate_contents_impl(html_gen& gen, chunk*, chunk*);
-
-        void generate_contents(html_gen& gen, chunk* root)
-        {
-            assert(root->children() && !root->children()->next());
-            chunk* root_chunk = root->children();
-            write_xml_tree(root_chunk->title_);
-            generate_html(gen, root_chunk->title_);
-            generate_html(gen, root_chunk->root_->children());
-            // TODO: root_chunk is wrong.....
-            generate_contents_impl(gen, root_chunk, root_chunk);
-        }
 
         void generate_contents_impl(
             html_gen& gen, chunk* page, chunk* chunk_root)
