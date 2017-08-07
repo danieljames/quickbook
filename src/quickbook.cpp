@@ -132,6 +132,7 @@ namespace quickbook
         output_format format;
         output_style style;
         fs::path output_path;
+        fs::path css_path;
         int indent;
         int linewidth;
         bool pretty_print;
@@ -230,6 +231,7 @@ namespace quickbook
                     quickbook::detail::html_options o;
                     o.output_path = options_.output_path;
                     o.chunked_output = options_.style == parse_document_options::output_chunked;
+                    o.css_path = options_.css_path;
                     return quickbook::detail::boostbook_to_html(stage2, o);
                 }
                 catch (quickbook::detail::boostbook_parse_error e) {
@@ -351,6 +353,7 @@ main(int argc, char* argv[])
             ("include-path,I", PO_VALUE< std::vector<command_line_string> >(), "include path")
             ("define,D", PO_VALUE< std::vector<command_line_string> >(), "define macro")
             ("image-location", PO_VALUE<command_line_string>(), "image location")
+            ("css-path", PO_VALUE<command_line_string>(), "css path")
         ;
 
         hidden.add_options()
@@ -582,6 +585,11 @@ main(int argc, char* argv[])
                 options.locations_out =
                     quickbook::detail::command_line_to_path(
                         vm["output-checked-locations"].as<command_line_string>());
+            }
+
+            if (vm.count("css-path")) {
+                options.css_path = quickbook::detail::command_line_to_path(
+                        vm["css-path"].as<command_line_string>());
             }
 
             if (vm.count("output-file"))

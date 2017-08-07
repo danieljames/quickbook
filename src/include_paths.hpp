@@ -68,6 +68,7 @@ namespace quickbook
     quickbook_path resolve_xinclude_path(std::string const&, quickbook::state&);
     std::string file_path_to_url(fs::path const&);
     std::string dir_path_to_url(fs::path const&);
+    fs::path path_difference(fs::path const& base, fs::path const& path);
 }
 
 #endif

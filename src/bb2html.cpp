@@ -10,6 +10,7 @@ http://www.boost.org/LICENSE_1_0.txt)
 #include "simple_parse.hpp"
 #include "native_text.hpp"
 #include "utils.hpp"
+#include "include_paths.hpp"
 #include <vector>
 #include <cassert>
 #include <boost/unordered_map.hpp>
@@ -415,7 +416,8 @@ namespace quickbook { namespace detail {
     }
 
     id_paths_type get_id_paths(chunk* chunk);
-    void generate_chunked_documentation(chunk* root, id_paths_type const&, fs::path const& root_path);
+    void generate_chunked_documentation(chunk* root, id_paths_type const&,
+        fs::path const& root_path, fs::path const& css_path);
 
     void inline_chunks(chunk* c) {
         for(;c; c = c->next()) {
@@ -452,7 +454,7 @@ namespace quickbook { namespace detail {
         } else {
             root_dir = options.output_path.parent_path();
             root_filename = path_to_generic(options.output_path.filename());
-        }
+        } 
 
         typedef string_iterator iterator;
         iterator it = source.begin(), end = source.end();
@@ -500,7 +502,7 @@ namespace quickbook { namespace detail {
             inline_chunks(chunked->children());
         }
         id_paths_type id_paths = get_id_paths(chunked);
-        generate_chunked_documentation(chunked, id_paths, root_dir);
+        generate_chunked_documentation(chunked, id_paths, root_dir, options.css_path);
         delete_nodes(chunked);
         return 0;
     }
@@ -548,19 +550,24 @@ namespace quickbook { namespace detail {
 
     void write_file(fs::path const& path, std::string const& content);
     void generate_contents(html_gen& gen, chunk* root);
-    void generate_chunks(chunk* root, id_paths_type const& id_paths, fs::path const& root_path);
+    void generate_chunks(chunk* root, id_paths_type const& id_paths,
+        fs::path const& root_path, fs::path const& css_path);
     void generate_inline_chunks(html_gen& gen, chunk* root);
 
-    void generate_chunked_documentation(chunk* chunked, id_paths_type const& id_paths, fs::path const& path) {
+    void generate_chunked_documentation(chunk* chunked, id_paths_type const& id_paths,
+        fs::path const& path, fs::path const& css_path)
+    {
         fs::create_directory(path);
-        generate_chunks(chunked, id_paths, path);
+        generate_chunks(chunked, id_paths, path, css_path);
     }
 
     struct chunk_writer {
         fs::path const& root_path;
+        fs::path const& css_path;
         id_paths_type const& id_paths;
 
-        explicit chunk_writer(fs::path const& r, id_paths_type const& ip) : root_path(r), id_paths(ip) {}
+        explicit chunk_writer(fs::path const& r, id_paths_type const& ip, fs::path const& css_path)
+            : root_path(r), id_paths(ip), css_path(css_path) {}
 
         void write_file(std::string const& generic_path, std::string const& content) {
             fs::path path = root_path / generic_to_path(generic_path);
@@ -624,8 +631,9 @@ namespace quickbook { namespace detail {
 
     void generate_chunks_impl(chunk_writer&, chunk*);
 
-    void generate_chunks(chunk* root, id_paths_type const& id_paths, fs::path const& root_path) {
-        chunk_writer writer(root_path, id_paths);
+    void generate_chunks(chunk* root, id_paths_type const& id_paths,
+        fs::path const& root_path, fs::path const& css_path) {
+        chunk_writer writer(root_path, id_paths, css_path);
         if (root) { generate_chunks_impl(writer, root); }
     }
 
@@ -641,6 +649,16 @@ namespace quickbook { namespace detail {
         chunk* prev = chunk_root->prev() ? chunk_root->prev() : chunk_root->parent();
 
         html_gen gen(writer.id_paths, chunk_root->path_);
+        if (!writer.css_path.empty()) {
+            tag_start(gen, "link");
+            tag_attribute(gen, "rel", "stylesheet");
+            tag_attribute(gen, "type", "text/css");
+            tag_attribute(gen, "href", path_to_generic(
+                path_difference(
+                    (writer.root_path / chunk_root->path_).parent_path(),
+                    writer.css_path)));
+            tag_end_self_close(gen);
+        }
         if (prev) {
             open_tag(gen, "div");
             tag_start(gen, "a");
