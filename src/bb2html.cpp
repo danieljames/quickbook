@@ -223,6 +223,7 @@ namespace quickbook
             std::string html;
             bool in_contents;
             boost::unordered_map<string_view, callout_data> callout_numbers;
+            std::vector<xml_element*> footnotes;
 
             html_gen(html_gen const& x)
                 : id_paths(x.id_paths)
@@ -322,6 +323,7 @@ namespace quickbook
 
         void generate_html(html_gen&, xml_element*);
         void generate_contents_html(html_gen&, xml_element*);
+        void generate_footnotes(html_gen&);
         chunk* chunk_document(xml_tree_builder&);
         std::string id_to_path(quickbook::string_view);
         std::string relative_path_from(
@@ -824,6 +826,7 @@ namespace quickbook
             for (; it && it->inline_; it = it->next()) {
                 generate_inline_chunks(gen, it);
             }
+            generate_footnotes(gen);
             writer.write_file(chunk_root->path_, gen.html);
             for (; it; it = it->next()) {
                 assert(!it->inline_);
@@ -1416,6 +1419,65 @@ namespace quickbook
                     }
                 }
                 number_callouts(gen, x->children());
+            }
+        }
+
+        NODE_RULE(footnote, gen, x)
+        {
+            // TODO: Better id generation....
+            static int footnote_number = 0;
+            ++footnote_number;
+            std::string footnote_label =
+                boost::lexical_cast<std::string>(footnote_number);
+            x->attributes_.push_back(
+                std::make_pair("(((footnote-label)))", footnote_label));
+            gen.footnotes.push_back(x);
+
+            tag_start_with_id(gen, "a", x);
+            tag_attribute(gen, "href", "#footnote-" + footnote_label);
+            tag_end(gen);
+            tag_start(gen, "sup");
+            tag_attribute(gen, "class", "footnote");
+            tag_end(gen);
+            gen.html += "[" + footnote_label + "]";
+            close_tag(gen, "sup");
+            close_tag(gen, "a");
+        }
+
+        void generate_footnotes(html_gen& gen)
+        {
+            if (!gen.footnotes.empty()) {
+                tag_start(gen, "div");
+                tag_attribute(gen, "class", "footnotes");
+                tag_end(gen);
+                gen.html += "<br/>";
+                gen.html += "<hr/>";
+                for (std::vector<xml_element*>::iterator it =
+                         gen.footnotes.begin();
+                     it != gen.footnotes.end(); ++it) {
+                    std::string footnote_label =
+                        *(*it)->get_attribute("(((footnote-label)))");
+                    tag_start(gen, "div");
+                    tag_attribute(gen, "id", "footnote-" + footnote_label);
+                    tag_attribute(gen, "class", "footnote");
+                    tag_end(gen);
+
+                    // TODO: This should be part of the first paragraph in the
+                    // footnote.
+                    tag_start(gen, "a");
+                    // TODO: Might not have an id.
+                    tag_attribute(
+                        gen, "href", "#" + *(*it)->get_attribute("id"));
+                    tag_end(gen);
+                    tag_start(gen, "sup");
+                    tag_end(gen);
+                    gen.html += "[" + footnote_label + "]";
+                    close_tag(gen, "sup");
+                    close_tag(gen, "a");
+                    document_children(gen, *it);
+                    close_tag(gen, "div");
+                }
+                close_tag(gen, "div");
             }
         }
 
