@@ -225,10 +225,11 @@ namespace quickbook
                         return result;
                     }
                     // TODO: Support for an output file.
-                    return quickbook::detail::boostbook_to_html(
-                        stage2, options_.output_path,
-                        options_.style ==
-                            parse_document_options::output_chunked);
+                    quickbook::detail::html_options o;
+                    o.output_path = options_.output_path;
+                    o.chunked_output = options_.style ==
+                                       parse_document_options::output_chunked;
+                    return quickbook::detail::boostbook_to_html(stage2, o);
                 } catch (quickbook::detail::boostbook_parse_error e) {
                     string_view stage2_view(stage2);
                     file_position p =

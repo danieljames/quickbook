@@ -27,10 +27,17 @@ namespace quickbook
             {
             }
         };
-        int boostbook_to_html(
-            quickbook::string_view,
-            boost::filesystem::path const&,
-            bool chunked_output);
+
+        struct html_options
+        {
+            bool chunked_output;
+            boost::filesystem::path output_path;
+            boost::filesystem::path css_path;
+
+            html_options() : chunked_output(false) {}
+        };
+
+        int boostbook_to_html(quickbook::string_view, html_options const&);
     }
 }
 
