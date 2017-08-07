@@ -175,14 +175,23 @@ namespace quickbook { namespace detail {
 
     typedef boost::unordered_map<string_view, std::string> id_paths_type;
 
+    struct callout_data {
+        quickbook::string_view link_id;
+        unsigned number;
+    };
+
     struct html_gen {
         id_paths_type const& id_paths;
+        std::string graphics_path;
         string_view path;
         std::string html;
         bool in_contents;
+        boost::unordered_map<string_view, callout_data> callout_numbers;
 
-        html_gen(html_gen const& x) : id_paths(x.id_paths), path(x.path), in_contents(false) {}
-        explicit html_gen(id_paths_type const& ip, string_view p) : id_paths(ip), path(p) {}
+        html_gen(html_gen const& x)
+            : id_paths(x.id_paths), graphics_path(x.graphics_path), path(x.path), in_contents(false) {}
+        explicit html_gen(id_paths_type const& ip, std::string const& graphics_path, string_view p)
+            : id_paths(ip), graphics_path(graphics_path), path(p) {}
     };
 
     void tag_attribute(html_gen& gen, quickbook::string_view name, quickbook::string_view value) {
@@ -417,7 +426,7 @@ namespace quickbook { namespace detail {
 
     id_paths_type get_id_paths(chunk* chunk);
     void generate_chunked_documentation(chunk* root, id_paths_type const&,
-        fs::path const& root_path, fs::path const& css_path);
+        fs::path const& root_path, html_options const&);
 
     void inline_chunks(chunk* c) {
         for(;c; c = c->next()) {
@@ -502,7 +511,7 @@ namespace quickbook { namespace detail {
             inline_chunks(chunked->children());
         }
         id_paths_type id_paths = get_id_paths(chunked);
-        generate_chunked_documentation(chunked, id_paths, root_dir, options.css_path);
+        generate_chunked_documentation(chunked, id_paths, root_dir, options);
         delete_nodes(chunked);
         return 0;
     }
@@ -551,23 +560,24 @@ namespace quickbook { namespace detail {
     void write_file(fs::path const& path, std::string const& content);
     void generate_contents(html_gen& gen, chunk* root);
     void generate_chunks(chunk* root, id_paths_type const& id_paths,
-        fs::path const& root_path, fs::path const& css_path);
+        fs::path const& root_path, html_options const&);
     void generate_inline_chunks(html_gen& gen, chunk* root);
 
     void generate_chunked_documentation(chunk* chunked, id_paths_type const& id_paths,
-        fs::path const& path, fs::path const& css_path)
+        fs::path const& path, html_options const& options)
     {
         fs::create_directory(path);
-        generate_chunks(chunked, id_paths, path, css_path);
+        generate_chunks(chunked, id_paths, path, options);
     }
 
     struct chunk_writer {
         fs::path const& root_path;
-        fs::path const& css_path;
         id_paths_type const& id_paths;
+        fs::path const& css_path;
+        fs::path const& graphics_path;
 
-        explicit chunk_writer(fs::path const& r, id_paths_type const& ip, fs::path const& css_path)
-            : root_path(r), id_paths(ip), css_path(css_path) {}
+        explicit chunk_writer(fs::path const& r, id_paths_type const& ip, html_options const& options)
+            : root_path(r), id_paths(ip), css_path(options.css_path), graphics_path(options.graphics_path) {}
 
         void write_file(std::string const& generic_path, std::string const& content) {
             fs::path path = root_path / generic_to_path(generic_path);
@@ -632,8 +642,8 @@ namespace quickbook { namespace detail {
     void generate_chunks_impl(chunk_writer&, chunk*);
 
     void generate_chunks(chunk* root, id_paths_type const& id_paths,
-        fs::path const& root_path, fs::path const& css_path) {
-        chunk_writer writer(root_path, id_paths, css_path);
+        fs::path const& root_path, html_options const& options) {
+        chunk_writer writer(root_path, id_paths, options);
         if (root) { generate_chunks_impl(writer, root); }
     }
 
@@ -648,7 +658,11 @@ namespace quickbook { namespace detail {
         if (!next) { next = chunk_root->next(); }
         chunk* prev = chunk_root->prev() ? chunk_root->prev() : chunk_root->parent();
 
-        html_gen gen(writer.id_paths, chunk_root->path_);
+        html_gen gen(writer.id_paths,
+            path_to_generic(path_difference(
+                (writer.root_path / chunk_root->path_).parent_path(),
+                writer.graphics_path)),
+            chunk_root->path_);
         if (!writer.css_path.empty()) {
             tag_start(gen, "link");
             tag_attribute(gen, "rel", "stylesheet");
@@ -1087,6 +1101,115 @@ namespace quickbook { namespace detail {
     NODE_RULE(table, gen, x) { write_table(gen, x); }
     NODE_RULE(informaltable, gen, x) { write_table(gen, x); }
 
+    NODE_MAP(calloutlist, div)
+
+    NODE_RULE(callout, gen, x) {
+        std::string* id = x->get_attribute("id");
+        boost::unordered_map<string_view, callout_data>::const_iterator data = gen.callout_numbers.end();
+        id_paths_type::const_iterator link = gen.id_paths.end();
+        if (id) {
+            data = gen.callout_numbers.find(*id);
+        }
+        if (data != gen.callout_numbers.end() && !data->second.link_id.empty()) {
+            link = gen.id_paths.find(data->second.link_id);
+        }
+
+        open_tag_with_id(gen, "div", x);
+        if (link != gen.id_paths.end()) {
+            tag_start(gen, "a");
+            tag_attribute(gen, "href", relative_path_from(link->second, gen.path));
+            tag_end(gen);
+        }
+        if (data != gen.callout_numbers.end()) {
+            if (!gen.graphics_path.empty()) {
+                tag_start(gen, "img");
+                tag_attribute(gen, "src",
+                    gen.graphics_path + "/callouts/" +
+                    boost::lexical_cast<std::string>(data->second.number)
+                    + ".png");
+                tag_end(gen);
+            } else {
+                gen.html += "(";
+                gen.html += boost::lexical_cast<std::string>(data->second.number);
+                gen.html += ")";
+            }
+        } else {
+            gen.html += "(0)";
+        }
+        if (link != gen.id_paths.end()) {
+            close_tag(gen, "a");
+        }
+        gen.html += " ";
+        document(gen, x->children());
+        close_tag(gen, "div");
+    }
+
+    NODE_RULE(co, gen, x) {
+        std::string* linkends = x->get_attribute("linkends");
+        boost::unordered_map<string_view, callout_data>::const_iterator data = gen.callout_numbers.end();
+        id_paths_type::const_iterator link = gen.id_paths.end();
+        if (linkends) {
+            data = gen.callout_numbers.find(*linkends);
+            link = gen.id_paths.find(*linkends);
+        }
+
+        if (link != gen.id_paths.end()) {
+            tag_start(gen, "a");
+            tag_attribute(gen, "href", relative_path_from(link->second, gen.path));
+            tag_end(gen);
+        }
+        if (data != gen.callout_numbers.end()) {
+            if (!gen.graphics_path.empty()) {
+                tag_start(gen, "img");
+                tag_attribute(gen, "src",
+                    gen.graphics_path + "/callouts/" +
+                    boost::lexical_cast<std::string>(data->second.number) +
+                    ".png");
+                tag_end(gen);
+            } else {
+                gen.html += "(";
+                gen.html += boost::lexical_cast<std::string>(data->second.number);
+                gen.html += ")";
+            }
+        } else {
+            gen.html += "(0)";
+        }
+        if (link != gen.id_paths.end()) {
+            close_tag(gen, "a");
+        }
+    }
+
+    void number_callouts2(html_gen& gen, unsigned& count, xml_element* x) {
+        for (;x; x=x->next()) {
+            if (x->type_ == xml_element::element_node && x->name_ == "callout") {
+                std::string* id = x->get_attribute("id");
+                if (id) {
+                    gen.callout_numbers[*id].number = ++count;
+                }
+            }
+            number_callouts2(gen, count, x->children());
+        }
+    }
+
+    void number_callouts(html_gen& gen, xml_element* x) {
+        for (;x; x=x->next()) {
+            if (x->type_ == xml_element::element_node) {
+                if (x->name_ == "calloutlist") {
+                    unsigned count = 0;
+                    number_callouts2(gen, count, x);
+                } else if (x->name_ == "co") {
+                    // TODO: Set id if missing?
+                    std::string* linkends = x->get_attribute("linkends");
+                    std::string* id = x->get_attribute("id");
+                    if (id && linkends) {
+                        gen.callout_numbers[*linkends].link_id = *id;
+                    }
+                }
+            }
+            number_callouts(gen, x->children());
+        }
+    }
+
     void generate_contents_html(html_gen& gen, xml_element* x) {
         bool old = gen.in_contents;
         gen.in_contents = true;
@@ -1095,6 +1218,12 @@ namespace quickbook { namespace detail {
     }
 
     void generate_html(html_gen& gen, xml_element* x) {
+        // For now, going to assume that the callout list is in the same
+        // bit of documentation as the callout links, which is probably
+        // true?
+        gen.callout_numbers.clear();
+        number_callouts(gen, x);
+
         document(gen, x);
     }
 

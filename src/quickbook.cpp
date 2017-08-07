@@ -132,7 +132,6 @@ namespace quickbook
         output_format format;
         output_style style;
         fs::path output_path;
-        fs::path css_path;
         int indent;
         int linewidth;
         bool pretty_print;
@@ -141,6 +140,7 @@ namespace quickbook
         quickbook::dependency_tracker::flags deps_out_flags;
         fs::path locations_out;
         fs::path xinclude_base;
+        quickbook::detail::html_options html_ops;
     };
 
     static int
@@ -228,11 +228,7 @@ namespace quickbook
                 try {
                     if (result) { return result; }
                     // TODO: Support for an output file.
-                    quickbook::detail::html_options o;
-                    o.output_path = options_.output_path;
-                    o.chunked_output = options_.style == parse_document_options::output_chunked;
-                    o.css_path = options_.css_path;
-                    return quickbook::detail::boostbook_to_html(stage2, o);
+                    return quickbook::detail::boostbook_to_html(stage2, options_.html_ops);
                 }
                 catch (quickbook::detail::boostbook_parse_error e) {
                     string_view stage2_view(stage2);
@@ -354,6 +350,7 @@ main(int argc, char* argv[])
             ("define,D", PO_VALUE< std::vector<command_line_string> >(), "define macro")
             ("image-location", PO_VALUE<command_line_string>(), "image location")
             ("css-path", PO_VALUE<command_line_string>(), "css path")
+            ("graphics-path", PO_VALUE<command_line_string>(), "graphics path")
         ;
 
         hidden.add_options()
@@ -588,8 +585,13 @@ main(int argc, char* argv[])
             }
 
             if (vm.count("css-path")) {
-                options.css_path = quickbook::detail::command_line_to_path(
+                options.html_ops.css_path = quickbook::detail::command_line_to_path(
                         vm["css-path"].as<command_line_string>());
+            }
+
+            if (vm.count("graphics-path")) {
+                options.html_ops.graphics_path = quickbook::detail::command_line_to_path(
+                        vm["graphics-path"].as<command_line_string>());
             }
 
             if (vm.count("output-file"))
@@ -706,7 +708,6 @@ main(int argc, char* argv[])
             }
             else
             {
-
                 // TODO: What if format != output_file?
                 options.xinclude_base = options.output_path.parent_path();
                 if (options.xinclude_base.empty())
@@ -726,6 +727,12 @@ main(int argc, char* argv[])
             {
                 quickbook::image_location = filein.parent_path() / "html";
             }
+
+            // Set duplicated html_options.
+            // TODO: Clean this up?
+            options.html_ops.output_path = options.output_path;
+            options.html_ops.chunked_output =
+                options.style == parse_document_options::output_chunked;
 
             if (!error_count) {
                 switch(options.style) {
