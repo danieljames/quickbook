@@ -34,7 +34,7 @@
 #include "block_tags.hpp"
 #include "phrase_tags.hpp"
 #include "document_state.hpp"
-#include "include_paths.hpp"
+#include "path.hpp"
 
 namespace quickbook
 {

@@ -10,7 +10,7 @@ http://www.boost.org/LICENSE_1_0.txt)
 #include "simple_parse.hpp"
 #include "native_text.hpp"
 #include "utils.hpp"
-#include "include_paths.hpp"
+#include "path.hpp"
 #include <vector>
 #include <cassert>
 #include <boost/unordered_map.hpp>
