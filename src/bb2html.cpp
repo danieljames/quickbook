@@ -1252,10 +1252,14 @@ namespace quickbook
                 alt = "[]";
             }
             if (image) {
+                tag_start(gen, "span");
+                tag_attribute(gen, "class", "inlinemediaobject");
+                tag_end(gen);
                 tag_start_with_id(gen, "img", x);
-                tag_attribute(gen, "src", *image);
+                tag_attribute(gen, "src", relative_path_from(*image, gen.path));
                 tag_attribute(gen, "alt", alt);
                 tag_end_self_close(gen);
+                close_tag(gen, "span");
             }
         }
 
