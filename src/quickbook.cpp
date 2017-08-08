@@ -322,6 +322,7 @@ main(int argc, char* argv[])
         // Declare the program options
 
         options_description desc("Allowed options");
+        options_description html_desc("HTML options");
         options_description hidden("Hidden options");
         options_description all("All options");
 
@@ -349,9 +350,13 @@ main(int argc, char* argv[])
             ("include-path,I", PO_VALUE< std::vector<command_line_string> >(), "include path")
             ("define,D", PO_VALUE< std::vector<command_line_string> >(), "define macro")
             ("image-location", PO_VALUE<command_line_string>(), "image location")
+        ;
+
+        html_desc.add_options()
             ("css-path", PO_VALUE<command_line_string>(), "css path")
             ("graphics-path", PO_VALUE<command_line_string>(), "graphics path")
         ;
+        desc.add(html_desc);
 
         hidden.add_options()
             ("debug", "debug mode")
