@@ -21,7 +21,6 @@ http://www.boost.org/LICENSE_1_0.txt)
 #include <boost/filesystem/operations.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/algorithm/string/replace.hpp>
-#include <iostream>
 
 namespace quickbook {
     namespace fs = boost::filesystem;
@@ -254,27 +253,34 @@ namespace quickbook { namespace detail {
         }
     }
 
-    void write_xml_tree(xml_element* node, unsigned int depth = 0) {
+    void write_xml_tree(std::string& out, xml_element* node, unsigned int depth = 0) {
         if (!node) { return; }
 
         for(unsigned i = 0; i < depth; ++i) {
-            std::cout << "  ";
+            out += "  ";
         }
         switch (node->type_) {
         case xml_element::element_node:
-            std::cout << "Node: " << node->name_;
+            out += "Node: ";
+            out += node->name_;
             break;
         case xml_element::element_text:
-            std::cout << "Text";
+            out += "Text";
             break;
         default:
-            std::cout << "Unknown node type";
+            out += "Unknown node type";
             break;
         }
-        std::cout << std::endl;
+        out += "\n";
         for (xml_element* it = node->children(); it; it = it->next()) {
-            write_xml_tree(it, depth + 1);
+            write_xml_tree(out, it, depth + 1);
         }
+    }
+
+    void write_xml_tree(xml_element* node) {
+        std::string result;
+        write_xml_tree(result, node, 0);
+        quickbook::detail::out() << result << std::flush;
     }
 
     void generate_html(html_gen&, xml_element*);
@@ -887,7 +893,7 @@ namespace quickbook { namespace detail {
                 parser->second(gen, x);
             }
             else {
-                std::cout << "Unsupported tag: " << x->name_ << std::endl;
+                quickbook::detail::out() << "Unsupported tag: " << x->name_ << std::endl;
                 document_children(gen, x);
             }
             break;
