@@ -241,6 +241,11 @@ namespace quickbook { namespace detail {
         gen.html += ">";
     }
 
+    void tag_self_close(html_gen& gen, quickbook::string_view name, xml_element* x) {
+        tag_start_with_id(gen, name, x);
+        tag_end_self_close(gen);
+    }
+
     void graphics_tag(html_gen& gen, quickbook::string_view path, quickbook::string_view fallback) {
         if (!gen.graphics_path.empty()) {
             std::string url = gen.graphics_path;
@@ -945,7 +950,6 @@ namespace quickbook { namespace detail {
     NODE_MAP(superscript, sup)
     NODE_MAP(section, div)
     NODE_MAP(anchor, span)
-    NODE_MAP(sbr, br)
 
     // TODO: Header levels
     NODE_MAP(title, h3)
@@ -958,6 +962,14 @@ namespace quickbook { namespace detail {
     NODE_MAP_CLASS(note, div, note)
     NODE_MAP_CLASS(tip, div, tip)
     NODE_MAP_CLASS(replaceable, em, replaceable)
+
+    NODE_RULE(sbr, gen, x) {
+        if (!x->children()) {
+            tag_self_close(gen, "br", x);
+        } else {
+            tag(gen, "br", x);
+        }
+    }
 
     NODE_RULE(ulink, gen, x) {
         // TODO: error if missing?
