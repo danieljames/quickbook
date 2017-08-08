@@ -242,6 +242,18 @@ namespace quickbook { namespace detail {
         gen.html += ">";
     }
 
+    void graphics_tag(html_gen& gen, quickbook::string_view path, quickbook::string_view fallback) {
+        if (!gen.graphics_path.empty()) {
+            std::string url = gen.graphics_path;
+            url.append(path.begin(), path.end());
+            tag_start(gen, "img");
+            tag_attribute(gen, "src", url);
+            tag_end(gen);
+        } else {
+            gen.html.append(fallback.begin(), fallback.end());
+        }
+    }
+
     void write_xml_tree(xml_element* node, unsigned int depth = 0) {
         if (!node) { return; }
 
@@ -665,41 +677,44 @@ namespace quickbook { namespace detail {
                     writer.css_path)));
             tag_end_self_close(gen);
         }
+        tag_start(gen, "div");
+        tag_attribute(gen, "class", "spirit-nav");
+        tag_end(gen);
         if (prev) {
-            open_tag(gen, "div");
             tag_start(gen, "a");
             tag_attribute(gen, "href", relative_path_from(prev->path_, chunk_root->path_));
+            tag_attribute(gen, "accesskey", "p");
             tag_end(gen);
-            gen.html += "prev";
+            graphics_tag(gen, "/prev.png", "prev");
             close_tag(gen, "a");
-            close_tag(gen, "div");
+            gen.html += " ";
         }
         if (chunk_root->parent()) {
-            open_tag(gen, "div");
             tag_start(gen, "a");
             tag_attribute(gen, "href", relative_path_from(chunk_root->parent()->path_, chunk_root->path_));
+            tag_attribute(gen, "accesskey", "u");
             tag_end(gen);
-            gen.html += "parent";
+            graphics_tag(gen, "/up.png", "up");
             close_tag(gen, "a");
-            close_tag(gen, "div");            
+            gen.html += " ";
 
-            open_tag(gen, "div");
             tag_start(gen, "a");
             tag_attribute(gen, "href", relative_path_from("index.html", chunk_root->path_));
+            tag_attribute(gen, "accesskey", "h");
             tag_end(gen);
-            gen.html += "home";
+            graphics_tag(gen, "/home.png", "home");
             close_tag(gen, "a");
-            close_tag(gen, "div");
+            if (next) { gen.html += " "; }
         }
         if (next) {
-            open_tag(gen, "div");
             tag_start(gen, "a");
             tag_attribute(gen, "href", relative_path_from(next->path_, chunk_root->path_));
+            tag_attribute(gen, "accesskey", "n");
             tag_end(gen);
-            gen.html += "next";
+            graphics_tag(gen, "/next.png", "next");
             close_tag(gen, "a");
-            close_tag(gen, "div");
         }
+        close_tag(gen, "div");
         generate_html(gen, chunk_root->title_);
         generate_html(gen, chunk_root->info_);
         if (chunk_root->children()) {
@@ -1140,22 +1155,10 @@ namespace quickbook { namespace detail {
             tag_attribute(gen, "href", relative_path_from(link->second, gen.path));
             tag_end(gen);
         }
-        if (data != gen.callout_numbers.end()) {
-            if (!gen.graphics_path.empty()) {
-                tag_start(gen, "img");
-                tag_attribute(gen, "src",
-                    gen.graphics_path + "/callouts/" +
-                    boost::lexical_cast<std::string>(data->second.number)
-                    + ".png");
-                tag_end(gen);
-            } else {
-                gen.html += "(";
-                gen.html += boost::lexical_cast<std::string>(data->second.number);
-                gen.html += ")";
-            }
-        } else {
-            gen.html += "(0)";
-        }
+        graphics_tag(gen, "/callouts/" +
+                boost::lexical_cast<std::string>(data->second.number)
+                + ".png",
+                "(" + boost::lexical_cast<std::string>(data->second.number) + ")");
         if (link != gen.id_paths.end()) {
             close_tag(gen, "a");
         }
@@ -1179,18 +1182,10 @@ namespace quickbook { namespace detail {
             tag_end(gen);
         }
         if (data != gen.callout_numbers.end()) {
-            if (!gen.graphics_path.empty()) {
-                tag_start(gen, "img");
-                tag_attribute(gen, "src",
-                    gen.graphics_path + "/callouts/" +
-                    boost::lexical_cast<std::string>(data->second.number) +
-                    ".png");
-                tag_end(gen);
-            } else {
-                gen.html += "(";
-                gen.html += boost::lexical_cast<std::string>(data->second.number);
-                gen.html += ")";
-            }
+            graphics_tag(gen, "/callouts/" +
+                    boost::lexical_cast<std::string>(data->second.number)
+                    + ".png",
+                    "(" + boost::lexical_cast<std::string>(data->second.number) + ")");
         } else {
             gen.html += "(0)";
         }
