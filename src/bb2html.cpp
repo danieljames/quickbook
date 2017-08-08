@@ -278,6 +278,7 @@ namespace quickbook { namespace detail {
     }
 
     void generate_html(html_gen&, xml_element*);
+    // HTML within the contents, not the contents itself.
     void generate_contents_html(html_gen&, xml_element*);
     void generate_footnotes(html_gen&);
     chunk* chunk_document(xml_tree_builder&);
@@ -625,15 +626,28 @@ namespace quickbook { namespace detail {
         gen.html += "</ul>";
     }
 
+    void generate_contents(html_gen& gen, chunk* root) {
+        if (root->children()) {
+            tag_start(gen, "div");
+            tag_attribute(gen, "class", "toc");
+            tag_end(gen);
+            open_tag(gen, "p");
+            open_tag(gen, "b");
+            gen.html += "Table of contents";
+            close_tag(gen, "b");
+            close_tag(gen, "p");
+            generate_contents_impl(gen, root, root);
+            close_tag(gen, "div");
+        }
+    }
+
     void generate_inline_chunks(html_gen& gen, chunk* root) {
         tag_start(gen, "div");
         tag_attribute(gen, "id", root->id_);
         tag_end(gen);
         generate_html(gen, root->title_);
         generate_html(gen, root->info_);
-        if (root->children()) {
-            generate_contents_impl(gen, root, root);
-        }
+        generate_contents(gen, root);
         generate_html(gen, root->root_);
         for (chunk* it = root->children(); it; it = it->next())
         {
@@ -717,9 +731,7 @@ namespace quickbook { namespace detail {
         close_tag(gen, "div");
         generate_html(gen, chunk_root->title_);
         generate_html(gen, chunk_root->info_);
-        if (chunk_root->children()) {
-            generate_contents_impl(gen, chunk_root, chunk_root);
-        }
+        generate_contents(gen, chunk_root);
         generate_html(gen, chunk_root->root_);
         chunk* it = chunk_root->children();
         for (; it && it->inline_; it = it->next())
