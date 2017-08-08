@@ -1130,7 +1130,10 @@ namespace quickbook { namespace detail {
             }
         }
 
-        open_tag_with_id(gen, "table", x);
+        tag_start_with_id(gen, "div", x);
+        tag_attribute(gen, "class", x->name_);
+        tag_end(gen);
+        open_tag(gen, "table");
         if (title) { tag(gen, "caption", title); }
         if (thead) {
             open_tag(gen, "thead");
@@ -1143,6 +1146,7 @@ namespace quickbook { namespace detail {
             close_tag(gen, "tbody");
         }
         close_tag(gen, "table");
+        close_tag(gen, "div");
     }
 
     NODE_RULE(table, gen, x) { write_table(gen, x); }
