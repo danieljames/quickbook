@@ -821,8 +821,18 @@ namespace quickbook
             if (!next) {
                 next = chunk_root->next();
             }
-            chunk* prev =
-                chunk_root->prev() ? chunk_root->prev() : chunk_root->parent();
+
+            chunk* prev = chunk_root->prev();
+            if (prev) {
+                while (prev->children()) {
+                    for (prev = prev->children(); prev->next();
+                         prev = prev->next()) {
+                    }
+                }
+            }
+            else {
+                prev = chunk_root->parent();
+            }
 
             html_gen gen(
                 writer.id_paths,
