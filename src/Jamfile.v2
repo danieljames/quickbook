@@ -29,6 +29,7 @@ exe quickbook
     utils.cpp
     files.cpp
     native_text.cpp
+    stream.cpp
     glob.cpp
     path.cpp
     include_paths.cpp

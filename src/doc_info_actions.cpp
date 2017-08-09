@@ -16,7 +16,7 @@
 #include "quickbook.hpp"
 #include "utils.hpp"
 #include "files.hpp"
-#include "native_text.hpp"
+#include "stream.hpp"
 #include "state.hpp"
 #include "doc_info_tags.hpp"
 #include "document_state.hpp"

@@ -8,7 +8,7 @@ http://www.boost.org/LICENSE_1_0.txt)
 
 #include "bb2html.hpp"
 #include "simple_parse.hpp"
-#include "native_text.hpp"
+#include "stream.hpp"
 #include "utils.hpp"
 #include "path.hpp"
 #include <vector>
