@@ -13,17 +13,19 @@ namespace quickbook
 {
     namespace detail
     {
-        struct tree_node
+        struct tree_node_base
         {
-            tree_node* parent_;
-            tree_node* children_;
-            tree_node* next_;
-            tree_node* prev_;
+          protected:
+            tree_node_base* parent_;
+            tree_node_base* children_;
+            tree_node_base* next_;
+            tree_node_base* prev_;
 
-            tree_node() : parent_(), children_(), next_(), prev_() {}
+          public:
+            tree_node_base() : parent_(), children_(), next_(), prev_() {}
         };
 
-        template <typename T> struct tree_node_impl : tree_node
+        template <typename T> struct tree_node : tree_node_base
         {
             T* parent() const { return static_cast<T*>(parent_); }
             T* children() const { return static_cast<T*>(children_); }

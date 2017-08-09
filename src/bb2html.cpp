@@ -32,7 +32,7 @@ namespace quickbook
 {
     namespace detail
     {
-        struct xml_element : tree_node_impl<xml_element>
+        struct xml_element : tree_node<xml_element>
         {
             enum element_type
             {
@@ -78,7 +78,7 @@ namespace quickbook
 
         typedef tree_builder<xml_element> xml_tree_builder;
 
-        struct chunk : tree_node_impl<chunk>
+        struct chunk : tree_node<chunk>
         {
             xml_element* title_;
             xml_element* info_;
