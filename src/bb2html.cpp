@@ -352,7 +352,7 @@ namespace quickbook { namespace detail {
         }
         ++it;
 
-        if (!builder.parent_ || builder.parent_->name_ != name) {
+        if (!builder.parent() || builder.parent()->name_ != name) {
             throw boostbook_parse_error("Close tag doesn't match", start);
         }
 
@@ -741,14 +741,14 @@ namespace quickbook { namespace detail {
 
     chunk* chunk_document(xml_tree_builder& tree) {
         chunk_builder builder;
-        for (xml_element* it = tree.root_; it;) {
+        for (xml_element* it = tree.root(); it;) {
             it = chunk_nodes(builder, tree, it);
         }
         return builder.release();
     }
 
     xml_element* chunk_nodes(chunk_builder& builder, xml_tree_builder& tree, xml_element* node) {
-        chunk* parent = builder.parent_;
+        chunk* parent = builder.parent();
 
         if (parent && node->type_ == xml_element::element_node && node->name_ == "title")
         {
