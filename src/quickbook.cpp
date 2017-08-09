@@ -28,6 +28,7 @@
 #include "state.hpp"
 #include "stream.hpp"
 #include "utils.hpp"
+#include "xml_parse.hpp"
 
 #include <iterator>
 #include <stdexcept>
@@ -228,7 +229,7 @@ namespace quickbook
                     // TODO: Support for an output file.
                     return quickbook::detail::boostbook_to_html(
                         stage2, options_.html_ops);
-                } catch (quickbook::detail::boostbook_parse_error e) {
+                } catch (quickbook::detail::xml_parse_error e) {
                     string_view stage2_view(stage2);
                     file_position p =
                         relative_position(stage2_view.begin(), e.pos);
