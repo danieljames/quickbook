@@ -28,7 +28,7 @@ namespace quickbook {
 }
 
 namespace quickbook { namespace detail {
-    struct xml_element : tree_node_impl<xml_element> {
+    struct xml_element : tree_node<xml_element> {
         enum element_type { element_node, element_text } type_;
         std::string name_;
         std::vector<std::pair<std::string, std::string> > attributes_;
@@ -62,7 +62,7 @@ namespace quickbook { namespace detail {
 
     typedef tree_builder<xml_element> xml_tree_builder;
 
-    struct chunk : tree_node_impl<chunk> {
+    struct chunk : tree_node<chunk> {
         xml_element* title_;
         xml_element* info_;
         xml_element* root_;
