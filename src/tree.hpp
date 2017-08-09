@@ -9,12 +9,16 @@ http://www.boost.org/LICENSE_1_0.txt)
 #if !defined(BOOST_QUICKBOOK_TREE_HPP)
 #define BOOST_QUICKBOOK_TREE_HPP
 
+#include <utility>
+
 namespace quickbook
 {
     namespace detail
     {
         struct tree_node_base
         {
+            friend struct tree_builder_base;
+
           protected:
             tree_node_base* parent_;
             tree_node_base* children_;
@@ -43,83 +47,52 @@ namespace quickbook
             }
         }
 
-        template <typename T> struct tree_builder
+        struct tree_builder_base
         {
           private:
-            tree_builder(tree_builder const&);
-            tree_builder& operator=(tree_builder const&);
+            tree_builder_base(tree_builder_base const&);
+            tree_builder_base& operator=(tree_builder_base const&);
+
+          protected:
+            tree_node_base* root_;
+            tree_node_base* current_;
+            tree_node_base* parent_;
+
+            tree_builder_base();
+            tree_builder_base(tree_builder_base&&);
+            ~tree_builder_base();
+
+            tree_node_base* extract(tree_node_base*);
+            tree_node_base* release();
+            void add_element(tree_node_base* n);
 
           public:
-            T* root_;
-            T* current_;
-            T* parent_;
+            void start_children();
+            void end_children();
+        };
 
-            tree_builder() : root_(0), current_(0), parent_(0) {}
+        template <typename T> struct tree_builder : tree_builder_base
+        {
+          public:
+            tree_builder() : tree_builder_base() {}
+            tree_builder(tree_builder<T>&& x) : tree_builder_base(std::move(x))
+            {
+            }
 
-            ~tree_builder() { delete_nodes(root_); }
+            ~tree_builder() { delete_nodes(root()); }
 
+            T* parent() const { return static_cast<T*>(parent_); }
+            T* current() const { return static_cast<T*>(current_); }
+            T* root() const { return static_cast<T*>(root_); }
             T* extract(T* x)
             {
-                T* next = static_cast<T*>(x->next_);
-                if (!x->prev_) {
-                    if (x->parent_) {
-                        x->parent_->children_ = next;
-                    }
-                    else {
-                        assert(x == root_);
-                        root_ = next;
-                        parent_ = 0;
-                        current_ = next;
-                    }
-                }
-                else {
-                    x->prev_->next_ = x->next_;
-                }
-                if (x->next_) {
-                    x->next_->prev_ = x->prev_;
-                }
-                x->parent_ = 0;
-                x->next_ = 0;
-                x->prev_ = 0;
-                return next;
+                return static_cast<T*>(tree_builder_base::extract(x));
             }
-
             T* release()
             {
-                T* n = root_;
-                root_ = 0;
-                current_ = 0;
-                parent_ = 0;
-                return n;
+                return static_cast<T*>(tree_builder_base::release());
             }
-
-            void add_element(T* n)
-            {
-                n->parent_ = parent_;
-                n->prev_ = current_;
-                if (current_) {
-                    current_->next_ = n;
-                }
-                else if (parent_) {
-                    parent_->children_ = n;
-                }
-                else {
-                    root_ = n;
-                }
-                current_ = n;
-            }
-
-            void start_children()
-            {
-                parent_ = current_;
-                current_ = 0;
-            }
-
-            void end_children()
-            {
-                current_ = parent_;
-                parent_ = current_->parent();
-            }
+            void add_element(T* n) { tree_builder_base::add_element(n); }
         };
     }
 }
