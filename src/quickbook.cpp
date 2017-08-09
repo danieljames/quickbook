@@ -18,6 +18,7 @@
 #include "path.hpp"
 #include "document_state.hpp"
 #include "bb2html.hpp"
+#include "xml_parse.hpp"
 #include <boost/program_options.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/operations.hpp>
@@ -231,7 +232,7 @@ namespace quickbook
                     // TODO: Support for an output file.
                     return quickbook::detail::boostbook_to_html(stage2, options_.html_ops);
                 }
-                catch (quickbook::detail::boostbook_parse_error e) {
+                catch (quickbook::detail::xml_parse_error e) {
                     string_view stage2_view(stage2);
                     file_position p = relative_position(stage2_view.begin(), e.pos);
                     string_view::iterator line_start = e.pos - (p.column < 40 ? p.column - 1 : 39);

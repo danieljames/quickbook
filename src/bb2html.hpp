@@ -14,13 +14,6 @@
 #include "string_view.hpp"
 
 namespace quickbook { namespace detail {
-    struct boostbook_parse_error {
-        char const* message;
-        string_iterator pos;
-
-        boostbook_parse_error(char const* m, string_iterator p) : message(m), pos(p) {}
-    };
-
     struct html_options {
         bool chunked_output;
         boost::filesystem::path output_path;
