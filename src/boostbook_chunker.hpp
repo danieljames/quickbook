@@ -29,7 +29,7 @@ namespace quickbook { namespace detail {
         }
     };
 
-    chunk* chunk_document(xml_tree_builder&);
+    tree<chunk> chunk_document(xml_tree_builder&);
     void inline_sections(chunk*, int depth);
     void inline_chunks(chunk*);
 }}

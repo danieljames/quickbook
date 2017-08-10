@@ -122,18 +122,17 @@ namespace quickbook { namespace detail {
 
         xml_tree_builder builder = xml_parse(source);
 
-        chunk* chunked = chunk_document(builder);
+        tree<chunk> chunked = chunk_document(builder);
         // Overwrite paths depending on whether output is chunked or not.
         // Really want to do something better, e.g. incorporate many section chunks into their parent.
-        chunked->path_ = root_filename;
+        chunked.root()->path_ = root_filename;
         if (options.chunked_output) {
-            inline_sections(chunked, 0);
+            inline_sections(chunked.root(), 0);
         } else {
-            inline_chunks(chunked);
+            inline_chunks(chunked.root());
         }
-        id_paths_type id_paths = get_id_paths(chunked);
-        generate_chunked_documentation(chunked, id_paths, root_dir, options);
-        delete_nodes(chunked);
+        id_paths_type id_paths = get_id_paths(chunked.root());
+        generate_chunked_documentation(chunked.root(), id_paths, root_dir, options);
         return 0;
     }
 

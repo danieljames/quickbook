@@ -53,7 +53,7 @@ namespace quickbook { namespace detail {
     xml_element* chunk_nodes(chunk_builder& builder, xml_tree_builder& tree, xml_element* node);
     std::string id_to_path(quickbook::string_view);
 
-    chunk* chunk_document(xml_tree_builder& tree) {
+    tree<chunk> chunk_document(xml_tree_builder& tree) {
         chunk_builder builder;
         for (xml_element* it = tree.root(); it;) {
             it = chunk_nodes(builder, tree, it);

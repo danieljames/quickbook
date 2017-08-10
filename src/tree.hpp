@@ -43,6 +43,22 @@ namespace quickbook { namespace detail {
         }
     }
 
+    template <typename T>
+    struct tree {
+    private:
+        tree(tree const&);
+        tree& operator=(tree const&);
+
+        T* root_;
+
+    public:
+        explicit tree(T* r) : root_(r) {}
+        tree(tree<T>&& x) : root_(x.root_) { x.root_ = 0; }
+        ~tree() { delete_nodes(root()); }
+
+        T* root() const { return static_cast<T*>(root_); }
+    };
+
     struct tree_builder_base {
     private:
         tree_builder_base(tree_builder_base const&);
@@ -80,7 +96,7 @@ namespace quickbook { namespace detail {
         T* current() const { return static_cast<T*>(current_); }
         T* root() const { return static_cast<T*>(root_); }
         T* extract(T* x) { return static_cast<T*>(tree_builder_base::extract(x)); }
-        T* release() { return static_cast<T*>(tree_builder_base::release()); }
+        tree<T> release() { return tree<T>(static_cast<T*>(tree_builder_base::release())); }
         void add_element(T* n) { tree_builder_base::add_element(n); }
     };
 }}
