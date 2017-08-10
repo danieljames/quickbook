@@ -13,6 +13,7 @@ http://www.boost.org/LICENSE_1_0.txt)
 
 namespace quickbook { namespace detail {
     struct tree_node_base {
+        friend struct tree_base;
         friend struct tree_builder_base;
 
     protected:
@@ -43,40 +44,52 @@ namespace quickbook { namespace detail {
         }
     }
 
-    template <typename T>
-    struct tree {
+    struct tree_base {
     private:
-        tree(tree const&);
-        tree& operator=(tree const&);
+        tree_base(tree_base const&);
+        tree_base& operator=(tree_base const&);
 
-        T* root_;
+    protected:
+        tree_node_base* root_;
 
-    public:
-        explicit tree(T* r) : root_(r) {}
-        tree(tree<T>&& x) : root_(x.root_) { x.root_ = 0; }
+        tree_base();
+        explicit tree_base(tree_node_base*);
+        tree_base(tree_base&&);
+        tree_base& operator=(tree_base&&);
+        ~tree_base();
+
+        tree_node_base* extract(tree_node_base*);
+    };
+
+    template <typename T>
+    struct tree : tree_base {
+        tree() {}
+        explicit tree(T* r) : tree_base(r) {}
+        tree(tree<T>&& x) : tree_base(std::move(x)) {}
         ~tree() { delete_nodes(root()); }
+        tree& operator=(tree<T>&& x) { tree_base::operator=(std::move(x)); return *this; }
 
+        tree extract(T* n) { return tree(static_cast<T*>(tree_base::extract(n))); }
         T* root() const { return static_cast<T*>(root_); }
     };
 
-    struct tree_builder_base {
+    struct tree_builder_base : tree_base {
     private:
         tree_builder_base(tree_builder_base const&);
         tree_builder_base& operator=(tree_builder_base const&);
 
     protected:
-        tree_node_base* root_;
         tree_node_base* current_;
         tree_node_base* parent_;
 
         tree_builder_base();
         tree_builder_base(tree_builder_base&&);
+        tree_builder_base& operator=(tree_builder_base&& x);
         ~tree_builder_base();
 
         tree_node_base* extract(tree_node_base*);
         tree_node_base* release();
         void add_element(tree_node_base* n);
-
     public:
         void start_children();
         void end_children();
@@ -87,15 +100,13 @@ namespace quickbook { namespace detail {
     public:
         tree_builder() : tree_builder_base() {}
         tree_builder(tree_builder<T>&& x) : tree_builder_base(std::move(x)) {}
-
-        ~tree_builder() {
-            delete_nodes(root());
-        }
+        ~tree_builder() { delete_nodes(root()); }
+        tree_builder& operator=(tree_builder&& x) { return tree_builder_base::operator=(std::move(x)); }
 
         T* parent() const { return static_cast<T*>(parent_); }
         T* current() const { return static_cast<T*>(current_); }
         T* root() const { return static_cast<T*>(root_); }
-        T* extract(T* x) { return static_cast<T*>(tree_builder_base::extract(x)); }
+        tree<T> extract(T* x) { return tree<T>(static_cast<T*>(tree_builder_base::extract(x))); }
         tree<T> release() { return tree<T>(static_cast<T*>(tree_builder_base::release())); }
         void add_element(T* n) { tree_builder_base::add_element(n); }
     };

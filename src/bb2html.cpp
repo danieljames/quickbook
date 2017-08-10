@@ -221,10 +221,10 @@ namespace quickbook { namespace detail {
             close_tag(gen, "a");
         }
         close_tag(gen, "div");
-        generate_html(gen, chunk_root->title_);
-        generate_html(gen, chunk_root->info_);
+        generate_html(gen, chunk_root->title_.root());
+        generate_html(gen, chunk_root->info_.root());
         generate_contents(gen, chunk_root);
-        generate_html(gen, chunk_root->root_);
+        generate_html(gen, chunk_root->root_.root());
         chunk* it = chunk_root->children();
         for (; it && it->inline_; it = it->next())
         {
@@ -243,10 +243,10 @@ namespace quickbook { namespace detail {
         tag_start(gen, "div");
         tag_attribute(gen, "id", root->id_);
         tag_end(gen);
-        generate_html(gen, root->title_);
-        generate_html(gen, root->info_);
+        generate_html(gen, root->title_.root());
+        generate_html(gen, root->info_.root());
         generate_contents(gen, root);
-        generate_html(gen, root->root_);
+        generate_html(gen, root->root_.root());
         for (chunk* it = root->children(); it; it = it->next())
         {
             assert(it->inline_);
@@ -291,10 +291,10 @@ namespace quickbook { namespace detail {
                 gen.html += "<a href=\"";
                 gen.html += encode_string(relative_path_from(link->second, page->path_));
                 gen.html += "\">";
-                generate_contents_html(gen, it->title_);
+                generate_contents_html(gen, it->title_.root());
                 gen.html += "</a>";
             } else {
-                generate_contents_html(gen, it->title_);
+                generate_contents_html(gen, it->title_.root());
             }
             if (it->children()) {
                 generate_contents_impl(gen, page, it);
@@ -464,9 +464,9 @@ namespace quickbook { namespace detail {
         }
         id_paths.emplace(c->id_, boost::move(p));
 
-        get_id_paths_impl2(id_paths, c->path_, c->title_);
-        get_id_paths_impl2(id_paths, c->path_, c->info_);
-        get_id_paths_impl2(id_paths, c->path_, c->root_);
+        get_id_paths_impl2(id_paths, c->path_, c->title_.root());
+        get_id_paths_impl2(id_paths, c->path_, c->info_.root());
+        get_id_paths_impl2(id_paths, c->path_, c->root_.root());
         for(chunk* i = c->children(); i; i = i->next())
         {
             get_id_paths_impl(id_paths, i);

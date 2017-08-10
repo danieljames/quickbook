@@ -50,27 +50,29 @@ namespace quickbook { namespace detail {
         }
     };
 
-    xml_element* chunk_nodes(chunk_builder& builder, xml_tree_builder& tree, xml_element* node);
+    void chunk_nodes(chunk_builder& builder, xml_tree_builder& tree, xml_element* node);
     std::string id_to_path(quickbook::string_view);
 
     tree<chunk> chunk_document(xml_tree_builder& tree) {
         chunk_builder builder;
         for (xml_element* it = tree.root(); it;) {
-            it = chunk_nodes(builder, tree, it);
+            xml_element* next = it->next();
+            chunk_nodes(builder, tree, it);
+            it = next;
         }
 
         return builder.release();
     }
 
     void inline_sections(chunk* c, int depth) {
-        if (c->root_->name_ == "section" && depth > 1) {
+        if (c->root_.root()->name_ == "section" && depth > 1) {
             --depth;
         }
 
         // When depth is 0, inline leading sections.
         chunk* it = c->children();
         if (depth == 0) {
-            for (;it && it->root_->name_ == "section"; it = it->next()) {
+            for (;it && it->root_.root()->name_ == "section"; it = it->next()) {
                 inline_chunks(it);
             }
         }
@@ -88,23 +90,20 @@ namespace quickbook { namespace detail {
         }
     }
 
-    xml_element* chunk_nodes(chunk_builder& builder, xml_tree_builder& tree, xml_element* node) {
+    void chunk_nodes(chunk_builder& builder, xml_tree_builder& tree, xml_element* node) {
         chunk* parent = builder.parent();
 
         if (parent && node->type_ == xml_element::element_node && node->name_ == "title")
         {
-            parent->title_ = node;
-            return tree.extract(node);
+            parent->title_ = tree.extract(node);
         }
         else if (parent && node->type_ == xml_element::element_node && chunkinfo_types.find(node->name_) != chunkinfo_types.end())
         {
-            parent->info_ = node;
-            return tree.extract(node);
+            parent->info_ = tree.extract(node);
         }
         else if (node->type_ == xml_element::element_node && chunk_types.find(node->name_) != chunk_types.end()) {
-            chunk* chunk_node = new chunk(node);
+            chunk* chunk_node = new chunk(tree.extract(node));
             builder.add_element(chunk_node);
-            xml_element* next = tree.extract(node);
 
             std::string* id = node->get_attribute("id");
             chunk_node->id_ = id ? *id : builder.next_path_name();
@@ -112,13 +111,11 @@ namespace quickbook { namespace detail {
 
             builder.start_children();
             for (xml_element* it = node->children(); it;) {
-                it = chunk_nodes(builder, tree, it);
+                xml_element* next = it->next();
+                chunk_nodes(builder, tree, it);
+                it = next;
             }
             builder.end_children();
-
-            return next;
-        } else {
-            return node->next();
         }
     }
 
