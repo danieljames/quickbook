@@ -329,7 +329,7 @@ namespace quickbook
 
         void generate_toc_html(html_gen& gen, chunk* root)
         {
-            if (root->children()) {
+            if (root->children() && root->root_.root()->name_ != "section") {
                 tag_start(gen, "div");
                 tag_attribute(gen, "class", "toc");
                 tag_end(gen);
