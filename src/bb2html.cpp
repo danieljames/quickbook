@@ -46,7 +46,7 @@ namespace quickbook { namespace detail {
     void generate_toc_item_html(html_gen&, xml_element*);
     void generate_footnotes_html(html_gen&);
     void number_callouts(html_gen& gen, xml_element* x);
-    void number_callouts2(html_gen& gen, unsigned& count, xml_element* x);
+    void number_calloutlist_children(html_gen& gen, unsigned& count, xml_element* x);
     void generate_tree_html(html_gen&, xml_element*);
     void generate_children_html(html_gen&, xml_element*);
     void write_file(fs::path const& path, std::string const& content);
@@ -330,33 +330,35 @@ namespace quickbook { namespace detail {
     }
 
     void number_callouts(html_gen& gen, xml_element* x) {
-        for (;x; x=x->next()) {
-            if (x->type_ == xml_element::element_node) {
-                if (x->name_ == "calloutlist") {
-                    unsigned count = 0;
-                    number_callouts2(gen, count, x);
-                } else if (x->name_ == "co") {
-                    // TODO: Set id if missing?
-                    std::string* linkends = x->get_attribute("linkends");
-                    std::string* id = x->get_attribute("id");
-                    if (id && linkends) {
-                        gen.callout_numbers[*linkends].link_id = *id;
-                    }
+        if (!x) { return; }
+
+        if (x->type_ == xml_element::element_node) {
+            if (x->name_ == "calloutlist") {
+                unsigned count = 0;
+                number_calloutlist_children(gen, count, x);
+            } else if (x->name_ == "co") {
+                // TODO: Set id if missing?
+                std::string* linkends = x->get_attribute("linkends");
+                std::string* id = x->get_attribute("id");
+                if (id && linkends) {
+                    gen.callout_numbers[*linkends].link_id = *id;
                 }
             }
-            number_callouts(gen, x->children());
+        }
+        for (xml_element* it = x->children(); it; it=it->next()) {
+            number_callouts(gen, it);
         }
     }
 
-    void number_callouts2(html_gen& gen, unsigned& count, xml_element* x) {
-        for (;x; x=x->next()) {
-            if (x->type_ == xml_element::element_node && x->name_ == "callout") {
-                std::string* id = x->get_attribute("id");
+    void number_calloutlist_children(html_gen& gen, unsigned& count, xml_element* x) {
+        for (xml_element* it=x->children(); it; it=it->next()) {
+            if (it->type_ == xml_element::element_node && it->name_ == "callout") {
+                std::string* id = it->get_attribute("id");
                 if (id) {
                     gen.callout_numbers[*id].number = ++count;
                 }
             }
-            number_callouts2(gen, count, x->children());
+            number_calloutlist_children(gen, count, it);
         }
     }
 
