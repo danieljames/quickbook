@@ -52,6 +52,7 @@ namespace quickbook { namespace detail {
 
     void chunk_nodes(chunk_builder& builder, xml_tree& tree, xml_element* node);
     std::string id_to_path(quickbook::string_view);
+    void inline_chunks(chunk*);
 
     chunk_tree chunk_document(xml_tree& tree) {
         chunk_builder builder;
@@ -79,6 +80,12 @@ namespace quickbook { namespace detail {
 
         for (;it; it = it->next()) {
             inline_sections(it, depth);
+        }
+    }
+
+    void inline_all(chunk* c) {
+        for(chunk* it = c->children(); it; it = it->next()) {
+            inline_chunks(it);
         }
     }
 
