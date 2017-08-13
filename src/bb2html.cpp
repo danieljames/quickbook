@@ -174,7 +174,7 @@ namespace quickbook
                 inline_sections(chunked.root(), 0);
             }
             else {
-                inline_chunks(chunked.root());
+                inline_all(chunked.root());
             }
             id_paths_type id_paths = get_id_paths(chunked.root());
             generate_chunked_documentation(
