@@ -76,6 +76,13 @@ namespace quickbook { namespace detail {
             fs::create_directories(path.parent_path());
             quickbook::detail::write_file(path, content);
         }
+
+        std::string get_relative_path(fs::path const& p, chunk* c) {
+            return path_to_generic(path_difference(
+                (root_path / c->path_).parent_path(),
+                p
+            ));
+        }
     };
 
     struct callout_data {
@@ -152,18 +159,14 @@ namespace quickbook { namespace detail {
         }
 
         html_gen gen(writer.id_paths,
-            path_to_generic(path_difference(
-                (writer.root_path / chunk_root->path_).parent_path(),
-                writer.options.graphics_path)),
+            writer.get_relative_path(writer.options.graphics_path, chunk_root),
             chunk_root->path_);
         if (!writer.options.css_path.empty()) {
             tag_start(gen, "link");
             tag_attribute(gen, "rel", "stylesheet");
             tag_attribute(gen, "type", "text/css");
-            tag_attribute(gen, "href", path_to_generic(
-                path_difference(
-                    (writer.root_path / chunk_root->path_).parent_path(),
-                    writer.options.css_path)));
+            tag_attribute(gen, "href",
+                writer.get_relative_path(writer.options.css_path, chunk_root));
             tag_end_self_close(gen);
         }
         tag_start(gen, "div");
