@@ -77,7 +77,7 @@ namespace quickbook
         quickbook::string_view read_string(
             string_iterator& it, string_iterator end);
 
-        xml_tree_builder xml_parse(quickbook::string_view source)
+        xml_tree xml_parse(quickbook::string_view source)
         {
             typedef string_iterator iterator;
             iterator it = source.begin(), end = source.end();
@@ -116,7 +116,7 @@ namespace quickbook
                 }
             }
 
-            return builder;
+            return builder.release();
         }
 
         void read_tag(

@@ -54,11 +54,10 @@ namespace quickbook
         void generate_chunks_impl(chunk_writer&, chunk*);
         void generate_inline_chunks(html_gen& gen, chunk* root);
         void generate_html(html_gen&, xml_element*);
-        void generate_contents(html_gen& gen, chunk* root);
-        void generate_contents_impl(
-            html_gen& gen, chunk* page, chunk* chunk_root);
-        // HTML within the contents, not the contents itself.
-        void generate_contents_html(html_gen&, xml_element*);
+        void generate_toc(html_gen& gen, chunk* root);
+        void generate_toc_impl(html_gen& gen, chunk* page, chunk* chunk_root);
+        // HTML within the table of contents, not the table of contents itself.
+        void generate_toc_html(html_gen&, xml_element*);
         void generate_footnotes(html_gen&);
         void number_callouts(html_gen& gen, xml_element* x);
         void number_callouts2(html_gen& gen, unsigned& count, xml_element* x);
@@ -136,7 +135,7 @@ namespace quickbook
             std::string graphics_path;
             string_view path;
             std::string html;
-            bool in_contents;
+            bool in_toc;
             boost::unordered_map<string_view, callout_data> callout_numbers;
             std::vector<xml_element*> footnotes;
 
@@ -144,7 +143,7 @@ namespace quickbook
                 : id_paths(x.id_paths)
                 , graphics_path(x.graphics_path)
                 , path(x.path)
-                , in_contents(false)
+                , in_toc(false)
             {
             }
             explicit html_gen(
@@ -170,9 +169,8 @@ namespace quickbook
                 root_filename = path_to_generic(options.output_path.filename());
             }
 
-            xml_tree_builder builder = xml_parse(source);
-
-            tree<chunk> chunked = chunk_document(builder);
+            xml_tree tree = xml_parse(source);
+            chunk_tree chunked = chunk_document(tree);
             // Overwrite paths depending on whether output is chunked or not.
             // Really want to do something better, e.g. incorporate many section
             // chunks into their parent.
@@ -304,7 +302,7 @@ namespace quickbook
             close_tag(gen, "div");
             generate_html(gen, chunk_root->title_.root());
             generate_html(gen, chunk_root->info_.root());
-            generate_contents(gen, chunk_root);
+            generate_toc(gen, chunk_root);
             generate_html(gen, chunk_root->root_.root());
             chunk* it = chunk_root->children();
             for (; it && it->inline_; it = it->next()) {
@@ -325,7 +323,7 @@ namespace quickbook
             tag_end(gen);
             generate_html(gen, root->title_.root());
             generate_html(gen, root->info_.root());
-            generate_contents(gen, root);
+            generate_toc(gen, root);
             generate_html(gen, root->root_.root());
             for (chunk* it = root->children(); it; it = it->next()) {
                 assert(it->inline_);
@@ -346,7 +344,7 @@ namespace quickbook
             }
         }
 
-        void generate_contents(html_gen& gen, chunk* root)
+        void generate_toc(html_gen& gen, chunk* root)
         {
             if (root->children()) {
                 tag_start(gen, "div");
@@ -357,13 +355,12 @@ namespace quickbook
                 gen.html += "Table of contents";
                 close_tag(gen, "b");
                 close_tag(gen, "p");
-                generate_contents_impl(gen, root, root);
+                generate_toc_impl(gen, root, root);
                 close_tag(gen, "div");
             }
         }
 
-        void generate_contents_impl(
-            html_gen& gen, chunk* page, chunk* chunk_root)
+        void generate_toc_impl(html_gen& gen, chunk* page, chunk* chunk_root)
         {
             gen.html += "<ul>";
             for (chunk* it = chunk_root->children(); it; it = it->next()) {
@@ -374,27 +371,27 @@ namespace quickbook
                     gen.html += encode_string(
                         relative_path_from(link->second, page->path_));
                     gen.html += "\">";
-                    generate_contents_html(gen, it->title_.root());
+                    generate_toc_html(gen, it->title_.root());
                     gen.html += "</a>";
                 }
                 else {
-                    generate_contents_html(gen, it->title_.root());
+                    generate_toc_html(gen, it->title_.root());
                 }
                 if (it->children()) {
-                    generate_contents_impl(gen, page, it);
+                    generate_toc_impl(gen, page, it);
                 }
                 gen.html += "</li>";
             }
             gen.html += "</ul>";
         }
 
-        void generate_contents_html(html_gen& gen, xml_element* x)
+        void generate_toc_html(html_gen& gen, xml_element* x)
         {
             if (x) {
-                bool old = gen.in_contents;
-                gen.in_contents = true;
+                bool old = gen.in_toc;
+                gen.in_toc = true;
                 document_children(gen, x);
-                gen.in_contents = false;
+                gen.in_toc = false;
             }
             else {
                 gen.html += "<i>Untitled</i>";
@@ -661,7 +658,7 @@ namespace quickbook
             html_gen& gen, quickbook::string_view name, xml_element* x)
         {
             tag_start(gen, name);
-            if (!gen.in_contents) {
+            if (!gen.in_toc) {
                 std::string* id = x->get_attribute("id");
                 if (id) {
                     tag_attribute(gen, "id", *id);
