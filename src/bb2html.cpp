@@ -51,7 +51,10 @@ namespace quickbook
         void generate_chunk_html(html_gen&, chunk*);
         void generate_toc_html(html_gen& gen, chunk* root);
         void generate_toc_subtree(
-            html_gen& gen, chunk* page, chunk* chunk_root);
+            html_gen& gen,
+            chunk* page,
+            chunk* chunk_root,
+            unsigned section_depth);
         void generate_toc_item_html(html_gen&, xml_element*);
         void generate_footnotes_html(html_gen&);
         void number_callouts(html_gen& gen, xml_element* x);
@@ -338,13 +341,29 @@ namespace quickbook
                 gen.html += "Table of contents";
                 close_tag(gen, "b");
                 close_tag(gen, "p");
-                generate_toc_subtree(gen, root, root);
+                generate_toc_subtree(gen, root, root, 1);
                 close_tag(gen, "div");
             }
         }
 
-        void generate_toc_subtree(html_gen& gen, chunk* page, chunk* chunk_root)
+        void generate_toc_subtree(
+            html_gen& gen,
+            chunk* page,
+            chunk* chunk_root,
+            unsigned section_depth)
         {
+            if (chunk_root != page && section_depth == 0) {
+                bool has_non_section_child = false;
+                for (chunk* it = chunk_root->children(); it; it = it->next()) {
+                    if (it->root_.root()->name_ != "section") {
+                        has_non_section_child = true;
+                    }
+                }
+                if (!has_non_section_child) {
+                    return;
+                }
+            }
+
             gen.html += "<ul>";
             for (chunk* it = chunk_root->children(); it; it = it->next()) {
                 id_paths_type::const_iterator link = gen.id_paths.find(it->id_);
@@ -361,7 +380,12 @@ namespace quickbook
                     generate_toc_item_html(gen, it->title_.root());
                 }
                 if (it->children()) {
-                    generate_toc_subtree(gen, page, it);
+                    generate_toc_subtree(
+                        gen, page, it,
+                        it->root_.root()->name_ == "section" &&
+                                section_depth > 0
+                            ? section_depth - 1
+                            : section_depth);
                 }
                 gen.html += "</li>";
             }
