@@ -50,7 +50,8 @@ namespace quickbook { namespace detail {
     void generate_tree_html(html_gen&, xml_element*);
     void generate_children_html(html_gen&, xml_element*);
     void write_file(fs::path const& path, std::string const& content);
-    std::string relative_path_from(quickbook::string_view, quickbook::string_view);
+    std::string relative_path_from_fs_paths(fs::path const&, fs::path const&);
+    std::string relative_path_from_url_paths(quickbook::string_view, quickbook::string_view);
 
     id_paths_type get_id_paths(chunk* chunk);
     void get_id_paths_impl(id_paths_type&, chunk*);
@@ -74,13 +75,6 @@ namespace quickbook { namespace detail {
             fs::create_directories(path.parent_path());
             quickbook::detail::write_file(path, content);
         }
-
-        std::string get_relative_path(fs::path const& p, chunk* c) {
-            return path_to_generic(path_difference(
-                (options.home_path.parent_path() / c->path_).parent_path(),
-                p
-            ));
-        }
     };
 
     struct callout_data {
@@ -90,16 +84,18 @@ namespace quickbook { namespace detail {
 
     struct html_gen : html_printer {
         id_paths_type const& id_paths;
-        std::string graphics_path;
+        html_options const& options;
         string_view path;
         bool in_toc;
         boost::unordered_map<string_view, callout_data> callout_numbers;
         std::vector<xml_element*> footnotes;
 
         html_gen(html_gen const& x)
-            : id_paths(x.id_paths), graphics_path(x.graphics_path), path(x.path), in_toc(false) {}
-        explicit html_gen(id_paths_type const& ip, std::string const& graphics_path, string_view p)
-            : id_paths(ip), graphics_path(graphics_path), path(p) {}
+            : id_paths(x.id_paths), options(x.options), path(x.path), in_toc(false) {}
+        explicit html_gen(id_paths_type const& ip, html_options const& options, string_view p)
+            : id_paths(ip),
+              options(options),
+              path(p) {}
     };
 
     int boostbook_to_html(quickbook::string_view source, html_options const& options)
@@ -146,15 +142,14 @@ namespace quickbook { namespace detail {
             prev = x->parent();
         }
 
-        html_gen gen(writer.id_paths,
-            writer.get_relative_path(writer.options.graphics_path, x),
-            x->path_);
+        html_gen gen(writer.id_paths, writer.options, x->path_);
         if (!writer.options.css_path.empty()) {
             tag_start(gen, "link");
             tag_attribute(gen, "rel", "stylesheet");
             tag_attribute(gen, "type", "text/css");
             tag_attribute(gen, "href",
-                writer.get_relative_path(writer.options.css_path, x));
+                relative_path_from_fs_paths(writer.options.css_path,
+                    writer.options.home_path.parent_path() / x->path_));
             tag_end_self_close(gen);
         }
         tag_start(gen, "div");
@@ -162,7 +157,7 @@ namespace quickbook { namespace detail {
         tag_end(gen);
         if (prev) {
             tag_start(gen, "a");
-            tag_attribute(gen, "href", relative_path_from(prev->path_, x->path_));
+            tag_attribute(gen, "href", relative_path_from_url_paths(prev->path_, x->path_));
             tag_attribute(gen, "accesskey", "p");
             tag_end(gen);
             graphics_tag(gen, "/prev.png", "prev");
@@ -171,7 +166,7 @@ namespace quickbook { namespace detail {
         }
         if (x->parent()) {
             tag_start(gen, "a");
-            tag_attribute(gen, "href", relative_path_from(x->parent()->path_, x->path_));
+            tag_attribute(gen, "href", relative_path_from_url_paths(x->parent()->path_, x->path_));
             tag_attribute(gen, "accesskey", "u");
             tag_end(gen);
             graphics_tag(gen, "/up.png", "up");
@@ -179,7 +174,7 @@ namespace quickbook { namespace detail {
             gen.html += " ";
 
             tag_start(gen, "a");
-            tag_attribute(gen, "href", relative_path_from("index.html", x->path_));
+            tag_attribute(gen, "href", relative_path_from_url_paths("index.html", x->path_));
             tag_attribute(gen, "accesskey", "h");
             tag_end(gen);
             graphics_tag(gen, "/home.png", "home");
@@ -188,7 +183,7 @@ namespace quickbook { namespace detail {
         }
         if (next) {
             tag_start(gen, "a");
-            tag_attribute(gen, "href", relative_path_from(next->path_, x->path_));
+            tag_attribute(gen, "href", relative_path_from_url_paths(next->path_, x->path_));
             tag_attribute(gen, "accesskey", "n");
             tag_end(gen);
             graphics_tag(gen, "/next.png", "next");
@@ -271,7 +266,7 @@ namespace quickbook { namespace detail {
             gen.html += "<li>";
             if (link != gen.id_paths.end()) {
                 gen.html += "<a href=\"";
-                gen.html += encode_string(relative_path_from(link->second, page->path_));
+                gen.html += encode_string(relative_path_from_url_paths(link->second, page->path_));
                 gen.html += "\">";
                 generate_toc_item_html(gen, it->title_.root());
                 gen.html += "</a>";
@@ -412,7 +407,12 @@ namespace quickbook { namespace detail {
         }
     }
 
-    std::string relative_path_from(quickbook::string_view path, quickbook::string_view base) {
+    // Note: assume that base is a file, not a directory.
+    std::string relative_path_from_fs_paths(fs::path const& p, fs::path const& base) {
+        return path_to_generic(path_difference(base.parent_path(), p));
+    }
+
+    std::string relative_path_from_url_paths(quickbook::string_view path, quickbook::string_view base) {
         string_iterator path_it = path.begin();
         string_iterator base_it = base.begin();
         string_iterator path_diff_start = path_it;
@@ -492,9 +492,10 @@ namespace quickbook { namespace detail {
     }
 
     void graphics_tag(html_gen& gen, quickbook::string_view path, quickbook::string_view fallback) {
-        if (!gen.graphics_path.empty()) {
-            std::string url = gen.graphics_path;
-            url.append(path.begin(), path.end());
+        if (!gen.options.graphics_path.empty()) {
+            std::string url = relative_path_from_fs_paths(
+                gen.options.graphics_path / path.to_s(),
+                gen.options.home_path.parent_path() / gen.path.to_s());
             tag_start(gen, "img");
             tag_attribute(gen, "src", url);
             tag_attribute(gen, "alt", fallback);
@@ -598,7 +599,7 @@ namespace quickbook { namespace detail {
 
         tag_start_with_id(gen, "a", x);
         if (it != gen.id_paths.end()) {
-            tag_attribute(gen, "href", relative_path_from(it->second, gen.path));
+            tag_attribute(gen, "href", relative_path_from_url_paths(it->second, gen.path));
         }
         tag_end(gen);
         generate_children_html(gen, x);
@@ -672,7 +673,7 @@ namespace quickbook { namespace detail {
             tag_attribute(gen, "class", "inlinemediaobject");
             tag_end(gen);
             tag_start_with_id(gen, "img", x);
-            tag_attribute(gen, "src", relative_path_from(*image, gen.path));
+            tag_attribute(gen, "src", relative_path_from_url_paths(*image, gen.path));
             tag_attribute(gen, "alt", alt);
             tag_end_self_close(gen);
             close_tag(gen, "span");
@@ -797,7 +798,7 @@ namespace quickbook { namespace detail {
         open_tag_with_id(gen, "div", x);
         if (link != gen.id_paths.end()) {
             tag_start(gen, "a");
-            tag_attribute(gen, "href", relative_path_from(link->second, gen.path));
+            tag_attribute(gen, "href", relative_path_from_url_paths(link->second, gen.path));
             tag_end(gen);
         }
         graphics_tag(gen, "/callouts/" +
@@ -823,7 +824,7 @@ namespace quickbook { namespace detail {
 
         if (link != gen.id_paths.end()) {
             tag_start(gen, "a");
-            tag_attribute(gen, "href", relative_path_from(link->second, gen.path));
+            tag_attribute(gen, "href", relative_path_from_url_paths(link->second, gen.path));
             tag_end(gen);
         }
         if (data != gen.callout_numbers.end()) {
