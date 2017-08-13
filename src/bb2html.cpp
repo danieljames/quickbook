@@ -106,28 +106,19 @@ namespace quickbook { namespace detail {
 
     int boostbook_to_html(quickbook::string_view source, html_options const& options)
     {
-        fs::path root_dir;
-        std::string root_filename;
-        if (options.chunked_output) {
-            root_dir = options.output_path;
-            root_filename = "index.html";
-        } else {
-            root_dir = options.output_path.parent_path();
-            root_filename = path_to_generic(options.output_path.filename());
-        } 
-
         xml_tree tree = xml_parse(source);
         chunk_tree chunked = chunk_document(tree);
         // Overwrite paths depending on whether output is chunked or not.
         // Really want to do something better, e.g. incorporate many section chunks into their parent.
-        chunked.root()->path_ = root_filename;
+        chunked.root()->path_ = path_to_generic(options.home_path.filename());
         if (options.chunked_output) {
             inline_sections(chunked.root(), 0);
         } else {
             inline_all(chunked.root());
         }
         id_paths_type id_paths = get_id_paths(chunked.root());
-        generate_chunked_documentation(chunked.root(), id_paths, root_dir, options);
+        generate_chunked_documentation(chunked.root(), id_paths,
+            options.home_path.parent_path(), options);
         return 0;
     }
 

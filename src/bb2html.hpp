@@ -16,7 +16,7 @@
 namespace quickbook { namespace detail {
     struct html_options {
         bool chunked_output;
-        boost::filesystem::path output_path;
+        boost::filesystem::path home_path;
         boost::filesystem::path css_path;
         boost::filesystem::path graphics_path;
 
