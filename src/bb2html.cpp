@@ -656,6 +656,7 @@ namespace quickbook
                 url.append(path.begin(), path.end());
                 tag_start(gen, "img");
                 tag_attribute(gen, "src", url);
+                tag_attribute(gen, "alt", fallback);
                 tag_end(gen);
             }
             else {
