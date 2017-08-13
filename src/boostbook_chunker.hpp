@@ -13,17 +13,19 @@ http://www.boost.org/LICENSE_1_0.txt)
 
 namespace quickbook { namespace detail {
     struct chunk : tree_node<chunk> {
-        tree<xml_element> root_;
-        tree<xml_element> title_;
-        tree<xml_element> info_;
+        xml_tree root_;
+        xml_tree title_;
+        xml_tree info_;
         bool inline_;
         std::string id_;
         std::string path_;
 
-        explicit chunk(tree<xml_element>&& root) : root_(std::move(root)), inline_(false) {}
+        explicit chunk(xml_tree&& root) : root_(std::move(root)), inline_(false) {}
     };
 
-    tree<chunk> chunk_document(xml_tree_builder&);
+    typedef tree<chunk> chunk_tree;
+
+    chunk_tree chunk_document(xml_tree&);
     void inline_sections(chunk*, int depth);
     void inline_chunks(chunk*);
 }}

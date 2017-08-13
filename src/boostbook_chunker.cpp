@@ -50,10 +50,10 @@ namespace quickbook { namespace detail {
         }
     };
 
-    void chunk_nodes(chunk_builder& builder, xml_tree_builder& tree, xml_element* node);
+    void chunk_nodes(chunk_builder& builder, xml_tree& tree, xml_element* node);
     std::string id_to_path(quickbook::string_view);
 
-    tree<chunk> chunk_document(xml_tree_builder& tree) {
+    chunk_tree chunk_document(xml_tree& tree) {
         chunk_builder builder;
         for (xml_element* it = tree.root(); it;) {
             xml_element* next = it->next();
@@ -90,7 +90,7 @@ namespace quickbook { namespace detail {
         }
     }
 
-    void chunk_nodes(chunk_builder& builder, xml_tree_builder& tree, xml_element* node) {
+    void chunk_nodes(chunk_builder& builder, xml_tree& tree, xml_element* node) {
         chunk* parent = builder.parent();
 
         if (parent && node->type_ == xml_element::element_node && node->name_ == "title")

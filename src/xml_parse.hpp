@@ -16,6 +16,7 @@ http://www.boost.org/LICENSE_1_0.txt)
 
 namespace quickbook { namespace detail {
     struct xml_element;
+    typedef tree<xml_element> xml_tree;
     typedef tree_builder<xml_element> xml_tree_builder;
     struct xml_parse_error;
 
@@ -59,7 +60,7 @@ namespace quickbook { namespace detail {
     };
 
     void write_xml_tree(xml_element*);
-    xml_tree_builder xml_parse(quickbook::string_view);
+    xml_tree xml_parse(quickbook::string_view);
 }}
 
 #endif

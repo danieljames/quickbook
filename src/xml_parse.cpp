@@ -55,7 +55,7 @@ namespace quickbook { namespace detail {
     quickbook::string_view read_attribute_value(string_iterator& it, string_iterator start, string_iterator end);
     quickbook::string_view read_string(string_iterator& it, string_iterator end);
 
-    xml_tree_builder xml_parse(quickbook::string_view source)
+    xml_tree xml_parse(quickbook::string_view source)
     {
         typedef string_iterator iterator;
         iterator it = source.begin(), end = source.end();
@@ -93,7 +93,7 @@ namespace quickbook { namespace detail {
             }
         }
 
-        return builder;
+        return builder.release();
     }
 
     void read_tag(xml_tree_builder& builder, string_iterator& it, string_iterator start, string_iterator end) {
