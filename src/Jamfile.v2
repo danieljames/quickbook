@@ -41,6 +41,7 @@ exe quickbook
     bb2html.cpp
     boostbook_chunker.cpp
     xml_parse.cpp
+    html_printer.cpp
     tree.cpp
     collector.cpp
     template_stack.cpp
