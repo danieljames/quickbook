@@ -17,6 +17,7 @@ http://www.boost.org/LICENSE_1_0.txt)
 #include <boost/unordered_map.hpp>
 #include <boost/unordered_set.hpp>
 #include "boostbook_chunker.hpp"
+#include "html_printer.hpp"
 #include "path.hpp"
 #include "stream.hpp"
 #include "utils.hpp"
@@ -71,23 +72,10 @@ namespace quickbook
         void get_id_paths_impl2(id_paths_type&, string_view, xml_element*);
 
         void tag(html_gen& gen, quickbook::string_view name, xml_element* x);
-        void tag_attribute(
-            html_gen& gen,
-            quickbook::string_view name,
-            quickbook::string_view value);
-        void tag_start(html_gen& gen, quickbook::string_view name);
         void tag_start_with_id(
             html_gen& gen, quickbook::string_view name, xml_element* x);
-        void tag_end(html_gen& gen);
-        void tag_end_self_close(html_gen& gen);
-        void tag_attribute(
-            html_gen& gen,
-            quickbook::string_view name,
-            quickbook::string_view value);
-        void open_tag(html_gen& gen, quickbook::string_view name);
         void open_tag_with_id(
             html_gen& gen, quickbook::string_view name, xml_element* x);
-        void close_tag(html_gen& gen, quickbook::string_view name);
         void tag_self_close(
             html_gen& gen, quickbook::string_view name, xml_element* x);
         void graphics_tag(
@@ -128,12 +116,11 @@ namespace quickbook
             unsigned number;
         };
 
-        struct html_gen
+        struct html_gen : html_printer
         {
             id_paths_type const& id_paths;
             std::string graphics_path;
             string_view path;
-            std::string html;
             bool in_toc;
             boost::unordered_map<string_view, callout_data> callout_numbers;
             std::vector<xml_element*> footnotes;
@@ -619,24 +606,11 @@ namespace quickbook
             close_tag(gen, name);
         }
 
-        void open_tag(html_gen& gen, quickbook::string_view name)
-        {
-            tag_start(gen, name);
-            tag_end(gen);
-        }
-
         void open_tag_with_id(
             html_gen& gen, quickbook::string_view name, xml_element* x)
         {
             tag_start_with_id(gen, name, x);
             tag_end(gen);
-        }
-
-        void close_tag(html_gen& gen, quickbook::string_view name)
-        {
-            gen.html += "</";
-            gen.html.append(name.begin(), name.end());
-            gen.html += ">";
         }
 
         void tag_self_close(
@@ -664,12 +638,6 @@ namespace quickbook
             }
         }
 
-        void tag_start(html_gen& gen, quickbook::string_view name)
-        {
-            gen.html += "<";
-            gen.html.append(name.begin(), name.end());
-        }
-
         void tag_start_with_id(
             html_gen& gen, quickbook::string_view name, xml_element* x)
         {
@@ -680,22 +648,6 @@ namespace quickbook
                     tag_attribute(gen, "id", *id);
                 }
             }
-        }
-
-        void tag_end(html_gen& gen) { gen.html += ">"; }
-
-        void tag_end_self_close(html_gen& gen) { gen.html += "/>"; }
-
-        void tag_attribute(
-            html_gen& gen,
-            quickbook::string_view name,
-            quickbook::string_view value)
-        {
-            gen.html += " ";
-            gen.html.append(name.begin(), name.end());
-            gen.html += "=\"";
-            gen.html.append(value.begin(), value.end());
-            gen.html += "\"";
         }
 
 // Handle boostbook nodes
