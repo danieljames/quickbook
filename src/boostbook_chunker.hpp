@@ -17,15 +17,15 @@ namespace quickbook
     {
         struct chunk : tree_node<chunk>
         {
-            xml_tree root_;
+            xml_tree contents_;
             xml_tree title_;
             xml_tree info_;
             bool inline_;
             std::string id_;
             std::string path_;
 
-            explicit chunk(xml_tree&& root)
-                : root_(std::move(root)), inline_(false)
+            explicit chunk(xml_tree&& contents)
+                : contents_(std::move(contents)), inline_(false)
             {
             }
         };
