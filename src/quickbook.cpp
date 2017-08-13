@@ -719,9 +719,14 @@ int main(int argc, char* argv[])
 
             // Set duplicated html_options.
             // TODO: Clean this up?
-            options.html_ops.output_path = options.output_path;
-            options.html_ops.chunked_output =
-                options.style == parse_document_options::output_chunked;
+            if (options.style == parse_document_options::output_chunked) {
+                options.html_ops.home_path = options.output_path / "index.html";
+                options.html_ops.chunked_output = true;
+            }
+            else {
+                options.html_ops.home_path = options.output_path;
+                options.html_ops.chunked_output = false;
+            }
 
             if (!error_count) {
                 switch (options.style) {
