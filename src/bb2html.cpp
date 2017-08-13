@@ -37,8 +37,7 @@ namespace quickbook { namespace detail {
     typedef boost::unordered_map<quickbook::string_view, node_parser> node_parsers_type;
     static node_parsers_type node_parsers;
 
-    void generate_chunked_documentation(chunk*, id_paths_type const&,
-        fs::path const& root_path, html_options const&);
+    void generate_chunked_documentation(chunk*, id_paths_type const&, html_options const&);
     void generate_chunks(chunk_writer&, chunk*);
     void generate_inline_chunks(html_gen& gen, chunk*);
     void generate_chunk_html(html_gen&, chunk*);
@@ -64,22 +63,21 @@ namespace quickbook { namespace detail {
     void graphics_tag(html_gen& gen, quickbook::string_view path, quickbook::string_view fallback);
 
     struct chunk_writer {
-        fs::path const& root_path;
         id_paths_type const& id_paths;
         html_options const& options;
 
-        explicit chunk_writer(fs::path const& r, id_paths_type const& ip, html_options const& options)
-            : root_path(r), id_paths(ip), options(options) {}
+        explicit chunk_writer(id_paths_type const& ip, html_options const& options)
+            : id_paths(ip), options(options) {}
 
         void write_file(std::string const& generic_path, std::string const& content) {
-            fs::path path = root_path / generic_to_path(generic_path);
+            fs::path path = options.home_path.parent_path() / generic_to_path(generic_path);
             fs::create_directories(path.parent_path());
             quickbook::detail::write_file(path, content);
         }
 
         std::string get_relative_path(fs::path const& p, chunk* c) {
             return path_to_generic(path_difference(
-                (root_path / c->path_).parent_path(),
+                (options.home_path.parent_path() / c->path_).parent_path(),
                 p
             ));
         }
@@ -117,16 +115,15 @@ namespace quickbook { namespace detail {
             inline_all(chunked.root());
         }
         id_paths_type id_paths = get_id_paths(chunked.root());
-        generate_chunked_documentation(chunked.root(), id_paths,
-            options.home_path.parent_path(), options);
+        generate_chunked_documentation(chunked.root(), id_paths, options);
         return 0;
     }
 
     void generate_chunked_documentation(chunk* chunked, id_paths_type const& id_paths,
-        fs::path const& path, html_options const& options)
+        html_options const& options)
     {
-        fs::create_directory(path);
-        chunk_writer writer(path, id_paths, options);
+        fs::create_directory(options.home_path.parent_path());
+        chunk_writer writer(id_paths, options);
         if (chunked) { generate_chunks(writer, chunked); }
     }
 
