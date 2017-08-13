@@ -37,13 +37,13 @@ namespace quickbook { namespace detail {
     typedef boost::unordered_map<quickbook::string_view, node_parser> node_parsers_type;
     static node_parsers_type node_parsers;
 
-    void generate_chunked_documentation(chunk* root, id_paths_type const&,
+    void generate_chunked_documentation(chunk*, id_paths_type const&,
         fs::path const& root_path, html_options const&);
     void generate_chunks(chunk_writer&, chunk*);
-    void generate_inline_chunks(html_gen& gen, chunk* root);
+    void generate_inline_chunks(html_gen& gen, chunk*);
     void generate_chunk_html(html_gen&, chunk*);
-    void generate_toc_html(html_gen& gen, chunk* root);
-    void generate_toc_subtree(html_gen& gen, chunk* page, chunk* chunk_root, unsigned section_depth);
+    void generate_toc_html(html_gen& gen, chunk*);
+    void generate_toc_subtree(html_gen& gen, chunk* page, chunk*, unsigned section_depth);
     void generate_toc_item_html(html_gen&, xml_element*);
     void generate_footnotes_html(html_gen&);
     void number_callouts(html_gen& gen, xml_element* x);
@@ -139,34 +139,34 @@ namespace quickbook { namespace detail {
         if (chunked) { generate_chunks(writer, chunked); }
     }
 
-    void generate_chunks(chunk_writer& writer, chunk* chunk_root) {
+    void generate_chunks(chunk_writer& writer, chunk* x) {
         chunk* next = 0;
-        for (chunk* it = chunk_root->children(); it; it = it->next()) {
+        for (chunk* it = x->children(); it; it = it->next()) {
             if (!it->inline_) {
                 next = it;
                 break;
             }
         }
-        if (!next) { next = chunk_root->next(); }
+        if (!next) { next = x->next(); }
 
-        chunk* prev = chunk_root->prev();
+        chunk* prev = x->prev();
         if (prev) {
             while(prev->children()) {
                 for(prev = prev->children(); prev->next(); prev = prev->next()) {}
             }
         } else {
-            prev = chunk_root->parent();
+            prev = x->parent();
         }
 
         html_gen gen(writer.id_paths,
-            writer.get_relative_path(writer.options.graphics_path, chunk_root),
-            chunk_root->path_);
+            writer.get_relative_path(writer.options.graphics_path, x),
+            x->path_);
         if (!writer.options.css_path.empty()) {
             tag_start(gen, "link");
             tag_attribute(gen, "rel", "stylesheet");
             tag_attribute(gen, "type", "text/css");
             tag_attribute(gen, "href",
-                writer.get_relative_path(writer.options.css_path, chunk_root));
+                writer.get_relative_path(writer.options.css_path, x));
             tag_end_self_close(gen);
         }
         tag_start(gen, "div");
@@ -174,16 +174,16 @@ namespace quickbook { namespace detail {
         tag_end(gen);
         if (prev) {
             tag_start(gen, "a");
-            tag_attribute(gen, "href", relative_path_from(prev->path_, chunk_root->path_));
+            tag_attribute(gen, "href", relative_path_from(prev->path_, x->path_));
             tag_attribute(gen, "accesskey", "p");
             tag_end(gen);
             graphics_tag(gen, "/prev.png", "prev");
             close_tag(gen, "a");
             gen.html += " ";
         }
-        if (chunk_root->parent()) {
+        if (x->parent()) {
             tag_start(gen, "a");
-            tag_attribute(gen, "href", relative_path_from(chunk_root->parent()->path_, chunk_root->path_));
+            tag_attribute(gen, "href", relative_path_from(x->parent()->path_, x->path_));
             tag_attribute(gen, "accesskey", "u");
             tag_end(gen);
             graphics_tag(gen, "/up.png", "up");
@@ -191,7 +191,7 @@ namespace quickbook { namespace detail {
             gen.html += " ";
 
             tag_start(gen, "a");
-            tag_attribute(gen, "href", relative_path_from("index.html", chunk_root->path_));
+            tag_attribute(gen, "href", relative_path_from("index.html", x->path_));
             tag_attribute(gen, "accesskey", "h");
             tag_end(gen);
             graphics_tag(gen, "/home.png", "home");
@@ -200,21 +200,21 @@ namespace quickbook { namespace detail {
         }
         if (next) {
             tag_start(gen, "a");
-            tag_attribute(gen, "href", relative_path_from(next->path_, chunk_root->path_));
+            tag_attribute(gen, "href", relative_path_from(next->path_, x->path_));
             tag_attribute(gen, "accesskey", "n");
             tag_end(gen);
             graphics_tag(gen, "/next.png", "next");
             close_tag(gen, "a");
         }
         close_tag(gen, "div");
-        generate_chunk_html(gen, chunk_root);
-        chunk* it = chunk_root->children();
+        generate_chunk_html(gen, x);
+        chunk* it = x->children();
         for (; it && it->inline_; it = it->next())
         {
             generate_inline_chunks(gen, it);
         }
         generate_footnotes_html(gen);
-        writer.write_file(chunk_root->path_, gen.html);
+        writer.write_file(x->path_, gen.html);
         for (; it; it = it->next())
         {
             assert(!it->inline_);
@@ -222,12 +222,12 @@ namespace quickbook { namespace detail {
         }
     }
 
-    void generate_inline_chunks(html_gen& gen, chunk* root) {
+    void generate_inline_chunks(html_gen& gen, chunk* x) {
         tag_start(gen, "div");
-        tag_attribute(gen, "id", root->id_);
+        tag_attribute(gen, "id", x->id_);
         tag_end(gen);
-        generate_chunk_html(gen, root);
-        for (chunk* it = root->children(); it; it = it->next())
+        generate_chunk_html(gen, x);
+        for (chunk* it = x->children(); it; it = it->next())
         {
             assert(it->inline_);
             generate_inline_chunks(gen, it);
@@ -235,21 +235,21 @@ namespace quickbook { namespace detail {
         close_tag(gen, "div");
     }
 
-    void generate_chunk_html(html_gen& gen, chunk* root) {
+    void generate_chunk_html(html_gen& gen, chunk* x) {
         gen.callout_numbers.clear();
 
-        number_callouts(gen, root->title_.root());
-        number_callouts(gen, root->info_.root());
-        number_callouts(gen, root->root_.root());
+        number_callouts(gen, x->title_.root());
+        number_callouts(gen, x->info_.root());
+        number_callouts(gen, x->contents_.root());
 
-        generate_tree_html(gen, root->title_.root());
-        generate_tree_html(gen, root->info_.root());
-        generate_toc_html(gen, root);
-        generate_tree_html(gen, root->root_.root());
+        generate_tree_html(gen, x->title_.root());
+        generate_tree_html(gen, x->info_.root());
+        generate_toc_html(gen, x);
+        generate_tree_html(gen, x->contents_.root());
     }
 
-    void generate_toc_html(html_gen& gen, chunk* root) {
-        if (root->children() && root->root_.root()->name_ != "section") {
+    void generate_toc_html(html_gen& gen, chunk* x) {
+        if (x->children() && x->contents_.root()->name_ != "section") {
             tag_start(gen, "div");
             tag_attribute(gen, "class", "toc");
             tag_end(gen);
@@ -258,16 +258,16 @@ namespace quickbook { namespace detail {
             gen.html += "Table of contents";
             close_tag(gen, "b");
             close_tag(gen, "p");
-            generate_toc_subtree(gen, root, root, 1);
+            generate_toc_subtree(gen, x, x, 1);
             close_tag(gen, "div");
         }
     }
 
-    void generate_toc_subtree(html_gen& gen, chunk* page, chunk* chunk_root, unsigned section_depth) {
-        if (chunk_root != page && section_depth == 0) {
+    void generate_toc_subtree(html_gen& gen, chunk* page, chunk* x, unsigned section_depth) {
+        if (x != page && section_depth == 0) {
             bool has_non_section_child = false;
-            for (chunk* it = chunk_root->children(); it; it = it->next()) {
-                if (it->root_.root()->name_ != "section") {
+            for (chunk* it = x->children(); it; it = it->next()) {
+                if (it->contents_.root()->name_ != "section") {
                     has_non_section_child = true;
                 }
             }
@@ -277,7 +277,7 @@ namespace quickbook { namespace detail {
         }
 
         gen.html += "<ul>";
-        for (chunk* it = chunk_root->children(); it; it = it->next())
+        for (chunk* it = x->children(); it; it = it->next())
         {
             id_paths_type::const_iterator link = gen.id_paths.find(it->id_);
             gen.html += "<li>";
@@ -292,7 +292,7 @@ namespace quickbook { namespace detail {
             }
             if (it->children()) {
                 generate_toc_subtree(gen, page, it,
-                    it->root_.root()->name_ == "section" && section_depth > 0 ?
+                    it->contents_.root()->name_ == "section" && section_depth > 0 ?
                         section_depth - 1 : section_depth);
             }
             gen.html += "</li>";
@@ -465,7 +465,7 @@ namespace quickbook { namespace detail {
 
         get_id_paths_impl2(id_paths, c->path_, c->title_.root());
         get_id_paths_impl2(id_paths, c->path_, c->info_.root());
-        get_id_paths_impl2(id_paths, c->path_, c->root_.root());
+        get_id_paths_impl2(id_paths, c->path_, c->contents_.root());
         for(chunk* i = c->children(); i; i = i->next())
         {
             get_id_paths_impl(id_paths, i);

@@ -66,14 +66,14 @@ namespace quickbook { namespace detail {
     }
 
     void inline_sections(chunk* c, int depth) {
-        if (c->root_.root()->name_ == "section" && depth > 1) {
+        if (c->contents_.root()->name_ == "section" && depth > 1) {
             --depth;
         }
 
         // When depth is 0, inline leading sections.
         chunk* it = c->children();
         if (depth == 0) {
-            for (;it && it->root_.root()->name_ == "section"; it = it->next()) {
+            for (;it && it->contents_.root()->name_ == "section"; it = it->next()) {
                 inline_chunks(it);
             }
         }
