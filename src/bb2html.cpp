@@ -361,6 +361,7 @@ namespace quickbook { namespace detail {
     }
 
     void generate_tree_html(html_gen& gen, xml_element* x) {
+        if (!x) { return; }
         switch (x->type_) {
         case xml_element::element_text: {
             gen.html += x->contents_;
