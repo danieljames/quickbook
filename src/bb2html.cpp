@@ -66,11 +66,10 @@ namespace quickbook { namespace detail {
     struct chunk_writer {
         fs::path const& root_path;
         id_paths_type const& id_paths;
-        fs::path const& css_path;
-        fs::path const& graphics_path;
+        html_options const& options;
 
         explicit chunk_writer(fs::path const& r, id_paths_type const& ip, html_options const& options)
-            : root_path(r), id_paths(ip), css_path(options.css_path), graphics_path(options.graphics_path) {}
+            : root_path(r), id_paths(ip), options(options) {}
 
         void write_file(std::string const& generic_path, std::string const& content) {
             fs::path path = root_path / generic_to_path(generic_path);
@@ -155,16 +154,16 @@ namespace quickbook { namespace detail {
         html_gen gen(writer.id_paths,
             path_to_generic(path_difference(
                 (writer.root_path / chunk_root->path_).parent_path(),
-                writer.graphics_path)),
+                writer.options.graphics_path)),
             chunk_root->path_);
-        if (!writer.css_path.empty()) {
+        if (!writer.options.css_path.empty()) {
             tag_start(gen, "link");
             tag_attribute(gen, "rel", "stylesheet");
             tag_attribute(gen, "type", "text/css");
             tag_attribute(gen, "href", path_to_generic(
                 path_difference(
                     (writer.root_path / chunk_root->path_).parent_path(),
-                    writer.css_path)));
+                    writer.options.css_path)));
             tag_end_self_close(gen);
         }
         tag_start(gen, "div");
