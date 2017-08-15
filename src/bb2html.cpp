@@ -19,6 +19,7 @@ http://www.boost.org/LICENSE_1_0.txt)
 #include "boostbook_chunker.hpp"
 #include "html_printer.hpp"
 #include "path.hpp"
+#include "post_process.hpp"
 #include "stream.hpp"
 #include "utils.hpp"
 #include "xml_parse.hpp"
@@ -93,10 +94,23 @@ namespace quickbook
             void write_file(
                 std::string const& generic_path, std::string const& content)
             {
+                std::string html = content;
+
+                if (options.pretty_print) {
+                    try {
+                        html = post_process(html, -1, -1, true);
+                    } catch (quickbook::post_process_failure&) {
+                        // TODO: Proper error handling.
+                        ::quickbook::detail::outerr()
+                            << "Post Processing Failed." << std::endl;
+                        return;
+                    }
+                }
+
                 fs::path path = options.home_path.parent_path() /
                                 generic_to_path(generic_path);
                 fs::create_directories(path.parent_path());
-                quickbook::detail::write_file(path, content);
+                quickbook::detail::write_file(path, html);
             }
         };
 

@@ -727,6 +727,7 @@ int main(int argc, char* argv[])
                 options.html_ops.home_path = options.output_path;
                 options.html_ops.chunked_output = false;
             }
+            options.html_ops.pretty_print = options.pretty_print;
 
             if (!error_count) {
                 switch (options.style) {
