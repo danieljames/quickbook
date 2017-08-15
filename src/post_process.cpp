@@ -8,6 +8,8 @@
 =============================================================================*/
 #include "post_process.hpp"
 #include <boost/spirit/include/classic_core.hpp>
+#include <boost/spirit/include/phoenix1_primitives.hpp>
+#include <boost/spirit/include/phoenix1_operators.hpp>
 #include <boost/bind.hpp>
 #include <set>
 #include <stack>
@@ -16,6 +18,7 @@
 namespace quickbook
 {
     namespace cl = boost::spirit::classic;
+    namespace ph = phoenix;
     typedef std::string::const_iterator iter_type;
 
     struct printer
@@ -177,6 +180,38 @@ namespace quickbook
         int linewidth;
     };
 
+    char const* html_block_tags_[] =
+    {
+          "div"
+        , "p"
+        , "blockquote"
+        , "address"
+        , "h1"
+        , "h2"
+        , "h3"
+        , "h4"
+        , "h5"
+        , "h6"
+        , "ul"
+        , "ol"
+        , "li"
+        , "dl"
+        , "dt"
+        , "dd"
+        , "table"
+        , "tr"
+        , "th"
+        , "td"
+        , "tbody"
+        , "thead"
+        , "form"
+        , "fieldset"
+        , "hr"
+        , "noscript"
+        , "html"
+        , "body"
+    };
+
     char const* block_tags_[] =
     {
           "author"
@@ -228,21 +263,29 @@ namespace quickbook
 
     struct tidy_compiler
     {
-        tidy_compiler(std::string& out, int linewidth)
+        tidy_compiler(std::string& out, int linewidth, bool is_html)
             : out(out), current_indent(0), printer_(out, current_indent, linewidth)
         {
-            static int const n_block_tags = sizeof(block_tags_)/sizeof(char const*);
-            for (int i = 0; i != n_block_tags; ++i)
-            {
-                block_tags.insert(block_tags_[i]);
-            }
+            if (is_html) {
+                static int const n_block_tags = sizeof(html_block_tags_)/sizeof(char const*);
+                for (int i = 0; i != n_block_tags; ++i)
+                {
+                    block_tags.insert(html_block_tags_[i]);
+                }
+            } else {
+                static int const n_block_tags = sizeof(block_tags_)/sizeof(char const*);
+                for (int i = 0; i != n_block_tags; ++i)
+                {
+                    block_tags.insert(block_tags_[i]);
+                }
 
-            static int const n_doc_types = sizeof(doc_types_)/sizeof(char const*);
-            for (int i = 0; i != n_doc_types; ++i)
-            {
-                block_tags.insert(doc_types_[i]);
-                block_tags.insert(doc_types_[i] + std::string("info"));
-                block_tags.insert(doc_types_[i] + std::string("purpose"));
+                static int const n_doc_types = sizeof(doc_types_)/sizeof(char const*);
+                for (int i = 0; i != n_doc_types; ++i)
+                {
+                    block_tags.insert(doc_types_[i]);
+                    block_tags.insert(doc_types_[i] + std::string("info"));
+                    block_tags.insert(doc_types_[i] + std::string("purpose"));
+                }
             }
         }
 
@@ -261,8 +304,8 @@ namespace quickbook
 
     struct tidy_grammar : cl::grammar<tidy_grammar>
     {
-        tidy_grammar(tidy_compiler& state, int indent)
-            : state(state), indent(indent) {}
+        tidy_grammar(tidy_compiler& state, int indent, bool is_html)
+            : state(state), indent(indent), is_html(is_html) {}
 
         template <typename Scanner>
         struct definition
@@ -271,8 +314,12 @@ namespace quickbook
             {
                 tag = (cl::lexeme_d[+(cl::alpha_p | '_' | ':')])  [boost::bind(&tidy_grammar::do_tag, &self, _1, _2)];
 
-                code =
-                        "<programlisting>"
+                code =  cl::eps_p(ph::var(self.is_html))
+                    >>  "<pre>"
+                    >>  *(cl::anychar_p - "</pre>")
+                    >>  "</pre>"
+                    |   cl::eps_p(!ph::var(self.is_html))
+                    >>   "<programlisting>"
                     >>  *(cl::anychar_p - "</programlisting>")
                     >>  "</programlisting>"
                     ;
@@ -428,12 +475,14 @@ namespace quickbook
 
         tidy_compiler& state;
         int indent;
+        bool is_html;
     };
 
     std::string post_process(
         std::string const& in
       , int indent
-      , int linewidth)
+      , int linewidth
+      , bool is_html)
     {
         if (indent == -1)
             indent = 2;         // set default to 2
@@ -441,8 +490,8 @@ namespace quickbook
             linewidth = 80;     // set default to 80
 
         std::string tidy;
-        tidy_compiler state(tidy, linewidth);
-        tidy_grammar g(state, indent);
+        tidy_compiler state(tidy, linewidth, is_html);
+        tidy_grammar g(state, indent, is_html);
         cl::parse_info<iter_type> r = parse(in.begin(), in.end(), g, cl::space_p);
         if (r.full)
         {
