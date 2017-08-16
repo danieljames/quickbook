@@ -22,8 +22,11 @@ feature.feature <quickbook-xinclude-base> : : free ;
 
 type.register QUICKBOOK_INPUT : quickbook ;
 type.register QUICKBOOK_OUTPUT ;
+type.register QUICKBOOK_HTML_OUTPUT ;
 
 generators.register-standard quickbook-testing.process-quickbook : QUICKBOOK_INPUT : QUICKBOOK_OUTPUT ;
+generators.register-standard quickbook-testing.process-quickbook-html : QUICKBOOK_INPUT : QUICKBOOK_HTML_OUTPUT ;
+
 
 ################################################################################
 #
@@ -40,6 +43,7 @@ rule quickbook-test ( target-name : input ? : reference-output ? : requirements 
 {
     input ?= $(target-name).quickbook ;
     reference-output ?= $(input:S=.gold) ;
+    reference-output-html = $(input:S=.gold.html) ;
 
     local project = [ project.current ] ;
 
@@ -55,6 +59,15 @@ rule quickbook-test ( target-name : input ? : reference-output ? : requirements 
                 <quickbook-testing.quickbook-command>$(boost-root)/tools/quickbook/src//quickbook
         ]
 
+        [ targets.create-typed-target QUICKBOOK_HTML_OUTPUT
+            : $(project)
+            : $(target-name).html
+            : $(input)
+            : $(requirements)
+                <location-prefix>$(target-name).test-html
+                <quickbook-testing.quickbook-command>$(boost-root)/tools/quickbook/src//quickbook
+        ]
+
         [ targets.create-typed-target RUN
             : $(project)
             : $(target-name)
@@ -63,6 +76,17 @@ rule quickbook-test ( target-name : input ? : reference-output ? : requirements 
                 <location-prefix>$(target-name).test
                 <testing.input-file>$(reference-output)
                 <testing.input-file>$(target-name).boostbook
+                <preserve-test-targets>on
+        ]
+
+        [ targets.create-typed-target RUN
+            : $(project)
+            : $(target-name)-compare-html
+            : $(boost-root)/tools/quickbook/test/src//line-compare-tool
+            : $(requirements)
+                <location-prefix>$(target-name).test-html
+                <testing.input-file>$(reference-output-html)
+                <testing.input-file>$(target-name).html
                 <preserve-test-targets>on
         ]
         ;
@@ -128,6 +152,10 @@ toolset.flags quickbook-testing.process-quickbook quickbook-command <quickbook-t
 toolset.flags quickbook-testing.process-quickbook QB-DEFINES        <quickbook-test-define> ;
 toolset.flags quickbook-testing.process-quickbook XINCLUDE          <quickbook-xinclude-base> ;
 toolset.flags quickbook-testing.process-quickbook INCLUDES          <quickbook-test-include> ;
+toolset.flags quickbook-testing.process-quickbook-html quickbook-command <quickbook-testing.quickbook-command> ;
+toolset.flags quickbook-testing.process-quickbook-html QB-DEFINES        <quickbook-test-define> ;
+toolset.flags quickbook-testing.process-quickbook-html XINCLUDE          <quickbook-xinclude-base> ;
+toolset.flags quickbook-testing.process-quickbook-html INCLUDES          <quickbook-test-include> ;
 
 rule process-quickbook ( target : source : properties * )
 {
@@ -139,3 +167,12 @@ actions process-quickbook bind quickbook-command
     $(quickbook-command) $(>) --output-file=$(<) --debug -D"$(QB-DEFINES)" -I"$(INCLUDES)" --xinclude-base="$(XINCLUDE)"
 }
 
+rule process-quickbook-html ( target : source : properties * )
+{
+    DEPENDS $(target) : [ on $(target) return $(quickbook-command) ] ;
+}
+
+actions process-quickbook-html bind quickbook-command
+{
+    $(quickbook-command) $(>)  --output-format=onehtml --output-file=$(<) --debug -D"$(QB-DEFINES)" -I"$(INCLUDES)" --xinclude-base="$(XINCLUDE)"
+}
