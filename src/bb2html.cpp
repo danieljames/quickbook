@@ -443,7 +443,13 @@ namespace quickbook { namespace detail {
             if (*path_it == '/') {
                 path_diff_start = path_it + 1;
                 base_diff_start = base_it + 1;
+            } else if (*path_it == '#') {
+                return std::string(path_it, path.end());
             }
+        }
+
+        if (base_it == base.end() && path_it != path.end() && *path_it == '#') {
+            return std::string(path_it, path.end());
         }
 
         int up_count = std::count(base_it, base.end(), '/');
