@@ -91,7 +91,10 @@ namespace quickbook { namespace detail {
             }
 
             fs::path path = options.home_path.parent_path() / generic_to_path(generic_path);
-            fs::create_directories(path.parent_path());
+            fs::path parent = path.parent_path();
+            if (parent != ".") {
+                fs::create_directories(parent);
+            }
             quickbook::detail::write_file(path, html);
         }
     };
