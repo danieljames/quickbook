@@ -303,10 +303,14 @@ namespace quickbook { namespace detail {
     }
 
     void generate_toc_item_html(html_gen& gen, xml_element* x) {
-        bool old = gen.in_toc;
-        gen.in_toc = true;
-        generate_children_html(gen, x);
-        gen.in_toc = false;
+        if (x) {
+            bool old = gen.in_toc;
+            gen.in_toc = true;
+            generate_children_html(gen, x);
+            gen.in_toc = false;
+        } else {
+            gen.html += "<i>Untitled</i>";
+        }
     }
 
     void generate_footnotes_html(html_gen& gen) {

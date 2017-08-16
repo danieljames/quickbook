@@ -40,7 +40,7 @@ namespace quickbook { namespace detail {
             Node* to_delete = n;
             n = n->next();
             delete_nodes(to_delete->children());
-            delete_nodes(to_delete);
+            delete(to_delete);
         }
     }
 
