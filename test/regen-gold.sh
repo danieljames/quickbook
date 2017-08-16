@@ -2,6 +2,10 @@
 
 cd $(dirname $0)
 
+cd ..
+b2 -q
+cd -
+
 find . -name "*.gold" | while read gold_file
 do
     flags="--debug"
