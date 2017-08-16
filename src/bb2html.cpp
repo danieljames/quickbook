@@ -391,10 +391,15 @@ namespace quickbook
 
         void generate_contents_html(html_gen& gen, xml_element* x)
         {
-            bool old = gen.in_contents;
-            gen.in_contents = true;
-            document_children(gen, x);
-            gen.in_contents = false;
+            if (x) {
+                bool old = gen.in_contents;
+                gen.in_contents = true;
+                document_children(gen, x);
+                gen.in_contents = false;
+            }
+            else {
+                gen.html += "<i>Untitled</i>";
+            }
         }
 
         void generate_footnotes(html_gen& gen)
