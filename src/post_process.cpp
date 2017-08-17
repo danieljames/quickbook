@@ -312,7 +312,7 @@ namespace quickbook
         {
             definition(tidy_grammar const& self)
             {
-                tag = (cl::lexeme_d[+(cl::alpha_p | '_' | ':')])  [boost::bind(&tidy_grammar::do_tag, &self, _1, _2)];
+                tag = (cl::lexeme_d[+(cl::alnum_p | '_' | ':')])  [boost::bind(&tidy_grammar::do_tag, &self, _1, _2)];
 
                 code =  cl::eps_p(ph::var(self.is_html))
                     >>  "<pre>"
