@@ -363,7 +363,7 @@ namespace quickbook
                     |   content         [boost::bind(&tidy_grammar::do_content, &self, _1, _2)]
                     ;
 
-                tidy = +markup;
+                tidy = *markup;
             }
 
             cl::rule<Scanner> const&
