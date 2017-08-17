@@ -236,7 +236,7 @@ namespace quickbook
             {
                 // clang-format off
 
-                tag = (cl::lexeme_d[+(cl::alpha_p | '_' | ':')])  [boost::bind(&tidy_grammar::do_tag, &self, _1, _2)];
+                tag = (cl::lexeme_d[+(cl::alnum_p | '_' | ':')])  [boost::bind(&tidy_grammar::do_tag, &self, _1, _2)];
 
                 code =
                         "<programlisting>"
