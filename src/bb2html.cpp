@@ -23,6 +23,7 @@ http://www.boost.org/LICENSE_1_0.txt)
 #include <boost/filesystem/fstream.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/lexical_cast.hpp>
+#include <boost/algorithm/string/predicate.hpp>
 
 namespace quickbook {
     namespace fs = boost::filesystem;
@@ -51,6 +52,7 @@ namespace quickbook { namespace detail {
     void generate_tree_html(html_gen&, xml_element*);
     void generate_children_html(html_gen&, xml_element*);
     void write_file(fs::path const& path, std::string const& content);
+    std::string get_link_from_path(quickbook::string_view, quickbook::string_view);
     std::string relative_path_from_fs_paths(fs::path const&, fs::path const&);
     std::string relative_path_from_url_paths(quickbook::string_view, quickbook::string_view);
 
@@ -181,7 +183,7 @@ namespace quickbook { namespace detail {
             tag_end(gen);
             if (prev) {
                 tag_start(gen, "a");
-                tag_attribute(gen, "href", relative_path_from_url_paths(prev->path_, x->path_));
+                tag_attribute(gen, "href", get_link_from_path(prev->path_, x->path_));
                 tag_attribute(gen, "accesskey", "p");
                 tag_end(gen);
                 graphics_tag(gen, "/prev.png", "prev");
@@ -190,7 +192,7 @@ namespace quickbook { namespace detail {
             }
             if (x->parent()) {
                 tag_start(gen, "a");
-                tag_attribute(gen, "href", relative_path_from_url_paths(x->parent()->path_, x->path_));
+                tag_attribute(gen, "href", get_link_from_path(x->parent()->path_, x->path_));
                 tag_attribute(gen, "accesskey", "u");
                 tag_end(gen);
                 graphics_tag(gen, "/up.png", "up");
@@ -198,7 +200,7 @@ namespace quickbook { namespace detail {
                 gen.html += " ";
 
                 tag_start(gen, "a");
-                tag_attribute(gen, "href", relative_path_from_url_paths("index.html", x->path_));
+                tag_attribute(gen, "href", get_link_from_path("index.html", x->path_));
                 tag_attribute(gen, "accesskey", "h");
                 tag_end(gen);
                 graphics_tag(gen, "/home.png", "home");
@@ -207,7 +209,7 @@ namespace quickbook { namespace detail {
             }
             if (next) {
                 tag_start(gen, "a");
-                tag_attribute(gen, "href", relative_path_from_url_paths(next->path_, x->path_));
+                tag_attribute(gen, "href", get_link_from_path(next->path_, x->path_));
                 tag_attribute(gen, "accesskey", "n");
                 tag_end(gen);
                 graphics_tag(gen, "/next.png", "next");
@@ -291,7 +293,7 @@ namespace quickbook { namespace detail {
             gen.html += "<li>";
             if (link != gen.id_paths.end()) {
                 gen.html += "<a href=\"";
-                gen.html += encode_string(relative_path_from_url_paths(link->second, page->path_));
+                gen.html += encode_string(get_link_from_path(link->second, page->path_));
                 gen.html += "\">";
                 generate_toc_item_html(gen, it->title_.root());
                 gen.html += "</a>";
@@ -434,6 +436,19 @@ namespace quickbook { namespace detail {
 
             return /*1*/;
         }
+    }
+
+    std::string get_link_from_path(quickbook::string_view link, quickbook::string_view path) {
+        if (boost::starts_with(link, "boost:")) {
+            // TODO: Parameterize the boost location, so that it can use relative paths.
+            string_iterator it = link.begin() + strlen("boost:");
+            if (*it == '/') { ++it; }
+            std::string result = "http://www.boost.org/";
+            result.append(it, link.end());
+            return result;
+        }
+
+        return relative_path_from_url_paths(link, path);
     }
 
     // Note: assume that base is a file, not a directory.
@@ -619,7 +634,7 @@ namespace quickbook { namespace detail {
         std::string* value = x->get_attribute("url");
 
         tag_start_with_id(gen, "a", x);
-        if (value) { tag_attribute(gen, "href", *value); }
+        if (value) { tag_attribute(gen, "href", get_link_from_path(*value, gen.path)); }
         tag_end(gen);
         generate_children_html(gen, x);
         close_tag(gen, "a");
