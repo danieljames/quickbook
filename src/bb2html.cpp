@@ -143,7 +143,7 @@ namespace quickbook
                 id_paths_type const& ip,
                 html_options const& options,
                 string_view p)
-                : id_paths(ip), options(options), path(p)
+                : id_paths(ip), options(options), path(p), in_toc(false)
             {
             }
         };
