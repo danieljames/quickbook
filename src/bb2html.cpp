@@ -218,54 +218,56 @@ namespace quickbook
                         writer.options.home_path.parent_path() / x->path_));
                 tag_end_self_close(gen);
             }
-            tag_start(gen, "div");
-            tag_attribute(gen, "class", "spirit-nav");
-            tag_end(gen);
-            if (prev) {
-                tag_start(gen, "a");
-                tag_attribute(
-                    gen, "href",
-                    relative_path_from_url_paths(prev->path_, x->path_));
-                tag_attribute(gen, "accesskey", "p");
+            if (next || prev || x->parent()) {
+                tag_start(gen, "div");
+                tag_attribute(gen, "class", "spirit-nav");
                 tag_end(gen);
-                graphics_tag(gen, "/prev.png", "prev");
-                close_tag(gen, "a");
-                gen.html += " ";
-            }
-            if (x->parent()) {
-                tag_start(gen, "a");
-                tag_attribute(
-                    gen, "href",
-                    relative_path_from_url_paths(x->parent()->path_, x->path_));
-                tag_attribute(gen, "accesskey", "u");
-                tag_end(gen);
-                graphics_tag(gen, "/up.png", "up");
-                close_tag(gen, "a");
-                gen.html += " ";
-
-                tag_start(gen, "a");
-                tag_attribute(
-                    gen, "href",
-                    relative_path_from_url_paths("index.html", x->path_));
-                tag_attribute(gen, "accesskey", "h");
-                tag_end(gen);
-                graphics_tag(gen, "/home.png", "home");
-                close_tag(gen, "a");
-                if (next) {
+                if (prev) {
+                    tag_start(gen, "a");
+                    tag_attribute(
+                        gen, "href",
+                        relative_path_from_url_paths(prev->path_, x->path_));
+                    tag_attribute(gen, "accesskey", "p");
+                    tag_end(gen);
+                    graphics_tag(gen, "/prev.png", "prev");
+                    close_tag(gen, "a");
                     gen.html += " ";
                 }
+                if (x->parent()) {
+                    tag_start(gen, "a");
+                    tag_attribute(
+                        gen, "href", relative_path_from_url_paths(
+                                         x->parent()->path_, x->path_));
+                    tag_attribute(gen, "accesskey", "u");
+                    tag_end(gen);
+                    graphics_tag(gen, "/up.png", "up");
+                    close_tag(gen, "a");
+                    gen.html += " ";
+
+                    tag_start(gen, "a");
+                    tag_attribute(
+                        gen, "href",
+                        relative_path_from_url_paths("index.html", x->path_));
+                    tag_attribute(gen, "accesskey", "h");
+                    tag_end(gen);
+                    graphics_tag(gen, "/home.png", "home");
+                    close_tag(gen, "a");
+                    if (next) {
+                        gen.html += " ";
+                    }
+                }
+                if (next) {
+                    tag_start(gen, "a");
+                    tag_attribute(
+                        gen, "href",
+                        relative_path_from_url_paths(next->path_, x->path_));
+                    tag_attribute(gen, "accesskey", "n");
+                    tag_end(gen);
+                    graphics_tag(gen, "/next.png", "next");
+                    close_tag(gen, "a");
+                }
+                close_tag(gen, "div");
             }
-            if (next) {
-                tag_start(gen, "a");
-                tag_attribute(
-                    gen, "href",
-                    relative_path_from_url_paths(next->path_, x->path_));
-                tag_attribute(gen, "accesskey", "n");
-                tag_end(gen);
-                graphics_tag(gen, "/next.png", "next");
-                close_tag(gen, "a");
-            }
-            close_tag(gen, "div");
             generate_chunk_html(gen, x);
             chunk* it = x->children();
             for (; it && it->inline_; it = it->next()) {
