@@ -315,13 +315,18 @@ namespace quickbook
                 tag = (cl::lexeme_d[+(cl::alnum_p | '_' | ':')])  [boost::bind(&tidy_grammar::do_tag, &self, _1, _2)];
 
                 code =  cl::eps_p(ph::var(self.is_html))
-                    >>  "<pre>"
+                    >>  "<"
+                    >>  cl::lexeme_d[cl::str_p("pre")]
+                    >>  *(cl::anychar_p - '>')
+                    >>  ">"
                     >>  *(cl::anychar_p - "</pre>")
-                    >>  "</pre>"
+                    >>  "</pre"
+                    >>  cl::lexeme_d[">" >> *cl::space_p]
                     |   cl::eps_p(!ph::var(self.is_html))
                     >>   "<programlisting>"
                     >>  *(cl::anychar_p - "</programlisting>")
-                    >>  "</programlisting>"
+                    >>  "</programlisting"
+                    >>  cl::lexeme_d[">" >> *cl::space_p]
                     ;
 
                 // What's the business of cl::lexeme_d['>' >> *cl::space_p]; ?
@@ -393,29 +398,32 @@ namespace quickbook
             state.printer_.trim_spaces();
             if (state.out[state.out.size() - 1] != '\n')
                 state.out += '\n';
+
+            // trim trailing space from after closing tag
+            while (f != l && std::isspace(*(l-1))) { --l; }
+
             // print the string taking care of line
             // ending CR/LF platform issues
-            for (iter_type i = f; i != l; ++i)
+            for (iter_type i = f; i != l;)
             {
                 if (*i == '\n')
                 {
                     state.printer_.trim_spaces();
                     state.out += '\n';
                     ++i;
-                    if (i != l && *i != '\r')
-                        state.out += *i;
+                    if (i != l && *i == '\r') { ++i; }
                 }
                 else if (*i == '\r')
                 {
                     state.printer_.trim_spaces();
                     state.out += '\n';
                     ++i;
-                    if (i != l && *i != '\n')
-                        state.out += *i;
+                    if (i != l && *i == '\n') { ++i; }
                 }
                 else
                 {
                     state.out += *i;
+                    ++i;
                 }
             }
             state.out += '\n';

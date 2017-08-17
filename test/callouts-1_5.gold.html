@@ -20,12 +20,10 @@
   Now we can define a function that simulates an ordinary six-sided die.
 </p>
 <p>
-  <pre class="programlisting"><span class="keyword">int</span> <span class="identifier">roll_die</span><span
-  class="special">()</span> <span class="special">{</span> <span class="identifier">boost</span><span
-  class="special">::</span><span class="identifier">uniform_int</span><span class="special">&lt;&gt;</span>
-  <span class="identifier">dist</span><span class="special">(</span><span class="number">1</span><span
-  class="special">,</span> <span class="number">6</span><span class="special">);</span>
-  <a href="#callout_tests.c1">(1)</a> <span class="special">}</span> </pre>
+<pre class="programlisting"><span class="keyword">int</span> <span class="identifier">roll_die</span><span class="special">()</span> <span class="special">{</span>
+  <span class="identifier">boost</span><span class="special">::</span><span class="identifier">uniform_int</span><span class="special">&lt;&gt;</span> <span class="identifier">dist</span><span class="special">(</span><span class="number">1</span><span class="special">,</span> <span class="number">6</span><span class="special">);</span> <a href="#callout_tests.c1">(1)</a>
+<span class="special">}</span>
+</pre>
 </p>
 <div>
   <div id="callout_tests.c1">
@@ -39,15 +37,10 @@
   Example 2:
 </p>
 <p>
-  <pre class="programlisting"><span class="keyword">int</span> <span class="identifier">roll_die</span><span
-  class="special">()</span> <span class="special">{</span> <a href="#callout_tests.c3">(1)</a><span
-  class="identifier">boost</span><span class="special">::</span><span class="identifier">variate_generator</span><span
-  class="special">&lt;</span><span class="identifier">boost</span><span class="special">::</span><span
-  class="identifier">mt19937</span><span class="special">&amp;,</span> <span class="identifier">boost</span><span
-  class="special">::</span><span class="identifier">uniform_int</span><span class="special">&lt;&gt;</span>
-  <span class="special">&gt;</span> <span class="identifier">die</span><span class="special">(</span><span
-  class="identifier">gen</span><span class="special">,</span> <span class="identifier">dist</span><span
-  class="special">);</span> <span class="special">}</span> </pre>
+<pre class="programlisting"><span class="keyword">int</span> <span class="identifier">roll_die</span><span class="special">()</span> <span class="special">{</span>
+  <a href="#callout_tests.c3">(1)</a><span class="identifier">boost</span><span class="special">::</span><span class="identifier">variate_generator</span><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">mt19937</span><span class="special">&amp;,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">uniform_int</span><span class="special">&lt;&gt;</span> <span class="special">&gt;</span> <span class="identifier">die</span><span class="special">(</span><span class="identifier">gen</span><span class="special">,</span> <span class="identifier">dist</span><span class="special">);</span>
+<span class="special">}</span>
+</pre>
 </p>
 <div>
   <div id="callout_tests.c3">
@@ -63,15 +56,10 @@
   Example 3:
 </p>
 <p>
-  <pre class="programlisting"><span class="keyword">int</span> <span class="identifier">roll_die</span><span
-  class="special">()</span> <span class="special">{</span> <a href="#callout_tests.c5">(1)</a><span
-  class="identifier">boost</span><span class="special">::</span><span class="identifier">variate_generator</span><span
-  class="special">&lt;</span><span class="identifier">boost</span><span class="special">::</span><span
-  class="identifier">mt19937</span><span class="special">&amp;,</span> <span class="identifier">boost</span><span
-  class="special">::</span><span class="identifier">uniform_int</span><span class="special">&lt;&gt;</span>
-  <span class="special">&gt;</span> <span class="identifier">die</span><span class="special">(</span><span
-  class="identifier">gen</span><span class="special">,</span> <span class="identifier">dist</span><span
-  class="special">);</span> <span class="special">}</span> </pre>
+<pre class="programlisting"><span class="keyword">int</span> <span class="identifier">roll_die</span><span class="special">()</span> <span class="special">{</span>
+  <a href="#callout_tests.c5">(1)</a><span class="identifier">boost</span><span class="special">::</span><span class="identifier">variate_generator</span><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">mt19937</span><span class="special">&amp;,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">uniform_int</span><span class="special">&lt;&gt;</span> <span class="special">&gt;</span> <span class="identifier">die</span><span class="special">(</span><span class="identifier">gen</span><span class="special">,</span> <span class="identifier">dist</span><span class="special">);</span>
+<span class="special">}</span>
+</pre>
 </p>
 <div>
   <div id="callout_tests.c5">
@@ -87,15 +75,10 @@
   Example 3 (again!):
 </p>
 <p>
-  <pre class="programlisting"><span class="keyword">int</span> <span class="identifier">roll_die</span><span
-  class="special">()</span> <span class="special">{</span> <a href="#callout_tests.c7">(1)</a><span
-  class="identifier">boost</span><span class="special">::</span><span class="identifier">variate_generator</span><span
-  class="special">&lt;</span><span class="identifier">boost</span><span class="special">::</span><span
-  class="identifier">mt19937</span><span class="special">&amp;,</span> <span class="identifier">boost</span><span
-  class="special">::</span><span class="identifier">uniform_int</span><span class="special">&lt;&gt;</span>
-  <span class="special">&gt;</span> <span class="identifier">die</span><span class="special">(</span><span
-  class="identifier">gen</span><span class="special">,</span> <span class="identifier">dist</span><span
-  class="special">);</span> <span class="special">}</span> </pre>
+<pre class="programlisting"><span class="keyword">int</span> <span class="identifier">roll_die</span><span class="special">()</span> <span class="special">{</span>
+  <a href="#callout_tests.c7">(1)</a><span class="identifier">boost</span><span class="special">::</span><span class="identifier">variate_generator</span><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">mt19937</span><span class="special">&amp;,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">uniform_int</span><span class="special">&lt;&gt;</span> <span class="special">&gt;</span> <span class="identifier">die</span><span class="special">(</span><span class="identifier">gen</span><span class="special">,</span> <span class="identifier">dist</span><span class="special">);</span>
+<span class="special">}</span>
+</pre>
 </p>
 <div>
   <div id="callout_tests.c7">
@@ -111,19 +94,11 @@
   Example 4:
 </p>
 <p>
-  <pre class="programlisting"><span class="keyword">int</span> <span class="identifier">roll_die</span><span
-  class="special">()</span> <span class="special">{</span> <a href="#callout_tests.c9">(1)</a><span
-  class="identifier">boost</span><span class="special">::</span><span class="identifier">variate_generator</span><span
-  class="special">&lt;</span><span class="identifier">boost</span><span class="special">::</span><span
-  class="identifier">mt19937</span><span class="special">&amp;,</span> <span class="identifier">boost</span><span
-  class="special">::</span><span class="identifier">uniform_int</span><span class="special">&lt;&gt;</span>
-  <span class="special">&gt;</span> <span class="identifier">die</span><span class="special">(</span><span
-  class="identifier">gen</span><span class="special">,</span> <span class="identifier">dist</span><span
-  class="special">);</span> <a href="#callout_tests.c11">(2)</a><span class="identifier">boost</span><span
-  class="special">::</span><span class="identifier">uniform_int</span><span class="special">&lt;&gt;</span>
-  <span class="identifier">dist</span><span class="special">(</span><span class="number">1</span><span
-  class="special">,</span> <span class="number">6</span><span class="special">);</span>
-  <a href="#callout_tests.c13">(3)</a> <span class="special">}</span> </pre>
+<pre class="programlisting"><span class="keyword">int</span> <span class="identifier">roll_die</span><span class="special">()</span> <span class="special">{</span>
+  <a href="#callout_tests.c9">(1)</a><span class="identifier">boost</span><span class="special">::</span><span class="identifier">variate_generator</span><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">mt19937</span><span class="special">&amp;,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">uniform_int</span><span class="special">&lt;&gt;</span> <span class="special">&gt;</span> <span class="identifier">die</span><span class="special">(</span><span class="identifier">gen</span><span class="special">,</span> <span class="identifier">dist</span><span class="special">);</span>
+  <a href="#callout_tests.c11">(2)</a><span class="identifier">boost</span><span class="special">::</span><span class="identifier">uniform_int</span><span class="special">&lt;&gt;</span> <span class="identifier">dist</span><span class="special">(</span><span class="number">1</span><span class="special">,</span> <span class="number">6</span><span class="special">);</span> <a href="#callout_tests.c13">(3)</a>
+<span class="special">}</span>
+</pre>
 </p>
 <div>
   <div id="callout_tests.c9">
@@ -146,11 +121,8 @@
   </div>
 </div>
 <p>
-  <pre class="programlisting"><a href="#callout_tests.c15">(1)</a><span class="identifier">boost</span><span
-  class="special">::</span><span class="identifier">uniform_int</span><span class="special">&lt;&gt;</span>
-  <span class="identifier">dist</span><span class="special">(</span><span class="number">1</span><span
-  class="special">,</span> <span class="number">6</span><span class="special">);</span>
-  <a href="#callout_tests.c17">(2)</a> </pre>
+<pre class="programlisting"><a href="#callout_tests.c15">(1)</a><span class="identifier">boost</span><span class="special">::</span><span class="identifier">uniform_int</span><span class="special">&lt;&gt;</span> <span class="identifier">dist</span><span class="special">(</span><span class="number">1</span><span class="special">,</span> <span class="number">6</span><span class="special">);</span> <a href="#callout_tests.c17">(2)</a>
+</pre>
 </p>
 <div>
   <div id="callout_tests.c15">
@@ -178,13 +150,10 @@
       Now we can define a function that simulates an ordinary six-sided die.
     </p>
     <p>
-      <pre class="programlisting"><span class="keyword">int</span> <span class="identifier">roll_die</span><span
-      class="special">()</span> <span class="special">{</span> <span class="identifier">boost</span><span
-      class="special">::</span><span class="identifier">uniform_int</span><span class="special">&lt;&gt;</span>
-      <span class="identifier">dist</span><span class="special">(</span><span class="number">1</span><span
-      class="special">,</span> <span class="number">6</span><span class="special">);</span>
-      <a href="#callout_tests.test_section.c1">(1)</a> <span class="special">}</span>
-      </pre>
+<pre class="programlisting"><span class="keyword">int</span> <span class="identifier">roll_die</span><span class="special">()</span> <span class="special">{</span>
+  <span class="identifier">boost</span><span class="special">::</span><span class="identifier">uniform_int</span><span class="special">&lt;&gt;</span> <span class="identifier">dist</span><span class="special">(</span><span class="number">1</span><span class="special">,</span> <span class="number">6</span><span class="special">);</span> <a href="#callout_tests.test_section.c1">(1)</a>
+<span class="special">}</span>
+</pre>
     </p>
     <div>
       <div id="callout_tests.test_section.c1">
@@ -198,16 +167,10 @@
       Example 2:
     </p>
     <p>
-      <pre class="programlisting"><span class="keyword">int</span> <span class="identifier">roll_die</span><span
-      class="special">()</span> <span class="special">{</span> <a href="#callout_tests.test_section.c3">(1)</a><span
-      class="identifier">boost</span><span class="special">::</span><span class="identifier">variate_generator</span><span
-      class="special">&lt;</span><span class="identifier">boost</span><span class="special">::</span><span
-      class="identifier">mt19937</span><span class="special">&amp;,</span> <span
-      class="identifier">boost</span><span class="special">::</span><span class="identifier">uniform_int</span><span
-      class="special">&lt;&gt;</span> <span class="special">&gt;</span> <span class="identifier">die</span><span
-      class="special">(</span><span class="identifier">gen</span><span class="special">,</span>
-      <span class="identifier">dist</span><span class="special">);</span> <span class="special">}</span>
-      </pre>
+<pre class="programlisting"><span class="keyword">int</span> <span class="identifier">roll_die</span><span class="special">()</span> <span class="special">{</span>
+  <a href="#callout_tests.test_section.c3">(1)</a><span class="identifier">boost</span><span class="special">::</span><span class="identifier">variate_generator</span><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">mt19937</span><span class="special">&amp;,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">uniform_int</span><span class="special">&lt;&gt;</span> <span class="special">&gt;</span> <span class="identifier">die</span><span class="special">(</span><span class="identifier">gen</span><span class="special">,</span> <span class="identifier">dist</span><span class="special">);</span>
+<span class="special">}</span>
+</pre>
     </p>
     <div>
       <div id="callout_tests.test_section.c3">
@@ -223,16 +186,10 @@
       Example 3:
     </p>
     <p>
-      <pre class="programlisting"><span class="keyword">int</span> <span class="identifier">roll_die</span><span
-      class="special">()</span> <span class="special">{</span> <a href="#callout_tests.test_section.c5">(1)</a><span
-      class="identifier">boost</span><span class="special">::</span><span class="identifier">variate_generator</span><span
-      class="special">&lt;</span><span class="identifier">boost</span><span class="special">::</span><span
-      class="identifier">mt19937</span><span class="special">&amp;,</span> <span
-      class="identifier">boost</span><span class="special">::</span><span class="identifier">uniform_int</span><span
-      class="special">&lt;&gt;</span> <span class="special">&gt;</span> <span class="identifier">die</span><span
-      class="special">(</span><span class="identifier">gen</span><span class="special">,</span>
-      <span class="identifier">dist</span><span class="special">);</span> <span class="special">}</span>
-      </pre>
+<pre class="programlisting"><span class="keyword">int</span> <span class="identifier">roll_die</span><span class="special">()</span> <span class="special">{</span>
+  <a href="#callout_tests.test_section.c5">(1)</a><span class="identifier">boost</span><span class="special">::</span><span class="identifier">variate_generator</span><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">mt19937</span><span class="special">&amp;,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">uniform_int</span><span class="special">&lt;&gt;</span> <span class="special">&gt;</span> <span class="identifier">die</span><span class="special">(</span><span class="identifier">gen</span><span class="special">,</span> <span class="identifier">dist</span><span class="special">);</span>
+<span class="special">}</span>
+</pre>
     </p>
     <div>
       <div id="callout_tests.test_section.c5">
@@ -248,16 +205,10 @@
       Example 3 (again!):
     </p>
     <p>
-      <pre class="programlisting"><span class="keyword">int</span> <span class="identifier">roll_die</span><span
-      class="special">()</span> <span class="special">{</span> <a href="#callout_tests.test_section.c7">(1)</a><span
-      class="identifier">boost</span><span class="special">::</span><span class="identifier">variate_generator</span><span
-      class="special">&lt;</span><span class="identifier">boost</span><span class="special">::</span><span
-      class="identifier">mt19937</span><span class="special">&amp;,</span> <span
-      class="identifier">boost</span><span class="special">::</span><span class="identifier">uniform_int</span><span
-      class="special">&lt;&gt;</span> <span class="special">&gt;</span> <span class="identifier">die</span><span
-      class="special">(</span><span class="identifier">gen</span><span class="special">,</span>
-      <span class="identifier">dist</span><span class="special">);</span> <span class="special">}</span>
-      </pre>
+<pre class="programlisting"><span class="keyword">int</span> <span class="identifier">roll_die</span><span class="special">()</span> <span class="special">{</span>
+  <a href="#callout_tests.test_section.c7">(1)</a><span class="identifier">boost</span><span class="special">::</span><span class="identifier">variate_generator</span><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">mt19937</span><span class="special">&amp;,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">uniform_int</span><span class="special">&lt;&gt;</span> <span class="special">&gt;</span> <span class="identifier">die</span><span class="special">(</span><span class="identifier">gen</span><span class="special">,</span> <span class="identifier">dist</span><span class="special">);</span>
+<span class="special">}</span>
+</pre>
     </p>
     <div>
       <div id="callout_tests.test_section.c7">
@@ -273,20 +224,11 @@
       Example 4:
     </p>
     <p>
-      <pre class="programlisting"><span class="keyword">int</span> <span class="identifier">roll_die</span><span
-      class="special">()</span> <span class="special">{</span> <a href="#callout_tests.test_section.c9">(1)</a><span
-      class="identifier">boost</span><span class="special">::</span><span class="identifier">variate_generator</span><span
-      class="special">&lt;</span><span class="identifier">boost</span><span class="special">::</span><span
-      class="identifier">mt19937</span><span class="special">&amp;,</span> <span
-      class="identifier">boost</span><span class="special">::</span><span class="identifier">uniform_int</span><span
-      class="special">&lt;&gt;</span> <span class="special">&gt;</span> <span class="identifier">die</span><span
-      class="special">(</span><span class="identifier">gen</span><span class="special">,</span>
-      <span class="identifier">dist</span><span class="special">);</span> <a href="#callout_tests.test_section.c11">(2)</a><span
-      class="identifier">boost</span><span class="special">::</span><span class="identifier">uniform_int</span><span
-      class="special">&lt;&gt;</span> <span class="identifier">dist</span><span class="special">(</span><span
-      class="number">1</span><span class="special">,</span> <span class="number">6</span><span
-      class="special">);</span> <a href="#callout_tests.test_section.c13">(3)</a>
-      <span class="special">}</span> </pre>
+<pre class="programlisting"><span class="keyword">int</span> <span class="identifier">roll_die</span><span class="special">()</span> <span class="special">{</span>
+  <a href="#callout_tests.test_section.c9">(1)</a><span class="identifier">boost</span><span class="special">::</span><span class="identifier">variate_generator</span><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">mt19937</span><span class="special">&amp;,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">uniform_int</span><span class="special">&lt;&gt;</span> <span class="special">&gt;</span> <span class="identifier">die</span><span class="special">(</span><span class="identifier">gen</span><span class="special">,</span> <span class="identifier">dist</span><span class="special">);</span>
+  <a href="#callout_tests.test_section.c11">(2)</a><span class="identifier">boost</span><span class="special">::</span><span class="identifier">uniform_int</span><span class="special">&lt;&gt;</span> <span class="identifier">dist</span><span class="special">(</span><span class="number">1</span><span class="special">,</span> <span class="number">6</span><span class="special">);</span> <a href="#callout_tests.test_section.c13">(3)</a>
+<span class="special">}</span>
+</pre>
     </p>
     <div>
       <div id="callout_tests.test_section.c9">
@@ -309,12 +251,8 @@
       </div>
     </div>
     <p>
-      <pre class="programlisting"><a href="#callout_tests.test_section.c15">(1)</a><span
-      class="identifier">boost</span><span class="special">::</span><span class="identifier">uniform_int</span><span
-      class="special">&lt;&gt;</span> <span class="identifier">dist</span><span class="special">(</span><span
-      class="number">1</span><span class="special">,</span> <span class="number">6</span><span
-      class="special">);</span> <a href="#callout_tests.test_section.c17">(2)</a>
-      </pre>
+<pre class="programlisting"><a href="#callout_tests.test_section.c15">(1)</a><span class="identifier">boost</span><span class="special">::</span><span class="identifier">uniform_int</span><span class="special">&lt;&gt;</span> <span class="identifier">dist</span><span class="special">(</span><span class="number">1</span><span class="special">,</span> <span class="number">6</span><span class="special">);</span> <a href="#callout_tests.test_section.c17">(2)</a>
+</pre>
     </p>
     <div>
       <div id="callout_tests.test_section.c15">
