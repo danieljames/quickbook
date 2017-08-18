@@ -177,6 +177,9 @@ namespace quickbook { namespace detail {
         }
 
         html_gen gen(state, x->path_);
+        gen.printer.html += "<!DOCTYPE html>\n";
+        open_tag(gen.printer, "html");
+        open_tag(gen.printer, "head");
         if (!state.options.css_path.empty()) {
             tag_start(gen.printer, "link");
             tag_attribute(gen.printer, "rel", "stylesheet");
@@ -186,6 +189,8 @@ namespace quickbook { namespace detail {
                     state.options.home_path.parent_path() / x->path_));
             tag_end_self_close(gen.printer);
         }
+        close_tag(gen.printer, "head");
+        open_tag(gen.printer, "body");
         if (next || prev || x->parent()) {
             tag_start(gen.printer, "div");
             tag_attribute(gen.printer, "class", "spirit-nav");
@@ -233,6 +238,8 @@ namespace quickbook { namespace detail {
             generate_inline_chunks(gen, it);
         }
         generate_footnotes_html(gen);
+        close_tag(gen.printer, "body");
+        close_tag(gen.printer, "html");
         write_file(state, x->path_, gen.printer.html);
         for (; it; it = it->next())
         {
