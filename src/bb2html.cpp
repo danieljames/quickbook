@@ -34,7 +34,7 @@ namespace quickbook
 {
     namespace detail
     {
-        struct chunk_writer;
+        struct html_state;
         struct html_gen;
 
         typedef boost::unordered_map<string_view, std::string> id_paths_type;
@@ -46,7 +46,7 @@ namespace quickbook
 
         void generate_chunked_documentation(
             chunk*, id_paths_type const&, html_options const&);
-        void generate_chunks(chunk_writer&, chunk*);
+        void generate_chunks(html_state&, chunk*);
         void generate_inline_chunks(html_gen& gen, chunk*);
         void generate_chunk_html(html_gen&, chunk*);
         void generate_toc_html(html_gen& gen, chunk*);
@@ -59,7 +59,8 @@ namespace quickbook
             html_gen& gen, unsigned& count, xml_element* x);
         void generate_tree_html(html_gen&, xml_element*);
         void generate_children_html(html_gen&, xml_element*);
-        void write_file(fs::path const& path, std::string const& content);
+        void write_file(
+            html_state&, std::string const& path, std::string const& content);
         std::string get_link_from_path(
             quickbook::string_view, quickbook::string_view);
         std::string relative_path_from_fs_paths(
@@ -83,41 +84,15 @@ namespace quickbook
             quickbook::string_view path,
             quickbook::string_view fallback);
 
-        struct chunk_writer
+        struct html_state
         {
             id_paths_type const& id_paths;
             html_options const& options;
 
-            explicit chunk_writer(
+            explicit html_state(
                 id_paths_type const& ip, html_options const& options)
                 : id_paths(ip), options(options)
             {
-            }
-
-            void write_file(
-                std::string const& generic_path, std::string const& content)
-            {
-                std::string html = content;
-
-                if (options.pretty_print) {
-                    try {
-                        html = post_process(html, -1, -1, true);
-                    } catch (quickbook::post_process_failure&) {
-                        // TODO: Proper error handling.
-                        ::quickbook::detail::outerr()
-                            << "Post Processing Failed." << std::endl;
-                        return;
-                    }
-                }
-
-                fs::path path = options.home_path.parent_path() /
-                                generic_to_path(generic_path);
-                fs::path parent = path.parent_path();
-                if (options.chunked_output && !parent.empty() &&
-                    !fs::exists(parent)) {
-                    fs::create_directories(parent);
-                }
-                quickbook::detail::write_file(path, html);
             }
         };
 
@@ -192,13 +167,13 @@ namespace quickbook
             id_paths_type const& id_paths,
             html_options const& options)
         {
-            chunk_writer writer(id_paths, options);
+            html_state state(id_paths, options);
             if (chunked) {
-                generate_chunks(writer, chunked);
+                generate_chunks(state, chunked);
             }
         }
 
-        void generate_chunks(chunk_writer& writer, chunk* x)
+        void generate_chunks(html_state& state, chunk* x)
         {
             chunk* next = 0;
             for (chunk* it = x->children(); it; it = it->next()) {
@@ -223,16 +198,16 @@ namespace quickbook
                 prev = x->parent();
             }
 
-            html_gen gen(writer.id_paths, writer.options, x->path_);
-            if (!writer.options.css_path.empty()) {
+            html_gen gen(state.id_paths, state.options, x->path_);
+            if (!state.options.css_path.empty()) {
                 tag_start(gen.printer, "link");
                 tag_attribute(gen.printer, "rel", "stylesheet");
                 tag_attribute(gen.printer, "type", "text/css");
                 tag_attribute(
                     gen.printer, "href",
                     relative_path_from_fs_paths(
-                        writer.options.css_path,
-                        writer.options.home_path.parent_path() / x->path_));
+                        state.options.css_path,
+                        state.options.home_path.parent_path() / x->path_));
                 tag_end_self_close(gen.printer);
             }
             if (next || prev || x->parent()) {
@@ -291,10 +266,10 @@ namespace quickbook
                 generate_inline_chunks(gen, it);
             }
             generate_footnotes_html(gen);
-            writer.write_file(x->path_, gen.printer.html);
+            write_file(state, x->path_, gen.printer.html);
             for (; it; it = it->next()) {
                 assert(!it->inline_);
-                generate_chunks(writer, it);
+                generate_chunks(state, it);
             }
         }
 
@@ -510,8 +485,32 @@ namespace quickbook
             }
         }
 
-        void write_file(fs::path const& path, std::string const& content)
+        void write_file(
+            html_state& state,
+            std::string const& generic_path,
+            std::string const& content)
         {
+            std::string html = content;
+
+            if (state.options.pretty_print) {
+                try {
+                    html = post_process(html, -1, -1, true);
+                } catch (quickbook::post_process_failure&) {
+                    // TODO: Proper error handling.
+                    ::quickbook::detail::outerr()
+                        << "Post Processing Failed." << std::endl;
+                    return;
+                }
+            }
+
+            fs::path path = state.options.home_path.parent_path() /
+                            generic_to_path(generic_path);
+            fs::path parent = path.parent_path();
+            if (state.options.chunked_output && !parent.empty() &&
+                !fs::exists(parent)) {
+                fs::create_directories(parent);
+            }
+
             fs::ofstream fileout(path);
 
             if (fileout.fail()) {
@@ -521,7 +520,7 @@ namespace quickbook
                 return /*1*/;
             }
 
-            fileout << content;
+            fileout << html;
 
             if (fileout.fail()) {
                 ::quickbook::detail::outerr()
