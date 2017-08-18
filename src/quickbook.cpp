@@ -18,7 +18,6 @@
 #include "path.hpp"
 #include "document_state.hpp"
 #include "bb2html.hpp"
-#include "xml_parse.hpp"
 #include <boost/program_options.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/operations.hpp>
@@ -227,39 +226,8 @@ namespace quickbook
             }
 
             if (options_.format == parse_document_options::html) {
-                try {
-                    if (result) { return result; }
-                    // TODO: Support for an output file.
-                    return quickbook::detail::boostbook_to_html(stage2, options_.html_ops);
-                }
-                catch (quickbook::detail::xml_parse_error e) {
-                    string_view stage2_view(stage2);
-                    file_position p = relative_position(stage2_view.begin(), e.pos);
-                    string_view::iterator line_start = e.pos - (p.column < 40 ? p.column - 1 : 39);
-                    string_view::iterator line_end = std::find(e.pos, stage2_view.end(), '\n');
-                    if (line_end - e.pos > 80) {
-                        line_end = e.pos + 80;
-                    }
-                    std::string indent;
-                    for (int i = e.pos - line_start; i; --i) {
-                        indent += ' ';
-                    }
-                    ::quickbook::detail::outerr()
-                        << "converting boostbook at line "
-                        << p.line
-                        << " char "
-                        << p.column
-                        << ": "
-                        << e.message
-                        << "\n"
-                        << string_view(line_start, line_end - line_start)
-                        << "\n"
-                        << indent
-                        << "^"
-                        << "\n\n";
-
-                    return 1;
-                }
+                if (result) { return result; }
+                return quickbook::detail::boostbook_to_html(stage2, options_.html_ops);
             } else {
                 fs::ofstream fileout(options_.output_path);
 

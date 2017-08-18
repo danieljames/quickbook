@@ -14,6 +14,7 @@ http://www.boost.org/LICENSE_1_0.txt)
 #include "boostbook_chunker.hpp"
 #include "html_printer.hpp"
 #include "post_process.hpp"
+#include "files.hpp"
 #include <vector>
 #include <cassert>
 #include <boost/unordered_map.hpp>
@@ -103,7 +104,38 @@ namespace quickbook { namespace detail {
 
     int boostbook_to_html(quickbook::string_view source, html_options const& options)
     {
-        xml_tree tree = xml_parse(source);
+        xml_tree tree;
+        try {
+            tree = xml_parse(source);
+        } catch (quickbook::detail::xml_parse_error e) {
+            string_view source_view(source);
+            file_position p = relative_position(source_view.begin(), e.pos);
+            string_view::iterator line_start = e.pos - (p.column < 40 ? p.column - 1 : 39);
+            string_view::iterator line_end = std::find(e.pos, source_view.end(), '\n');
+            if (line_end - e.pos > 80) {
+                line_end = e.pos + 80;
+            }
+            std::string indent;
+            for (int i = e.pos - line_start; i; --i) {
+                indent += ' ';
+            }
+            ::quickbook::detail::outerr()
+                << "converting boostbook at line "
+                << p.line
+                << " char "
+                << p.column
+                << ": "
+                << e.message
+                << "\n"
+                << string_view(line_start, line_end - line_start)
+                << "\n"
+                << indent
+                << "^"
+                << "\n\n";
+
+            return 1;
+        }
+
         chunk_tree chunked = chunk_document(tree);
         // Overwrite paths depending on whether output is chunked or not.
         // Really want to do something better, e.g. incorporate many section chunks into their parent.
