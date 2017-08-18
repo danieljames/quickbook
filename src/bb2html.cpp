@@ -106,7 +106,8 @@ namespace quickbook { namespace detail {
         unsigned number;
     };
 
-    struct html_gen : html_printer {
+    struct html_gen {
+        html_printer printer;
         id_paths_type const& id_paths;
         html_options const& options;
         string_view path;
@@ -114,13 +115,19 @@ namespace quickbook { namespace detail {
         boost::unordered_map<string_view, callout_data> callout_numbers;
         std::vector<xml_element*> footnotes;
 
-        html_gen(html_gen const& x)
-            : id_paths(x.id_paths), options(x.options), path(x.path), in_toc(false) {}
-        explicit html_gen(id_paths_type const& ip, html_options const& options, string_view p)
-            : id_paths(ip),
-              options(options),
-              path(p),
-              in_toc(false) {}
+        explicit html_gen(id_paths_type const& ip, html_options const& options, string_view p) :
+            printer(),
+            id_paths(ip),
+            options(options),
+            path(p),
+            in_toc(false) {}
+
+        html_gen(html_gen const& x) :
+            printer(),
+            id_paths(x.id_paths),
+            options(x.options),
+            path(x.path),
+            in_toc(false) {}
     };
 
     int boostbook_to_html(quickbook::string_view source, html_options const& options)
@@ -174,53 +181,53 @@ namespace quickbook { namespace detail {
 
         html_gen gen(writer.id_paths, writer.options, x->path_);
         if (!writer.options.css_path.empty()) {
-            tag_start(gen, "link");
-            tag_attribute(gen, "rel", "stylesheet");
-            tag_attribute(gen, "type", "text/css");
-            tag_attribute(gen, "href",
+            tag_start(gen.printer, "link");
+            tag_attribute(gen.printer, "rel", "stylesheet");
+            tag_attribute(gen.printer, "type", "text/css");
+            tag_attribute(gen.printer, "href",
                 relative_path_from_fs_paths(writer.options.css_path,
                     writer.options.home_path.parent_path() / x->path_));
-            tag_end_self_close(gen);
+            tag_end_self_close(gen.printer);
         }
         if (next || prev || x->parent()) {
-            tag_start(gen, "div");
-            tag_attribute(gen, "class", "spirit-nav");
-            tag_end(gen);
+            tag_start(gen.printer, "div");
+            tag_attribute(gen.printer, "class", "spirit-nav");
+            tag_end(gen.printer);
             if (prev) {
-                tag_start(gen, "a");
-                tag_attribute(gen, "href", get_link_from_path(prev->path_, x->path_));
-                tag_attribute(gen, "accesskey", "p");
-                tag_end(gen);
+                tag_start(gen.printer, "a");
+                tag_attribute(gen.printer, "href", get_link_from_path(prev->path_, x->path_));
+                tag_attribute(gen.printer, "accesskey", "p");
+                tag_end(gen.printer);
                 graphics_tag(gen, "/prev.png", "prev");
-                close_tag(gen, "a");
-                gen.html += " ";
+                close_tag(gen.printer, "a");
+                gen.printer.html += " ";
             }
             if (x->parent()) {
-                tag_start(gen, "a");
-                tag_attribute(gen, "href", get_link_from_path(x->parent()->path_, x->path_));
-                tag_attribute(gen, "accesskey", "u");
-                tag_end(gen);
+                tag_start(gen.printer, "a");
+                tag_attribute(gen.printer, "href", get_link_from_path(x->parent()->path_, x->path_));
+                tag_attribute(gen.printer, "accesskey", "u");
+                tag_end(gen.printer);
                 graphics_tag(gen, "/up.png", "up");
-                close_tag(gen, "a");
-                gen.html += " ";
+                close_tag(gen.printer, "a");
+                gen.printer.html += " ";
 
-                tag_start(gen, "a");
-                tag_attribute(gen, "href", get_link_from_path("index.html", x->path_));
-                tag_attribute(gen, "accesskey", "h");
-                tag_end(gen);
+                tag_start(gen.printer, "a");
+                tag_attribute(gen.printer, "href", get_link_from_path("index.html", x->path_));
+                tag_attribute(gen.printer, "accesskey", "h");
+                tag_end(gen.printer);
                 graphics_tag(gen, "/home.png", "home");
-                close_tag(gen, "a");
-                if (next) { gen.html += " "; }
+                close_tag(gen.printer, "a");
+                if (next) { gen.printer.html += " "; }
             }
             if (next) {
-                tag_start(gen, "a");
-                tag_attribute(gen, "href", get_link_from_path(next->path_, x->path_));
-                tag_attribute(gen, "accesskey", "n");
-                tag_end(gen);
+                tag_start(gen.printer, "a");
+                tag_attribute(gen.printer, "href", get_link_from_path(next->path_, x->path_));
+                tag_attribute(gen.printer, "accesskey", "n");
+                tag_end(gen.printer);
                 graphics_tag(gen, "/next.png", "next");
-                close_tag(gen, "a");
+                close_tag(gen.printer, "a");
             }
-            close_tag(gen, "div");
+            close_tag(gen.printer, "div");
         }
         generate_chunk_html(gen, x);
         chunk* it = x->children();
@@ -229,7 +236,7 @@ namespace quickbook { namespace detail {
             generate_inline_chunks(gen, it);
         }
         generate_footnotes_html(gen);
-        writer.write_file(x->path_, gen.html);
+        writer.write_file(x->path_, gen.printer.html);
         for (; it; it = it->next())
         {
             assert(!it->inline_);
@@ -238,16 +245,16 @@ namespace quickbook { namespace detail {
     }
 
     void generate_inline_chunks(html_gen& gen, chunk* x) {
-        tag_start(gen, "div");
-        tag_attribute(gen, "id", x->id_);
-        tag_end(gen);
+        tag_start(gen.printer, "div");
+        tag_attribute(gen.printer, "id", x->id_);
+        tag_end(gen.printer);
         generate_chunk_html(gen, x);
         for (chunk* it = x->children(); it; it = it->next())
         {
             assert(it->inline_);
             generate_inline_chunks(gen, it);
         }
-        close_tag(gen, "div");
+        close_tag(gen.printer, "div");
     }
 
     void generate_chunk_html(html_gen& gen, chunk* x) {
@@ -265,16 +272,16 @@ namespace quickbook { namespace detail {
 
     void generate_toc_html(html_gen& gen, chunk* x) {
         if (x->children() && x->contents_.root()->name_ != "section") {
-            tag_start(gen, "div");
-            tag_attribute(gen, "class", "toc");
-            tag_end(gen);
-            open_tag(gen, "p");
-            open_tag(gen, "b");
-            gen.html += "Table of contents";
-            close_tag(gen, "b");
-            close_tag(gen, "p");
+            tag_start(gen.printer, "div");
+            tag_attribute(gen.printer, "class", "toc");
+            tag_end(gen.printer);
+            open_tag(gen.printer, "p");
+            open_tag(gen.printer, "b");
+            gen.printer.html += "Table of contents";
+            close_tag(gen.printer, "b");
+            close_tag(gen.printer, "p");
             generate_toc_subtree(gen, x, x, 1);
-            close_tag(gen, "div");
+            close_tag(gen.printer, "div");
         }
     }
 
@@ -291,17 +298,17 @@ namespace quickbook { namespace detail {
             }
         }
 
-        gen.html += "<ul>";
+        gen.printer.html += "<ul>";
         for (chunk* it = x->children(); it; it = it->next())
         {
             id_paths_type::const_iterator link = gen.id_paths.find(it->id_);
-            gen.html += "<li>";
+            gen.printer.html += "<li>";
             if (link != gen.id_paths.end()) {
-                gen.html += "<a href=\"";
-                gen.html += encode_string(get_link_from_path(link->second, page->path_));
-                gen.html += "\">";
+                gen.printer.html += "<a href=\"";
+                gen.printer.html += encode_string(get_link_from_path(link->second, page->path_));
+                gen.printer.html += "\">";
                 generate_toc_item_html(gen, it->title_.root());
-                gen.html += "</a>";
+                gen.printer.html += "</a>";
             } else {
                 generate_toc_item_html(gen, it->title_.root());
             }
@@ -310,9 +317,9 @@ namespace quickbook { namespace detail {
                     it->contents_.root()->name_ == "section" && section_depth > 0 ?
                         section_depth - 1 : section_depth);
             }
-            gen.html += "</li>";
+            gen.printer.html += "</li>";
         }
-        gen.html += "</ul>";
+        gen.printer.html += "</ul>";
     }
 
     void generate_toc_item_html(html_gen& gen, xml_element* x) {
@@ -322,38 +329,38 @@ namespace quickbook { namespace detail {
             generate_children_html(gen, x);
             gen.in_toc = false;
         } else {
-            gen.html += "<i>Untitled</i>";
+            gen.printer.html += "<i>Untitled</i>";
         }
     }
 
     void generate_footnotes_html(html_gen& gen) {
         if (!gen.footnotes.empty()) {
-            tag_start(gen, "div");
-            tag_attribute(gen, "class", "footnotes");
-            tag_end(gen);
-            gen.html += "<br/>";
-            gen.html += "<hr/>";
+            tag_start(gen.printer, "div");
+            tag_attribute(gen.printer, "class", "footnotes");
+            tag_end(gen.printer);
+            gen.printer.html += "<br/>";
+            gen.printer.html += "<hr/>";
             for (std::vector<xml_element*>::iterator it = gen.footnotes.begin(); it != gen.footnotes.end(); ++it) {
                 std::string footnote_label = *(*it)->get_attribute("(((footnote-label)))");
-                tag_start(gen, "div");
-                tag_attribute(gen, "id", "footnote-" + footnote_label);
-                tag_attribute(gen, "class", "footnote");
-                tag_end(gen);
+                tag_start(gen.printer, "div");
+                tag_attribute(gen.printer, "id", "footnote-" + footnote_label);
+                tag_attribute(gen.printer, "class", "footnote");
+                tag_end(gen.printer);
 
                 // TODO: This should be part of the first paragraph in the footnote.
-                tag_start(gen, "a");
+                tag_start(gen.printer, "a");
                 // TODO: Might not have an id.
-                tag_attribute(gen, "href", "#" + *(*it)->get_attribute("id"));
-                tag_end(gen);
-                tag_start(gen, "sup");
-                tag_end(gen);
-                gen.html += "[" + footnote_label + "]";
-                close_tag(gen, "sup");
-                close_tag(gen, "a");
+                tag_attribute(gen.printer, "href", "#" + *(*it)->get_attribute("id"));
+                tag_end(gen.printer);
+                tag_start(gen.printer, "sup");
+                tag_end(gen.printer);
+                gen.printer.html += "[" + footnote_label + "]";
+                close_tag(gen.printer, "sup");
+                close_tag(gen.printer, "a");
                 generate_children_html(gen, *it);
-                close_tag(gen, "div");
+                close_tag(gen.printer, "div");
             }
-            close_tag(gen, "div");
+            close_tag(gen.printer, "div");
         }
     }
 
@@ -394,7 +401,7 @@ namespace quickbook { namespace detail {
         if (!x) { return; }
         switch (x->type_) {
         case xml_element::element_text: {
-            gen.html += x->contents_;
+            gen.printer.html += x->contents_;
             break;
         }
         case xml_element::element_node: {
@@ -533,17 +540,17 @@ namespace quickbook { namespace detail {
     void tag(html_gen& gen, quickbook::string_view name, xml_element* x) {
         open_tag_with_id(gen, name, x);
         generate_children_html(gen, x);
-        close_tag(gen, name);
+        close_tag(gen.printer, name);
     }
 
     void open_tag_with_id(html_gen& gen, quickbook::string_view name, xml_element* x) {
         tag_start_with_id(gen, name, x);
-        tag_end(gen);
+        tag_end(gen.printer);
     }
 
     void tag_self_close(html_gen& gen, quickbook::string_view name, xml_element* x) {
         tag_start_with_id(gen, name, x);
-        tag_end_self_close(gen);
+        tag_end_self_close(gen.printer);
     }
 
     void graphics_tag(html_gen& gen, quickbook::string_view path, quickbook::string_view fallback) {
@@ -551,21 +558,21 @@ namespace quickbook { namespace detail {
             std::string url = relative_path_from_fs_paths(
                 gen.options.graphics_path / path.to_s(),
                 gen.options.home_path.parent_path() / gen.path.to_s());
-            tag_start(gen, "img");
-            tag_attribute(gen, "src", url);
-            tag_attribute(gen, "alt", fallback);
-            tag_end(gen);
+            tag_start(gen.printer, "img");
+            tag_attribute(gen.printer, "src", url);
+            tag_attribute(gen.printer, "alt", fallback);
+            tag_end(gen.printer);
         } else {
-            gen.html.append(fallback.begin(), fallback.end());
+            gen.printer.html.append(fallback.begin(), fallback.end());
         }
     }
 
     void tag_start_with_id(html_gen& gen, quickbook::string_view name, xml_element* x) {
-        tag_start(gen, name);
+        tag_start(gen.printer, name);
         if (!gen.in_toc) {
             std::string* id = x->get_attribute("id");
             if (id) {
-                tag_attribute(gen, "id", *id);
+                tag_attribute(gen.printer, "id", *id);
             }
         }
     }
@@ -590,10 +597,10 @@ namespace quickbook { namespace detail {
 #define NODE_MAP_CLASS(tag_name, html_name, class_name) \
     NODE_RULE(tag_name, gen, x) { \
         tag_start_with_id(gen, BOOST_PP_STRINGIZE(html_name), x); \
-        tag_attribute(gen, "class", BOOST_PP_STRINGIZE(class_name)); \
-        tag_end(gen); \
+        tag_attribute(gen.printer, "class", BOOST_PP_STRINGIZE(class_name)); \
+        tag_end(gen.printer); \
         generate_children_html(gen, x); \
-        close_tag(gen, BOOST_PP_STRINGIZE(html_name)); \
+        close_tag(gen.printer, BOOST_PP_STRINGIZE(html_name)); \
     }
 
     // TODO: For some reason 'hr' generates an empty paragraph?
@@ -639,10 +646,10 @@ namespace quickbook { namespace detail {
         std::string* value = x->get_attribute("url");
 
         tag_start_with_id(gen, "a", x);
-        if (value) { tag_attribute(gen, "href", get_link_from_path(*value, gen.path)); }
-        tag_end(gen);
+        if (value) { tag_attribute(gen.printer, "href", get_link_from_path(*value, gen.path)); }
+        tag_end(gen.printer);
         generate_children_html(gen, x);
-        close_tag(gen, "a");
+        close_tag(gen.printer, "a");
     }
 
     NODE_RULE(link, gen, x) {
@@ -654,21 +661,21 @@ namespace quickbook { namespace detail {
 
         tag_start_with_id(gen, "a", x);
         if (it != gen.id_paths.end()) {
-            tag_attribute(gen, "href", relative_path_from_url_paths(it->second, gen.path));
+            tag_attribute(gen.printer, "href", relative_path_from_url_paths(it->second, gen.path));
         }
-        tag_end(gen);
+        tag_end(gen.printer);
         generate_children_html(gen, x);
-        close_tag(gen, "a");
+        close_tag(gen.printer, "a");
     }
 
     NODE_RULE(phrase, gen, x) {
         std::string* value = x->get_attribute("role");
 
         tag_start_with_id(gen, "span", x);
-        if (value) { tag_attribute(gen, "class", *value); }
-        tag_end(gen);
+        if (value) { tag_attribute(gen.printer, "class", *value); }
+        tag_end(gen.printer);
         generate_children_html(gen, x);
-        close_tag(gen, "span");
+        close_tag(gen.printer, "span");
     }
 
     NODE_RULE(emphasis, gen, x) {
@@ -685,10 +692,10 @@ namespace quickbook { namespace detail {
             }
         }
         tag_start_with_id(gen, tag_name, x);
-        if (!class_name.empty()) { tag_attribute(gen, "class", class_name); }
-        tag_end(gen);
+        if (!class_name.empty()) { tag_attribute(gen.printer, "class", class_name); }
+        tag_end(gen.printer);
         generate_children_html(gen, x);
-        close_tag(gen, tag_name);
+        close_tag(gen.printer, tag_name);
     }
 
     NODE_RULE(inlinemediaobject, gen, x) {
@@ -715,7 +722,7 @@ namespace quickbook { namespace detail {
                         if (role && *role == "alt") {
                             html_gen gen2(gen);
                             generate_tree_html(gen2, j);
-                            alt = gen2.html;
+                            alt = gen2.printer.html;
                         }
                     }
                 }
@@ -724,14 +731,14 @@ namespace quickbook { namespace detail {
         // TODO: This was in the original php code, not sure why.
         if (alt.empty()) { alt = "[]"; }
         if (image) {
-            tag_start(gen, "span");
-            tag_attribute(gen, "class", "inlinemediaobject");
-            tag_end(gen);
+            tag_start(gen.printer, "span");
+            tag_attribute(gen.printer, "class", "inlinemediaobject");
+            tag_end(gen.printer);
             tag_start_with_id(gen, "img", x);
-            tag_attribute(gen, "src", relative_path_from_url_paths(*image, gen.path));
-            tag_attribute(gen, "alt", alt);
-            tag_end_self_close(gen);
-            close_tag(gen, "span");
+            tag_attribute(gen.printer, "src", relative_path_from_url_paths(*image, gen.path));
+            tag_attribute(gen.printer, "alt", alt);
+            tag_end_self_close(gen.printer);
+            close_tag(gen.printer, "span");
         }
     }
 
@@ -769,7 +776,7 @@ namespace quickbook { namespace detail {
                 tag(gen, "dt", i->first);
                 tag(gen, "dd", i->second);
             }
-            close_tag(gen, "dl");
+            close_tag(gen.printer, "dl");
         }
     }
 
@@ -781,10 +788,10 @@ namespace quickbook { namespace detail {
                     if (j->type_ == xml_element::element_node && j->name_ == "entry") {
                         open_tag_with_id(gen, td_tag, j);
                         generate_children_html(gen, j);
-                        close_tag(gen, td_tag);
+                        close_tag(gen.printer, td_tag);
                     }
                 }
-                close_tag(gen, "tr");
+                close_tag(gen.printer, "tr");
             }
         }
     }
@@ -816,22 +823,22 @@ namespace quickbook { namespace detail {
         }
 
         tag_start_with_id(gen, "div", x);
-        tag_attribute(gen, "class", x->name_);
-        tag_end(gen);
-        open_tag(gen, "table");
+        tag_attribute(gen.printer, "class", x->name_);
+        tag_end(gen.printer);
+        open_tag(gen.printer, "table");
         if (title) { tag(gen, "caption", title); }
         if (thead) {
-            open_tag(gen, "thead");
+            open_tag(gen.printer, "thead");
             write_table_rows(gen, thead, "th");
-            close_tag(gen, "thead");
+            close_tag(gen.printer, "thead");
         }
         if (tbody) {
-            open_tag(gen, "tbody");
+            open_tag(gen.printer, "tbody");
             write_table_rows(gen, tbody, "td");
-            close_tag(gen, "tbody");
+            close_tag(gen.printer, "tbody");
         }
-        close_tag(gen, "table");
-        close_tag(gen, "div");
+        close_tag(gen.printer, "table");
+        close_tag(gen.printer, "div");
     }
 
     NODE_RULE(table, gen, x) { write_table(gen, x); }
@@ -852,20 +859,20 @@ namespace quickbook { namespace detail {
 
         open_tag_with_id(gen, "div", x);
         if (link != gen.id_paths.end()) {
-            tag_start(gen, "a");
-            tag_attribute(gen, "href", relative_path_from_url_paths(link->second, gen.path));
-            tag_end(gen);
+            tag_start(gen.printer, "a");
+            tag_attribute(gen.printer, "href", relative_path_from_url_paths(link->second, gen.path));
+            tag_end(gen.printer);
         }
         graphics_tag(gen, "/callouts/" +
                 boost::lexical_cast<std::string>(data->second.number)
                 + ".png",
                 "(" + boost::lexical_cast<std::string>(data->second.number) + ")");
         if (link != gen.id_paths.end()) {
-            close_tag(gen, "a");
+            close_tag(gen.printer, "a");
         }
-        gen.html += " ";
+        gen.printer.html += " ";
         generate_children_html(gen, x);
-        close_tag(gen, "div");
+        close_tag(gen.printer, "div");
     }
 
     NODE_RULE(co, gen, x) {
@@ -878,9 +885,9 @@ namespace quickbook { namespace detail {
         }
 
         if (link != gen.id_paths.end()) {
-            tag_start(gen, "a");
-            tag_attribute(gen, "href", relative_path_from_url_paths(link->second, gen.path));
-            tag_end(gen);
+            tag_start(gen.printer, "a");
+            tag_attribute(gen.printer, "href", relative_path_from_url_paths(link->second, gen.path));
+            tag_end(gen.printer);
         }
         if (data != gen.callout_numbers.end()) {
             graphics_tag(gen, "/callouts/" +
@@ -888,10 +895,10 @@ namespace quickbook { namespace detail {
                     + ".png",
                     "(" + boost::lexical_cast<std::string>(data->second.number) + ")");
         } else {
-            gen.html += "(0)";
+            gen.printer.html += "(0)";
         }
         if (link != gen.id_paths.end()) {
-            close_tag(gen, "a");
+            close_tag(gen.printer, "a");
         }
     }
 
@@ -904,13 +911,13 @@ namespace quickbook { namespace detail {
         gen.footnotes.push_back(x);
 
         tag_start_with_id(gen, "a", x);
-        tag_attribute(gen, "href", "#footnote-" + footnote_label);
-        tag_end(gen);
-        tag_start(gen, "sup");
-        tag_attribute(gen, "class", "footnote");
-        tag_end(gen);
-        gen.html += "[" + footnote_label + "]";
-        close_tag(gen, "sup");
-        close_tag(gen, "a");
+        tag_attribute(gen.printer, "href", "#footnote-" + footnote_label);
+        tag_end(gen.printer);
+        tag_start(gen.printer, "sup");
+        tag_attribute(gen.printer, "class", "footnote");
+        tag_end(gen.printer);
+        gen.printer.html += "[" + footnote_label + "]";
+        close_tag(gen.printer, "sup");
+        close_tag(gen.printer, "a");
     }
 }}
