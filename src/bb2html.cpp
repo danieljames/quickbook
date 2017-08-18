@@ -69,9 +69,10 @@ namespace quickbook { namespace detail {
     struct html_state {
         id_paths_type const& id_paths;
         html_options const& options;
+        unsigned int error_count;
 
         explicit html_state(id_paths_type const& ip, html_options const& options)
-            : id_paths(ip), options(options) {}
+            : id_paths(ip), options(options), error_count(0) {}
     };
 
     struct callout_data {
@@ -397,6 +398,7 @@ namespace quickbook { namespace detail {
     }
 
     void write_file(html_state& state, std::string const& generic_path, std::string const& content) {
+        fs::path path = state.options.home_path.parent_path() / generic_to_path(generic_path);
         std::string html = content;
 
         if (state.options.pretty_print)
@@ -407,15 +409,13 @@ namespace quickbook { namespace detail {
             }
             catch (quickbook::post_process_failure&)
             {
-                // TODO: Proper error handling.
-                ::quickbook::detail::outerr()
+                ::quickbook::detail::outerr(path)
                     << "Post Processing Failed."
                     << std::endl;
-                return;
+                ++state.error_count;
             }
         }
 
-        fs::path path = state.options.home_path.parent_path() / generic_to_path(generic_path);
         fs::path parent = path.parent_path();
         if (state.options.chunked_output && !parent.empty() && !fs::exists(parent)) {
             fs::create_directories(parent);
@@ -424,23 +424,21 @@ namespace quickbook { namespace detail {
         fs::ofstream fileout(path);
 
         if (fileout.fail()) {
-            ::quickbook::detail::outerr()
-                << "Error opening output file "
-                << path
+            ::quickbook::detail::outerr(path)
+                << "Error opening output file"
                 << std::endl;
-
-            return /*1*/;
+            ++state.error_count;
+            return;
         }
 
         fileout << html;
 
         if (fileout.fail()) {
-            ::quickbook::detail::outerr()
-                << "Error writing to output file "
-                << path
+            ::quickbook::detail::outerr(path)
+                << "Error writing to output file"
                 << std::endl;
-
-            return /*1*/;
+            ++state.error_count;
+            return;
         }
     }
 
