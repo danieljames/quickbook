@@ -147,19 +147,11 @@ namespace quickbook
                 inline_all(chunked.root());
             }
             id_paths_type id_paths = get_id_paths(chunked.root());
-            generate_chunked_documentation(chunked.root(), id_paths, options);
-            return 0;
-        }
-
-        void generate_chunked_documentation(
-            chunk* chunked,
-            id_paths_type const& id_paths,
-            html_options const& options)
-        {
             html_state state(id_paths, options);
-            if (chunked) {
-                generate_chunks(state, chunked);
+            if (chunked.root()) {
+                generate_chunks(state, chunked.root());
             }
+            return state.error_count;
         }
 
         void generate_chunks(html_state& state, chunk* x)
