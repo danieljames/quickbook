@@ -1799,24 +1799,24 @@ escape (no processing/formatting)
 [h5 Heading 5]
 [h6 Heading 6]
 </pre>
-        <h3 id="quickbook.syntax.block.headings.heading_1">
+        <h1 id="quickbook.syntax.block.headings.heading_1">
           Heading 1
-        </h3>
-        <h3 id="quickbook.syntax.block.headings.heading_2">
+        </h1>
+        <h2 id="quickbook.syntax.block.headings.heading_2">
           Heading 2
-        </h3>
+        </h2>
         <h3 id="quickbook.syntax.block.headings.heading_3">
           Heading 3
         </h3>
-        <h3 id="quickbook.syntax.block.headings.heading_4">
+        <h4 id="quickbook.syntax.block.headings.heading_4">
           Heading 4
-        </h3>
-        <h3 id="quickbook.syntax.block.headings.heading_5">
+        </h4>
+        <h5 id="quickbook.syntax.block.headings.heading_5">
           Heading 5
-        </h3>
-        <h3 id="quickbook.syntax.block.headings.heading_6">
+        </h5>
+        <h6 id="quickbook.syntax.block.headings.heading_6">
           Heading 6
-        </h3>
+        </h6>
         <p>
           Headings 1-3 [h1 h2 and h3] will automatically have anchors with normalized
           names with <tt>name=&quot;section_id.normalized_header_text&quot;</tt>
@@ -2055,9 +2055,9 @@ Hi, my name is [name]. I am [age] years old. I am a [what].
 
 ]
 </pre>
-        <h3 id="quickbook.syntax.block.templates.template_identifier">
+        <h5 id="quickbook.syntax.block.templates.template_identifier">
           Template Identifier
-        </h3>
+        </h5>
         <p>
           Template identifiers can either consist of:
         </p>
@@ -2075,9 +2075,9 @@ Hi, my name is [name]. I am [age] years old. I am a [what].
             </div>
           </li>
         </ul>
-        <h3 id="quickbook.syntax.block.templates.formal_template_arguments">
+        <h5 id="quickbook.syntax.block.templates.formal_template_arguments">
           Formal Template Arguments
-        </h3>
+        </h5>
         <p>
           Template formal arguments are identifiers consisting of an initial alphabetic
           character or the underscore, followed by zero or more alphanumeric characters
@@ -2091,9 +2091,9 @@ Hi, my name is [name]. I am [age] years old. I am a [what].
           <tt>[age]</tt> and <tt>[what]</tt>. <tt>name</tt> <tt>age</tt> and <tt>what</tt>
           are actually templates that exist in the duration of the template call.
         </p>
-        <h3 id="quickbook.syntax.block.templates.template_body">
+        <h5 id="quickbook.syntax.block.templates.template_body">
           Template Body
-        </h3>
+        </h5>
         <p>
           The template body can be just about any QuickBook block or phrase. There
           are actually two forms. Templates may be phrase or block level. Phrase
@@ -2114,9 +2114,9 @@ replacement text...
           Phrase templates are typically expanded as part of phrases. Like macros,
           block level elements are not allowed in phrase templates.
         </p>
-        <h3 id="quickbook.syntax.block.templates.template_expansion">
+        <h5 id="quickbook.syntax.block.templates.template_expansion">
           Template Expansion
-        </h3>
+        </h5>
         <p>
           You expand a template this way:
         </p>
@@ -2153,9 +2153,9 @@ replacement text...
           separated by the double dot <tt>&quot;..&quot;</tt> and terminated by the
           close parenthesis.
         </p>
-        <h3 id="quickbook.syntax.block.templates.nullary_templates">
+        <h5 id="quickbook.syntax.block.templates.nullary_templates">
           Nullary Templates
-        </h3>
+        </h5>
         <p>
           Nullary templates look and act like simple macros. Example:
         </p>
@@ -2238,9 +2238,9 @@ for the journey to old age.]]]
           You have a couple of ways to do it. I personally prefer the explicit empty
           brackets, though.
         </p>
-        <h3 id="quickbook.syntax.block.templates.simple_arguments">
+        <h5 id="quickbook.syntax.block.templates.simple_arguments">
           Simple Arguments
-        </h3>
+        </h5>
         <p>
           As mentioned, arguments are separated by the double dot <tt>&quot;..&quot;</tt>.
           If there are less arguments passed than expected, QuickBook attempts to
@@ -2308,9 +2308,9 @@ for the journey to old age.]]]
         <p>
           what do you think man?
         </p>
-        <h3 id="quickbook.syntax.block.templates.punctuation_templates">
+        <h5 id="quickbook.syntax.block.templates.punctuation_templates">
           Punctuation Templates
-        </h3>
+        </h5>
         <p>
           With templates, one of our objectives is to allow us to rewrite QuickBook
           in QuickBook (as a qbk library). For that to happen, we need to accommodate
@@ -2714,9 +2714,9 @@ for the journey to old age.]]]
         <p>
           QuickBook's import facility provides a nice solution.
         </p>
-        <h3 id="quickbook.syntax.block.import.example">
+        <h5 id="quickbook.syntax.block.import.example">
           Example
-        </h3>
+        </h5>
         <p>
           You can effortlessly import code snippets from source code into your QuickBook.
           The following illustrates how this is done:
@@ -2787,9 +2787,9 @@ for the journey to old age.]]]
         <p>
           Some trailing text here
         </p>
-        <h3 id="quickbook.syntax.block.import.code_snippet_markup">
+        <h5 id="quickbook.syntax.block.import.code_snippet_markup">
           Code Snippet Markup
-        </h3>
+        </h5>
         <p>
           Note how the code snippets in <a href="../../test/stub.cpp">stub.cpp</a>
           get marked up. We use distinguishable comments following the form:
@@ -2806,9 +2806,9 @@ for the journey to old age.]]]
           The comment <code><span class="comment">//]</span></code> ends a code-snippet
           This too will not be visible in quickbook.
         </p>
-        <h3 id="quickbook.syntax.block.import.special_comments">
+        <h5 id="quickbook.syntax.block.import.special_comments">
           Special Comments
-        </h3>
+        </h5>
         <p>
           Special comments of the form:
         </p>
@@ -2825,9 +2825,9 @@ for the journey to old age.]]]
           slash-slash, tick and white-space shall be ignored. In the second, the
           initial slash-star-tick and the final star-slash shall be ignored.
         </p>
-        <h3 id="quickbook.syntax.block.import.callouts">
+        <h5 id="quickbook.syntax.block.import.callouts">
           Callouts
-        </h3>
+        </h5>
         <p>
           Special comments of the form:
         </p>
