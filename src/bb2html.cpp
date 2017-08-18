@@ -639,9 +639,7 @@ namespace quickbook { namespace detail {
     NODE_MAP(section, div)
     NODE_MAP(anchor, span)
 
-    // TODO: Header levels
     NODE_MAP(title, h3)
-    NODE_MAP(bridgehead, h3)
 
     NODE_MAP_CLASS(sidebar, div, sidebar) // TODO: sidebar role="blurb"
     NODE_MAP_CLASS(warning, div, warning)
@@ -657,6 +655,16 @@ namespace quickbook { namespace detail {
         } else {
             tag(gen, "br", x);
         }
+    }
+
+    NODE_RULE(bridgehead, gen, x) {
+        std::string* renderas = x->get_attribute("renderas");
+        char header[3] = "h3";
+        if (renderas && renderas->size() == 5 && boost::starts_with(*renderas, "sect")) {
+            char l = (*renderas)[4];
+            if (l >= '1' && l <= '6') { header[1] = l; }
+        }
+        return tag(gen, header, x);
     }
 
     NODE_RULE(ulink, gen, x) {
