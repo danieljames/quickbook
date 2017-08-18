@@ -105,31 +105,19 @@ namespace quickbook
         struct html_gen
         {
             html_printer printer;
-            id_paths_type const& id_paths;
-            html_options const& options;
+            html_state& state;
             string_view path;
             bool in_toc;
             boost::unordered_map<string_view, callout_data> callout_numbers;
             std::vector<xml_element*> footnotes;
 
-            explicit html_gen(
-                id_paths_type const& ip,
-                html_options const& options,
-                string_view p)
-                : printer()
-                , id_paths(ip)
-                , options(options)
-                , path(p)
-                , in_toc(false)
+            explicit html_gen(html_state& state_, string_view p)
+                : printer(), state(state_), path(p), in_toc(false)
             {
             }
 
             html_gen(html_gen const& x)
-                : printer()
-                , id_paths(x.id_paths)
-                , options(x.options)
-                , path(x.path)
-                , in_toc(false)
+                : printer(), state(x.state), path(x.path), in_toc(false)
             {
             }
         };
@@ -198,7 +186,7 @@ namespace quickbook
                 prev = x->parent();
             }
 
-            html_gen gen(state.id_paths, state.options, x->path_);
+            html_gen gen(state, x->path_);
             if (!state.options.css_path.empty()) {
                 tag_start(gen.printer, "link");
                 tag_attribute(gen.printer, "rel", "stylesheet");
@@ -333,9 +321,10 @@ namespace quickbook
 
             gen.printer.html += "<ul>";
             for (chunk* it = x->children(); it; it = it->next()) {
-                id_paths_type::const_iterator link = gen.id_paths.find(it->id_);
+                id_paths_type::const_iterator link =
+                    gen.state.id_paths.find(it->id_);
                 gen.printer.html += "<li>";
-                if (link != gen.id_paths.end()) {
+                if (link != gen.state.id_paths.end()) {
                     gen.printer.html += "<a href=\"";
                     gen.printer.html += encode_string(
                         get_link_from_path(link->second, page->path_));
@@ -663,10 +652,11 @@ namespace quickbook
             quickbook::string_view path,
             quickbook::string_view fallback)
         {
-            if (!gen.options.graphics_path.empty()) {
+            if (!gen.state.options.graphics_path.empty()) {
                 std::string url = relative_path_from_fs_paths(
-                    gen.options.graphics_path / path.to_s(),
-                    gen.options.home_path.parent_path() / gen.path.to_s());
+                    gen.state.options.graphics_path / path.to_s(),
+                    gen.state.options.home_path.parent_path() /
+                        gen.path.to_s());
                 tag_start(gen.printer, "img");
                 tag_attribute(gen.printer, "src", url);
                 tag_attribute(gen.printer, "alt", fallback);
@@ -777,13 +767,13 @@ namespace quickbook
             // TODO: error if missing?
             std::string* value = x->get_attribute("linkend");
 
-            id_paths_type::const_iterator it = gen.id_paths.end();
+            id_paths_type::const_iterator it = gen.state.id_paths.end();
             if (value) {
-                it = gen.id_paths.find(*value);
+                it = gen.state.id_paths.find(*value);
             }
 
             tag_start_with_id(gen, "a", x);
-            if (it != gen.id_paths.end()) {
+            if (it != gen.state.id_paths.end()) {
                 tag_attribute(
                     gen.printer, "href",
                     relative_path_from_url_paths(it->second, gen.path));
@@ -1011,17 +1001,17 @@ namespace quickbook
             std::string* id = x->get_attribute("id");
             boost::unordered_map<string_view, callout_data>::const_iterator
                 data = gen.callout_numbers.end();
-            id_paths_type::const_iterator link = gen.id_paths.end();
+            id_paths_type::const_iterator link = gen.state.id_paths.end();
             if (id) {
                 data = gen.callout_numbers.find(*id);
             }
             if (data != gen.callout_numbers.end() &&
                 !data->second.link_id.empty()) {
-                link = gen.id_paths.find(data->second.link_id);
+                link = gen.state.id_paths.find(data->second.link_id);
             }
 
             open_tag_with_id(gen, "div", x);
-            if (link != gen.id_paths.end()) {
+            if (link != gen.state.id_paths.end()) {
                 tag_start(gen.printer, "a");
                 tag_attribute(
                     gen.printer, "href",
@@ -1035,7 +1025,7 @@ namespace quickbook
                     ".png",
                 "(" + boost::lexical_cast<std::string>(data->second.number) +
                     ")");
-            if (link != gen.id_paths.end()) {
+            if (link != gen.state.id_paths.end()) {
                 close_tag(gen.printer, "a");
             }
             gen.printer.html += " ";
@@ -1048,13 +1038,13 @@ namespace quickbook
             std::string* linkends = x->get_attribute("linkends");
             boost::unordered_map<string_view, callout_data>::const_iterator
                 data = gen.callout_numbers.end();
-            id_paths_type::const_iterator link = gen.id_paths.end();
+            id_paths_type::const_iterator link = gen.state.id_paths.end();
             if (linkends) {
                 data = gen.callout_numbers.find(*linkends);
-                link = gen.id_paths.find(*linkends);
+                link = gen.state.id_paths.find(*linkends);
             }
 
-            if (link != gen.id_paths.end()) {
+            if (link != gen.state.id_paths.end()) {
                 tag_start(gen.printer, "a");
                 tag_attribute(
                     gen.printer, "href",
@@ -1074,7 +1064,7 @@ namespace quickbook
             else {
                 gen.printer.html += "(0)";
             }
-            if (link != gen.id_paths.end()) {
+            if (link != gen.state.id_paths.end()) {
                 close_tag(gen.printer, "a");
             }
         }
