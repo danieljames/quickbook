@@ -113,7 +113,8 @@ namespace quickbook
                 fs::path path = options.home_path.parent_path() /
                                 generic_to_path(generic_path);
                 fs::path parent = path.parent_path();
-                if (parent != ".") {
+                if (options.chunked_output && !parent.empty() &&
+                    !fs::exists(parent)) {
                     fs::create_directories(parent);
                 }
                 quickbook::detail::write_file(path, html);
@@ -163,6 +164,13 @@ namespace quickbook
                 path_to_generic(options.home_path.filename());
             if (options.chunked_output) {
                 inline_sections(chunked.root(), 0);
+
+                // Create the root directory if necessary for chunked
+                // documentation.
+                fs::path parent = options.home_path.parent_path();
+                if (!parent.empty() && !fs::exists(parent)) {
+                    fs::create_directory(parent);
+                }
             }
             else {
                 inline_all(chunked.root());
@@ -177,7 +185,6 @@ namespace quickbook
             id_paths_type const& id_paths,
             html_options const& options)
         {
-            fs::create_directory(options.home_path.parent_path());
             chunk_writer writer(id_paths, options);
             if (chunked) {
                 generate_chunks(writer, chunked);
