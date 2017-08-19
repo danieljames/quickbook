@@ -723,7 +723,7 @@ namespace quickbook
         {                                                                      \
             node_parsers.emplace(                                              \
                 BOOST_PP_STRINGIZE(tag_name),                                  \
-                BOOST_PP_CAT(parser_, tag_name));                              \
+                &BOOST_PP_CAT(parser_, tag_name));                             \
         }                                                                      \
     } BOOST_PP_CAT(register_parser_, tag_name);                                \
     void BOOST_PP_CAT(parser_, tag_name)(html_gen & gen, xml_element * x)
