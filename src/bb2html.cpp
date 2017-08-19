@@ -37,8 +37,9 @@ namespace quickbook
     {
         struct html_state;
         struct html_gen;
+        struct id_info;
 
-        typedef boost::unordered_map<string_view, std::string> id_paths_type;
+        typedef boost::unordered_map<string_view, id_info> ids_type;
 
         typedef void (*node_parser)(html_gen&, xml_element*);
         typedef boost::unordered_map<quickbook::string_view, node_parser>
@@ -46,7 +47,7 @@ namespace quickbook
         static node_parsers_type node_parsers;
 
         void generate_chunked_documentation(
-            chunk*, id_paths_type const&, html_options const&);
+            chunk*, ids_type const&, html_options const&);
         void generate_chunks(html_state&, chunk*);
         void generate_inline_chunks(html_gen& gen, chunk*);
         void generate_chunk_html(html_gen&, chunk*);
@@ -69,9 +70,9 @@ namespace quickbook
         std::string relative_path_from_url_paths(
             quickbook::string_view, quickbook::string_view);
 
-        id_paths_type get_id_paths(chunk* chunk);
-        void get_id_paths_impl(id_paths_type&, chunk*);
-        void get_id_paths_impl2(id_paths_type&, string_view, xml_element*);
+        ids_type get_id_paths(chunk* chunk);
+        void get_id_paths_impl(ids_type&, chunk*);
+        void get_id_paths_impl2(ids_type&, string_view, xml_element*);
 
         void tag(html_gen& gen, quickbook::string_view name, xml_element* x);
         void tag_start_with_id(
@@ -85,15 +86,23 @@ namespace quickbook
             quickbook::string_view path,
             quickbook::string_view fallback);
 
+        struct id_info
+        {
+            explicit id_info(string_view p) : path(p.to_s()) {}
+            explicit id_info(std::string&& p) : path(std::move(p)) {}
+
+            std::string path;
+        };
+
         struct html_state
         {
-            id_paths_type const& id_paths;
+            ids_type const& ids;
             html_options const& options;
             unsigned int error_count;
 
             explicit html_state(
-                id_paths_type const& ip, html_options const& options)
-                : id_paths(ip), options(options), error_count(0)
+                ids_type const& ids_, html_options const& options_)
+                : ids(ids_), options(options_), error_count(0)
             {
             }
         };
@@ -173,8 +182,8 @@ namespace quickbook
             else {
                 inline_all(chunked.root());
             }
-            id_paths_type id_paths = get_id_paths(chunked.root());
-            html_state state(id_paths, options);
+            ids_type ids = get_id_paths(chunked.root());
+            html_state state(ids, options);
             if (chunked.root()) {
                 generate_chunks(state, chunked.root());
             }
@@ -348,13 +357,12 @@ namespace quickbook
 
             gen.printer.html += "<ul>";
             for (chunk* it = x->children(); it; it = it->next()) {
-                id_paths_type::const_iterator link =
-                    gen.state.id_paths.find(it->id_);
+                auto link = gen.state.ids.find(it->id_);
                 gen.printer.html += "<li>";
-                if (link != gen.state.id_paths.end()) {
+                if (link != gen.state.ids.end()) {
                     gen.printer.html += "<a href=\"";
                     gen.printer.html += encode_string(
-                        get_link_from_path(link->second, page->path_));
+                        get_link_from_path(link->second.path, page->path_));
                     gen.printer.html += "\">";
                     generate_toc_item_html(gen, it->title_.root());
                     gen.printer.html += "</a>";
@@ -607,34 +615,34 @@ namespace quickbook
 
         // get_id_paths
 
-        id_paths_type get_id_paths(chunk* chunk)
+        ids_type get_id_paths(chunk* chunk)
         {
-            id_paths_type id_paths;
+            ids_type ids;
             if (chunk) {
-                get_id_paths_impl(id_paths, chunk);
+                get_id_paths_impl(ids, chunk);
             }
-            return id_paths;
+            return ids;
         }
 
-        void get_id_paths_impl(id_paths_type& id_paths, chunk* c)
+        void get_id_paths_impl(ids_type& ids, chunk* c)
         {
             std::string p = c->path_;
             if (c->inline_) {
                 p += '#';
                 p += c->id_;
             }
-            id_paths.emplace(c->id_, boost::move(p));
+            ids.emplace(c->id_, id_info(boost::move(p)));
 
-            get_id_paths_impl2(id_paths, c->path_, c->title_.root());
-            get_id_paths_impl2(id_paths, c->path_, c->info_.root());
-            get_id_paths_impl2(id_paths, c->path_, c->contents_.root());
+            get_id_paths_impl2(ids, c->path_, c->title_.root());
+            get_id_paths_impl2(ids, c->path_, c->info_.root());
+            get_id_paths_impl2(ids, c->path_, c->contents_.root());
             for (chunk* i = c->children(); i; i = i->next()) {
-                get_id_paths_impl(id_paths, i);
+                get_id_paths_impl(ids, i);
             }
         }
 
         void get_id_paths_impl2(
-            id_paths_type& id_paths, string_view path, xml_element* node)
+            ids_type& ids, string_view path, xml_element* node)
         {
             if (!node) {
                 return;
@@ -645,10 +653,10 @@ namespace quickbook
                 std::string p(path.begin(), path.end());
                 p += '#';
                 p += *id;
-                id_paths.emplace(*id, boost::move(p));
+                ids.emplace(*id, id_info(boost::move(p)));
             }
             for (xml_element* i = node->children(); i; i = i->next()) {
-                get_id_paths_impl2(id_paths, path, i);
+                get_id_paths_impl2(ids, path, i);
             }
         }
 
@@ -805,16 +813,16 @@ namespace quickbook
             // TODO: error if missing?
             std::string* value = x->get_attribute("linkend");
 
-            id_paths_type::const_iterator it = gen.state.id_paths.end();
+            auto it = gen.state.ids.end();
             if (value) {
-                it = gen.state.id_paths.find(*value);
+                it = gen.state.ids.find(*value);
             }
 
             tag_start_with_id(gen, "a", x);
-            if (it != gen.state.id_paths.end()) {
+            if (it != gen.state.ids.end()) {
                 tag_attribute(
                     gen.printer, "href",
-                    relative_path_from_url_paths(it->second, gen.path));
+                    relative_path_from_url_paths(it->second.path, gen.path));
             }
             tag_end(gen.printer);
             generate_children_html(gen, x);
@@ -1039,21 +1047,21 @@ namespace quickbook
             std::string* id = x->get_attribute("id");
             boost::unordered_map<string_view, callout_data>::const_iterator
                 data = gen.callout_numbers.end();
-            id_paths_type::const_iterator link = gen.state.id_paths.end();
+            auto link = gen.state.ids.end();
             if (id) {
                 data = gen.callout_numbers.find(*id);
             }
             if (data != gen.callout_numbers.end() &&
                 !data->second.link_id.empty()) {
-                link = gen.state.id_paths.find(data->second.link_id);
+                link = gen.state.ids.find(data->second.link_id);
             }
 
             open_tag_with_id(gen, "div", x);
-            if (link != gen.state.id_paths.end()) {
+            if (link != gen.state.ids.end()) {
                 tag_start(gen.printer, "a");
                 tag_attribute(
                     gen.printer, "href",
-                    relative_path_from_url_paths(link->second, gen.path));
+                    relative_path_from_url_paths(link->second.path, gen.path));
                 tag_end(gen.printer);
             }
             graphics_tag(
@@ -1063,7 +1071,7 @@ namespace quickbook
                     ".png",
                 "(" + boost::lexical_cast<std::string>(data->second.number) +
                     ")");
-            if (link != gen.state.id_paths.end()) {
+            if (link != gen.state.ids.end()) {
                 close_tag(gen.printer, "a");
             }
             gen.printer.html += " ";
@@ -1076,17 +1084,17 @@ namespace quickbook
             std::string* linkends = x->get_attribute("linkends");
             boost::unordered_map<string_view, callout_data>::const_iterator
                 data = gen.callout_numbers.end();
-            id_paths_type::const_iterator link = gen.state.id_paths.end();
+            auto link = gen.state.ids.end();
             if (linkends) {
                 data = gen.callout_numbers.find(*linkends);
-                link = gen.state.id_paths.find(*linkends);
+                link = gen.state.ids.find(*linkends);
             }
 
-            if (link != gen.state.id_paths.end()) {
+            if (link != gen.state.ids.end()) {
                 tag_start(gen.printer, "a");
                 tag_attribute(
                     gen.printer, "href",
-                    relative_path_from_url_paths(link->second, gen.path));
+                    relative_path_from_url_paths(link->second.path, gen.path));
                 tag_end(gen.printer);
             }
             if (data != gen.callout_numbers.end()) {
@@ -1102,7 +1110,7 @@ namespace quickbook
             else {
                 gen.printer.html += "(0)";
             }
-            if (link != gen.state.id_paths.end()) {
+            if (link != gen.state.ids.end()) {
                 close_tag(gen.printer, "a");
             }
         }
