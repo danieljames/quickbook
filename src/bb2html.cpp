@@ -72,7 +72,7 @@ namespace quickbook
 
         ids_type get_id_paths(chunk* chunk);
         void get_id_paths_impl(ids_type&, chunk*);
-        void get_id_paths_impl2(ids_type&, string_view, xml_element*);
+        void get_id_paths_impl2(ids_type&, chunk*, xml_element*);
 
         void tag(html_gen& gen, quickbook::string_view name, xml_element* x);
         void tag_start_with_id(
@@ -88,10 +88,33 @@ namespace quickbook
 
         struct id_info
         {
-            explicit id_info(string_view p) : path(p.to_s()) {}
-            explicit id_info(std::string&& p) : path(std::move(p)) {}
+          private:
+            chunk* chunk_;
+            xml_element* element_;
 
-            std::string path;
+          public:
+            explicit id_info(chunk* c, xml_element* x) : chunk_(c), element_(x)
+            {
+                assert(c);
+                assert(!x || x->get_attribute("id"));
+            }
+
+            std::string path() const
+            {
+                std::string p = chunk_->path_;
+
+                // TODO: Always want fragment identifier when
+                // linking within the same chunk
+                if (element_) {
+                    p += '#';
+                    p += *element_->get_attribute("id");
+                }
+                else if (chunk_->inline_) {
+                    p += '#';
+                    p += chunk_->id_;
+                }
+                return p;
+            }
         };
 
         struct html_state
@@ -362,7 +385,7 @@ namespace quickbook
                 if (link != gen.state.ids.end()) {
                     gen.printer.html += "<a href=\"";
                     gen.printer.html += encode_string(
-                        get_link_from_path(link->second.path, page->path_));
+                        get_link_from_path(link->second.path(), page->path_));
                     gen.printer.html += "\">";
                     generate_toc_item_html(gen, it->title_.root());
                     gen.printer.html += "</a>";
@@ -631,32 +654,27 @@ namespace quickbook
                 p += '#';
                 p += c->id_;
             }
-            ids.emplace(c->id_, id_info(boost::move(p)));
+            ids.emplace(c->id_, id_info(c, 0));
 
-            get_id_paths_impl2(ids, c->path_, c->title_.root());
-            get_id_paths_impl2(ids, c->path_, c->info_.root());
-            get_id_paths_impl2(ids, c->path_, c->contents_.root());
+            get_id_paths_impl2(ids, c, c->title_.root());
+            get_id_paths_impl2(ids, c, c->info_.root());
+            get_id_paths_impl2(ids, c, c->contents_.root());
             for (chunk* i = c->children(); i; i = i->next()) {
                 get_id_paths_impl(ids, i);
             }
         }
 
-        void get_id_paths_impl2(
-            ids_type& ids, string_view path, xml_element* node)
+        void get_id_paths_impl2(ids_type& ids, chunk* c, xml_element* node)
         {
             if (!node) {
                 return;
             }
             std::string* id = node->get_attribute("id");
             if (id) {
-                // TODO: No need for fragment when id matches chunk.
-                std::string p(path.begin(), path.end());
-                p += '#';
-                p += *id;
-                ids.emplace(*id, id_info(boost::move(p)));
+                ids.emplace(*id, id_info(c, node));
             }
             for (xml_element* i = node->children(); i; i = i->next()) {
-                get_id_paths_impl2(ids, path, i);
+                get_id_paths_impl2(ids, c, i);
             }
         }
 
@@ -822,7 +840,7 @@ namespace quickbook
             if (it != gen.state.ids.end()) {
                 tag_attribute(
                     gen.printer, "href",
-                    relative_path_from_url_paths(it->second.path, gen.path));
+                    relative_path_from_url_paths(it->second.path(), gen.path));
             }
             tag_end(gen.printer);
             generate_children_html(gen, x);
@@ -1060,8 +1078,8 @@ namespace quickbook
             if (link != gen.state.ids.end()) {
                 tag_start(gen.printer, "a");
                 tag_attribute(
-                    gen.printer, "href",
-                    relative_path_from_url_paths(link->second.path, gen.path));
+                    gen.printer, "href", relative_path_from_url_paths(
+                                             link->second.path(), gen.path));
                 tag_end(gen.printer);
             }
             graphics_tag(
@@ -1093,8 +1111,8 @@ namespace quickbook
             if (link != gen.state.ids.end()) {
                 tag_start(gen.printer, "a");
                 tag_attribute(
-                    gen.printer, "href",
-                    relative_path_from_url_paths(link->second.path, gen.path));
+                    gen.printer, "href", relative_path_from_url_paths(
+                                             link->second.path(), gen.path));
                 tag_end(gen.printer);
             }
             if (data != gen.callout_numbers.end()) {
