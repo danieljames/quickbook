@@ -20,8 +20,7 @@ namespace quickbook
         struct markup {
             enum format {
                 boostbook,
-                html,
-                format_end
+                html
             };
 
             value::tag_type tag;
