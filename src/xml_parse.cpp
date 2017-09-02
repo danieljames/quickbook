@@ -229,7 +229,6 @@ namespace quickbook { namespace detail {
 
     quickbook::string_view read_attribute_value(string_iterator& it, string_iterator start, string_iterator end) {
         read_some_of(it, end, " \t\n\r");
-        string_iterator value_start = it;
         if (*it == '"' || *it == '\'') {
             return read_string(it, end);
         }

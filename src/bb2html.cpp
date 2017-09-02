@@ -544,7 +544,7 @@ namespace quickbook { namespace detail {
             return std::string(path_it, path.end());
         }
 
-        int up_count = std::count(base_it, base.end(), '/');
+        int up_count = std::count(base_diff_start, base.end(), '/');
 
         std::string result;
         for (int i = 0; i < up_count; ++i) { result += "../"; }

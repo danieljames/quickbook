@@ -156,7 +156,6 @@ namespace quickbook
         try {
             quickbook::state state(filein_, options_.xinclude_base, buffer, output);
             state.strict_mode = options_.strict_mode;
-            state.markup_format = quickbook::detail::markup::boostbook;
             set_macros(state);
 
             if (state.error_count == 0) {
@@ -725,6 +724,10 @@ main(int argc, char* argv[])
                         << options.output_path
                         << std::endl;
                     break;
+                case parse_document_options::output_none:
+                    break;
+                default:
+                    assert(false);
                 }
 
                 error_count += quickbook::parse_document(
