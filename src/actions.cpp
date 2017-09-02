@@ -131,7 +131,7 @@ namespace quickbook
         return state.strict_mode;
     }
 
-    void explicit_list_action(quickbook::state&, value);
+    void list_action(quickbook::state&, value);
     void header_action(quickbook::state&, value);
     void begin_section_action(quickbook::state&, value);
     void end_section_action(quickbook::state&, value, string_iterator);
@@ -166,7 +166,7 @@ namespace quickbook
         {
         case block_tags::ordered_list:
         case block_tags::itemized_list:
-            return explicit_list_action(state, v);
+            return list_action(state, v);
         case block_tags::generic_heading:
         case block_tags::heading1:
         case block_tags::heading2:
@@ -687,7 +687,7 @@ namespace quickbook
         return block;
     }
 
-    void explicit_list_action(quickbook::state& state, value list)
+    void list_action(quickbook::state& state, value list)
     {
         write_anchors(state, state.out);
 
@@ -1197,7 +1197,7 @@ namespace quickbook
         void break_arguments(
             std::vector<value>& args
           , std::vector<std::string> const& params
-          , fs::path const& filename
+          , fs::path const& /* filename */
         )
         {
             // Quickbook 1.4-: If there aren't enough parameters seperated by
@@ -1884,7 +1884,7 @@ namespace quickbook
             quickbook_path const& path,
             value::tag_type load_type,
             string_iterator first,
-            value const& include_doc_id = value())
+            value const& /* include_doc_id */ = value())
     {
         assert(load_type == block_tags::include ||
             load_type == block_tags::import);
@@ -1943,11 +1943,8 @@ namespace quickbook
 
         std::set<quickbook_path> search =
             include_search(parameter, state, first);
-        std::set<quickbook_path>::iterator i = search.begin();
-        std::set<quickbook_path>::iterator e = search.end();
-        for (; i != e; ++i)
+        BOOST_FOREACH(quickbook_path const& path, search)
         {
-            quickbook_path const & path = *i;
             try {
                 if (qbk_version_n >= 106)
                 {
