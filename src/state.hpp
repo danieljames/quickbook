@@ -20,7 +20,6 @@
 #include "dependency_tracker.hpp"
 #include "syntax_highlight.hpp"
 #include "include_paths.hpp"
-#include "markups.hpp"
 
 namespace quickbook
 {
@@ -58,7 +57,6 @@ namespace quickbook
         dependency_tracker      dependencies;
         bool                    explicit_list;      // set when using a list
         bool                    strict_mode;
-        detail::markup::format  markup_format;
 
     // state saved for files and templates.
         bool                    imported;

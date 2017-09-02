@@ -16,19 +16,14 @@
 namespace quickbook
 {
     namespace detail
-    {
+    {    
         struct markup {
-            enum format {
-                boostbook,
-                html
-            };
-
             value::tag_type tag;
             char const* pre;
             char const* post;
         };
         
-        markup const& get_markup(markup::format, value::tag_type);
+        markup const& get_markup(value::tag_type);
         std::ostream& operator<<(std::ostream&, markup const&);
     }
 }

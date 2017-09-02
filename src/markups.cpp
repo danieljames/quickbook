@@ -66,7 +66,7 @@ namespace quickbook
             }
         }
 
-        markup const& get_markup(markup::format, value::tag_type t)
+        markup const& get_markup(value::tag_type t)
         {
             return markups[t];
         }
