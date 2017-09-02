@@ -361,7 +361,7 @@ namespace quickbook { namespace detail {
             bool old = gen.in_toc;
             gen.in_toc = true;
             generate_children_html(gen, x);
-            gen.in_toc = false;
+            gen.in_toc = old;
         } else {
             gen.printer.html += "<i>Untitled</i>";
         }
