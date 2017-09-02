@@ -72,10 +72,7 @@ namespace quickbook
             }
         }
 
-        markup const& get_markup(markup::format, value::tag_type t)
-        {
-            return markups[t];
-        }
+        markup const& get_markup(value::tag_type t) { return markups[t]; }
 
         std::ostream& operator<<(std::ostream& out, markup const& m)
         {
