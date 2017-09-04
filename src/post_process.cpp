@@ -23,9 +23,9 @@ namespace quickbook
 
     struct printer
     {
-        printer(std::string& out, int& current_indent, int linewidth)
-            : prev(0), out(out), current_indent(current_indent) , column(0)
-            , in_string(false), linewidth(linewidth) {}
+        printer(std::string& out_, int& current_indent_, int linewidth_)
+            : prev(0), out(out_), current_indent(current_indent_) , column(0)
+            , in_string(false), linewidth(linewidth_) {}
 
         void indent()
         {
@@ -263,24 +263,24 @@ namespace quickbook
 
     struct tidy_compiler
     {
-        tidy_compiler(std::string& out, int linewidth, bool is_html)
-            : out(out), current_indent(0), printer_(out, current_indent, linewidth)
+        tidy_compiler(std::string& out_, int linewidth_, bool is_html)
+            : out(out_), current_indent(0), printer_(out_, current_indent, linewidth_)
         {
             if (is_html) {
-                static int const n_block_tags = sizeof(html_block_tags_)/sizeof(char const*);
-                for (int i = 0; i != n_block_tags; ++i)
+                static std::size_t const n_block_tags = sizeof(html_block_tags_)/sizeof(char const*);
+                for (std::size_t i = 0; i != n_block_tags; ++i)
                 {
                     block_tags.insert(html_block_tags_[i]);
                 }
             } else {
-                static int const n_block_tags = sizeof(block_tags_)/sizeof(char const*);
-                for (int i = 0; i != n_block_tags; ++i)
+                static std::size_t const n_block_tags = sizeof(block_tags_)/sizeof(char const*);
+                for (std::size_t i = 0; i != n_block_tags; ++i)
                 {
                     block_tags.insert(block_tags_[i]);
                 }
 
-                static int const n_doc_types = sizeof(doc_types_)/sizeof(char const*);
-                for (int i = 0; i != n_doc_types; ++i)
+                static std::size_t const n_doc_types = sizeof(doc_types_)/sizeof(char const*);
+                for (std::size_t i = 0; i != n_doc_types; ++i)
                 {
                     block_tags.insert(doc_types_[i]);
                     block_tags.insert(doc_types_[i] + std::string("info"));
@@ -304,8 +304,8 @@ namespace quickbook
 
     struct tidy_grammar : cl::grammar<tidy_grammar>
     {
-        tidy_grammar(tidy_compiler& state, int indent, bool is_html)
-            : state(state), indent(indent), is_html(is_html) {}
+        tidy_grammar(tidy_compiler& state_, int indent_, bool is_html_)
+            : state(state_), indent(indent_), is_html(is_html_) {}
 
         template <typename Scanner>
         struct definition
