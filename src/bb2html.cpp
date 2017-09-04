@@ -102,8 +102,8 @@ namespace quickbook { namespace detail {
         html_options const& options;
         unsigned int error_count;
 
-        explicit html_state(ids_type const& ids, html_options const& options)
-            : ids(ids), options(options), error_count(0) {}
+        explicit html_state(ids_type const& ids_, html_options const& options_)
+            : ids(ids_), options(options_), error_count(0) {}
     };
 
     struct callout_data {
@@ -119,9 +119,9 @@ namespace quickbook { namespace detail {
         boost::unordered_map<string_view, callout_data> callout_numbers;
         std::vector<xml_element*> footnotes;
 
-        explicit html_gen(html_state& state, string_view p) :
+        explicit html_gen(html_state& state_, string_view p) :
             printer(),
-            state(state),
+            state(state_),
             path(p),
             in_toc(false) {}
 
@@ -146,7 +146,7 @@ namespace quickbook { namespace detail {
                 line_end = e.pos + 80;
             }
             std::string indent;
-            for (int i = e.pos - line_start; i; --i) {
+            for (auto i = e.pos - line_start; i; --i) {
                 indent += ' ';
             }
             ::quickbook::detail::outerr()
@@ -544,7 +544,7 @@ namespace quickbook { namespace detail {
             return std::string(path_it, path.end());
         }
 
-        int up_count = std::count(base_diff_start, base.end(), '/');
+        auto up_count = std::count(base_diff_start, base.end(), '/');
 
         std::string result;
         for (int i = 0; i < up_count; ++i) { result += "../"; }
