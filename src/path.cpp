@@ -19,51 +19,13 @@
 #include <boost/filesystem/operations.hpp>
 #include <cassert>
 
+#if QUICKBOOK_CYGWIN_PATHS
+#include <boost/scoped_array.hpp>
+#include <sys/cygwin.h>
+#endif
+
 namespace quickbook
 {
-    // Convert the path to its canonical representation if it exists.
-    // Or something close if it doesn't.
-    fs::path normalize_path(fs::path const& path)
-    {
-        fs::path p = fs::absolute(path); // The base of the path.
-        fs::path extra; // The non-existant part of the path.
-        int parent_count = 0; // Number of active '..' sections
-
-        // Invariant: path is equivalent to: p / ('..' * parent_count) / extra
-        // i.e. if parent_count == 0: p/extra
-        // if parent_count == 2: p/../../extra
-
-        // Pop path sections from path until we find an existing
-        // path, adjusting for any dot path sections.
-        while (!fs::exists(fs::status(p))) {
-            fs::path name = p.filename();
-            p = p.parent_path();
-            if (name == "..") {
-                ++parent_count;
-            }
-            else if (name == ".") {
-            }
-            else if (parent_count) {
-                --parent_count;
-            }
-            else {
-                extra = name / extra;
-            }
-        }
-
-        // If there are any left over ".." sections, then add them
-        // on to the end of the real path, and trust Boost.Filesystem
-        // to sort them out.
-        while (parent_count) {
-            p = p / "..";
-            --parent_count;
-        }
-
-        // Cannoicalize the existing part of the path, and add 'extra' back to
-        // the end.
-        return fs::canonical(p) / extra;
-    }
-
     // Not a general purpose normalization function, just
     // from paths from the root directory. It strips the excess
     // ".." parts from a path like: "x/../../y", leaving "y".
@@ -89,7 +51,7 @@ namespace quickbook
     }
 
     // The relative path from base to path
-    fs::path path_difference(fs::path const& base, fs::path const& path)
+    fs::path path_difference(fs::path const& base, fs::path const& path, bool is_file)
     {
         fs::path
             absolute_base = fs::absolute(base),
@@ -135,6 +97,13 @@ namespace quickbook
                 }
             }
 
+            if (is_file && path_it == path_end && path_it != path_parts.begin()) {
+                --path_it;
+                result = "..";
+            } else if (base_it == base_end && path_it == path_end) {
+               result = ".";
+            }
+
             // Build a relative path to that point
             for(; base_it != base_end; ++base_it) result /= "..";
         }
@@ -152,44 +121,85 @@ namespace quickbook
     //
     // Some info on file URLs at:
     // https://en.wikipedia.org/wiki/File_URI_scheme
-    std::string file_path_to_url(fs::path const& x)
+    std::string file_path_to_url_impl(fs::path const& x, bool is_dir)
     {
-        // TODO: Maybe some kind of error if this doesn't understand the path.
-        // TODO: Might need a special cygwin implementation.
-        // TODO: What if x.has_root_name() && !x.has_root_directory()?
-        // TODO: What does Boost.Filesystem do for '//localhost/c:/path'?
-        //       Is that event allowed by windows?
+        fs::path::const_iterator it = x.begin(), end = x.end();
+        if (it == end) { return is_dir ? "./" : ""; }
 
+        std::string result;
+        bool sep = false;
+        std::string part;
         if (x.has_root_name()) {
-            std::string root_name = detail::path_to_generic(x.root_name());
+            // Handle network address (e.g. \\example.com)
+            part = detail::path_to_generic(*it);
+            if (part.size() >= 2 && part[0] == '/' && part[1] == '/') {
+                result = "file:" + detail::escape_uri(part);
+                sep = true;
+                ++it;
+                if (it != end && *it == "/") {
+                    result += "/";
+                    sep = false;
+                    ++it;
+                }
+            } else {
+                result = "file:///";
+            }
 
-            if (root_name.size() > 2 && root_name[0] == '/' && root_name[1] == '/') {
-                // root_name is a network location.
-                return "file:" + detail::escape_uri(detail::path_to_generic(x));
+            // Handle windows root (e.g. c:)
+            if (it != end) {
+                part = detail::path_to_generic(*it);
+                if (part.size() >= 2 && part[part.size() - 1] == ':') {
+                    result += detail::escape_uri(part.substr(0, part.size()- 1));
+                    result += ':';
+                    sep = false;
+                    ++it;
+                }
             }
-            else if (root_name.size() >= 2 && root_name[root_name.size() - 1] == ':') {
-                // root_name is a drive.
-                return "file:///"
-                    + detail::escape_uri(root_name.substr(0, root_name.size() - 1))
-                    + ":/" // TODO: Or maybe "|/".
-                    + detail::escape_uri(detail::path_to_generic(x.relative_path()));
-            }
-            else {
-                // Not sure what root_name is.
-                return detail::escape_uri(detail::path_to_generic(x));
+        } else if (x.has_root_directory()) {
+            result = "file://";
+            sep = true;
+        } else if (*it == ".") {
+            result = ".";
+            sep = true;
+            ++it;
+        }
+
+        for (;it != end; ++it)
+        {
+            part = detail::path_to_generic(*it);
+            if (part == "/") {
+                result += "/";
+                sep = false;
+            } else if (part == ".") {
+                // If the path has a trailing slash, write it out,
+                // even if is_dir is false.
+                if (sep) {
+                    result += "/";
+                    sep = false;
+                }
+            } else {
+                if (sep) {
+                    result += "/";
+                }
+                result += detail::escape_uri(detail::path_to_generic(*it));
+                sep = true;
             }
         }
-        else if (x.has_root_directory()) {
-            return "file://" + detail::escape_uri(detail::path_to_generic(x));
+
+        if (is_dir && sep) {
+            result += "/";
         }
-        else {
-            return detail::escape_uri(detail::path_to_generic(x));
-        }
+
+        return result;
+    }
+
+    std::string file_path_to_url(fs::path const& x) {
+        return file_path_to_url_impl(x, false);
     }
 
     std::string dir_path_to_url(fs::path const& x)
     {
-        return file_path_to_url(x) + "/";
+        return file_path_to_url_impl(x, true);
     }
 
     namespace detail {
