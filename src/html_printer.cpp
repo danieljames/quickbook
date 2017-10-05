@@ -7,6 +7,7 @@ http://www.boost.org/LICENSE_1_0.txt)
 =============================================================================*/
 
 #include "html_printer.hpp"
+#include "utils.hpp"
 
 namespace quickbook { namespace detail {
     void open_tag(html_printer& printer, quickbook::string_view name) {
@@ -37,7 +38,7 @@ namespace quickbook { namespace detail {
         printer.html += " ";
         printer.html.append(name.begin(), name.end());
         printer.html += "=\"";
-        printer.html.append(value.begin(), value.end());
+        printer.html.append(encode_string(value));
         printer.html += "\"";
     }
 }}

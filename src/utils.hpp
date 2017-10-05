@@ -15,6 +15,7 @@
 #include "string_view.hpp"
 
 namespace quickbook { namespace detail {
+    std::string decode_string(quickbook::string_view);
     std::string encode_string(quickbook::string_view);
     void print_char(char ch, std::ostream& out);
     void print_string(quickbook::string_view str, std::ostream& out);

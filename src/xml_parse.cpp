@@ -9,6 +9,7 @@ http://www.boost.org/LICENSE_1_0.txt)
 #include "xml_parse.hpp"
 #include "simple_parse.hpp"
 #include "stream.hpp"
+#include "utils.hpp"
 
 namespace quickbook { namespace detail {
     // write_xml_tree
@@ -135,7 +136,7 @@ namespace quickbook { namespace detail {
             // TODO: Decode attribute value
             node->attributes_.push_back(std::make_pair(
                 std::string(attribute_name.begin(), attribute_name.end()),
-                std::string(attribute_value.begin(), attribute_value.end())
+                quickbook::detail::decode_string(attribute_value)
             ));
         }
     }
