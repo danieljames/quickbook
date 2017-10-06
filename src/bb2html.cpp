@@ -84,8 +84,6 @@ namespace quickbook { namespace detail {
         std::string path() const {
             std::string p = chunk_->path_;
 
-            // TODO: Always want fragment identifier when
-            // linking within the same chunk
             if (element_) {
                 p += '#';
                 p += *element_->get_attribute("id");
@@ -542,6 +540,10 @@ namespace quickbook { namespace detail {
 
         if (base_it == base.end() && path_it != path.end() && *path_it == '#') {
             return std::string(path_it, path.end());
+        }
+
+        if (path_it == path.end() && (base_it == base.end() || *base_it == '#')) {
+            return std::string("#");
         }
 
         auto up_count = std::count(base_diff_start,
