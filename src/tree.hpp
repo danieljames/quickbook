@@ -15,6 +15,13 @@ namespace quickbook
 {
     namespace detail
     {
+        struct tree_node_base;
+        template <typename T> struct tree_node;
+        struct tree_base;
+        template <typename T> struct tree;
+        struct tree_builder_base;
+        template <typename T> struct tree_builder;
+
         struct tree_node_base
         {
             friend struct tree_base;
@@ -28,6 +35,12 @@ namespace quickbook
 
           public:
             tree_node_base() : parent_(), children_(), next_(), prev_() {}
+
+          protected:
+            void add_before(tree_base*);
+            void add_after(tree_base*);
+            void add_first_child(tree_base*);
+            void add_last_child(tree_base*);
         };
 
         template <typename T> struct tree_node : tree_node_base
@@ -36,6 +49,17 @@ namespace quickbook
             T* children() const { return static_cast<T*>(children_); }
             T* next() const { return static_cast<T*>(next_); }
             T* prev() const { return static_cast<T*>(prev_); }
+
+            void add_before(tree<T>&& x) { tree_node_base::add_before(&x); }
+            void add_after(tree<T>&& x) { tree_node_base::add_after(&x); }
+            void add_first_child(tree<T>&& x)
+            {
+                tree_node_base::add_first_child(&x);
+            }
+            void add_last_child(tree<T>&& x)
+            {
+                tree_node_base::add_last_child(&x);
+            }
         };
 
         template <typename Node> void delete_nodes(Node* n)
@@ -50,6 +74,8 @@ namespace quickbook
 
         struct tree_base
         {
+            friend struct tree_node_base;
+
           private:
             tree_base(tree_base const&);
             tree_base& operator=(tree_base const&);
