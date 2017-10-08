@@ -45,6 +45,9 @@ namespace quickbook
             case xml_element::element_text:
                 out += "Text";
                 break;
+            case xml_element::element_html:
+                out += "HTML";
+                break;
             default:
                 out += "Unknown node type";
                 break;
