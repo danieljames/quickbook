@@ -10,6 +10,53 @@ http://www.boost.org/LICENSE_1_0.txt)
 #include <cassert>
 
 namespace quickbook { namespace detail {
+    void tree_node_base::add_before(tree_base* t) {
+        assert(t->root_ && !t->root_->parent_ && !t->root_->prev_ && !t->root_->next_);
+        t->root_->parent_ = this->parent_;
+        t->root_->next_ = this;
+        if (this->prev_) {
+            t->root_->prev_ = this->prev_;
+            this->prev_->next_ = t->root_;
+        } else {
+            this->parent_->children_ = t->root_;
+        }
+        this->prev_ = t->root_;
+        t->root_ = 0;
+    }
+
+    void tree_node_base::add_after(tree_base* t) {
+        assert(t->root_ && !t->root_->parent_ && !t->root_->prev_ && !t->root_->next_);
+        t->root_->parent_ = this->parent_;
+        t->root_->prev_ = this;
+        t->root_->next_ = this->next_;
+        if (this->next_) this->next_->prev_ = t->root_;
+        this->next_ = t->root_;
+        t->root_ = 0;
+    }
+
+    void tree_node_base::add_first_child(tree_base* t) {
+        assert(t->root_ && !t->root_->parent_ && !t->root_->prev_ && !t->root_->next_);
+        t->root_->parent_ = this;
+        t->root_->next_ = this->children_;
+        if (this->children_) { this->children_->prev_ = t->root_; }
+        this->children_ = t->root_;
+        t->root_ = 0;
+    }
+
+    void tree_node_base::add_last_child(tree_base* t) {
+        assert(t->root_ && !t->root_->parent_ && !t->root_->prev_ && !t->root_->next_);
+        t->root_->parent_ = this;
+        if (!this->children_) {
+            this->children_ = t->root_;
+        } else {
+            auto it = this->children_;
+            while (it->next_) { it = it->next_; }
+            t->root_->prev_ = it;
+            it->next_ = t->root_;
+        }
+        t->root_ = 0;
+    }
+
     tree_base::tree_base() : root_(0) {}
     tree_base::tree_base(tree_node_base* r) : root_(r) {}
     tree_base::~tree_base() {}
