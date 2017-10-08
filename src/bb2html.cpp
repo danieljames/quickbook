@@ -508,7 +508,7 @@ namespace quickbook { namespace detail {
             // TODO: Parameterize the boost location, so that it can use relative paths.
             string_iterator it = link.begin() + strlen("boost:");
             if (*it == '/') { ++it; }
-            std::string result = "http://www.boost.org/";
+            std::string result = "http://www.boost.org/doc/libs/release/";
             result.append(it, link.end());
             return result;
         }
