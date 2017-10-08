@@ -21,7 +21,7 @@ namespace quickbook { namespace detail {
     struct xml_parse_error;
 
     struct xml_element : tree_node<xml_element> {
-        enum element_type { element_node, element_text } type_;
+        enum element_type { element_node, element_text, element_html } type_;
         std::string name_;
         std::vector<std::pair<std::string, std::string> > attributes_;
         std::string contents_;
@@ -34,6 +34,12 @@ namespace quickbook { namespace detail {
 
         static xml_element* text_node(quickbook::string_view x) {
             xml_element* n = new xml_element(element_text);
+            n->contents_.assign(x.begin(), x.end());
+            return n;
+        }
+
+        static xml_element* html_node(quickbook::string_view x) {
+            xml_element* n = new xml_element(element_html);
             n->contents_.assign(x.begin(), x.end());
             return n;
         }

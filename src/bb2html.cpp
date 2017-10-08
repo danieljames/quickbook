@@ -379,16 +379,6 @@ namespace quickbook { namespace detail {
                 tag_attribute(gen.printer, "class", "footnote");
                 tag_end(gen.printer);
 
-                // TODO: This should be part of the first paragraph in the footnote.
-                tag_start(gen.printer, "a");
-                // TODO: Might not have an id.
-                tag_attribute(gen.printer, "href", "#" + *(*it)->get_attribute("id"));
-                tag_end(gen.printer);
-                tag_start(gen.printer, "sup");
-                tag_end(gen.printer);
-                gen.printer.html += "[" + footnote_label + "]";
-                close_tag(gen.printer, "sup");
-                close_tag(gen.printer, "a");
                 generate_children_html(gen, *it);
                 close_tag(gen.printer, "div");
             }
@@ -433,6 +423,10 @@ namespace quickbook { namespace detail {
         if (!x) { return; }
         switch (x->type_) {
         case xml_element::element_text: {
+            gen.printer.html += x->contents_;
+            break;
+        }
+        case xml_element::element_html: {
             gen.printer.html += x->contents_;
             break;
         }
@@ -969,8 +963,6 @@ namespace quickbook { namespace detail {
         static int footnote_number = 0;
         ++footnote_number;
         std::string footnote_label = boost::lexical_cast<std::string>(footnote_number);
-        x->attributes_.push_back(std::make_pair("(((footnote-label)))", footnote_label));
-        gen.footnotes.push_back(x);
 
         tag_start_with_id(gen, "a", x);
         tag_attribute(gen.printer, "href", "#footnote-" + footnote_label);
@@ -981,5 +973,25 @@ namespace quickbook { namespace detail {
         gen.printer.html += "[" + footnote_label + "]";
         close_tag(gen.printer, "sup");
         close_tag(gen.printer, "a");
+
+        // Generate HTML to add to footnote.
+        html_printer printer;
+        tag_start(printer, "a");
+        // TODO: Might not have an id.
+        tag_attribute(printer, "href", "#" + *x->get_attribute("id"));
+        tag_end(printer);
+        tag_start(printer, "sup");
+        tag_end(printer);
+        printer.html += "[" + footnote_label + "]";
+        close_tag(printer, "sup");
+        close_tag(printer, "a");
+
+        // Add HTML to footnote.
+        xml_tree_builder builder;
+        builder.add_element(xml_element::html_node(printer.html));
+        x->add_first_child(builder.release());
+
+        x->attributes_.push_back(std::make_pair("(((footnote-label)))", footnote_label));
+        gen.footnotes.push_back(x);
     }
 }}
