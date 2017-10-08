@@ -584,7 +584,7 @@ namespace quickbook
                 if (*it == '/') {
                     ++it;
                 }
-                std::string result = "http://www.boost.org/";
+                std::string result = "http://www.boost.org/doc/libs/release/";
                 result.append(it, link.end());
                 return result;
             }
