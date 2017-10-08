@@ -797,7 +797,7 @@ namespace quickbook { namespace detail {
             tag_attribute(gen.printer, "class", "inlinemediaobject");
             tag_end(gen.printer);
             tag_start_with_id(gen, "img", x);
-            tag_attribute(gen.printer, "src", relative_path_from_url_paths(*image, gen.path));
+            tag_attribute(gen.printer, "src", get_link_from_path(*image, gen.path));
             tag_attribute(gen.printer, "alt", alt);
             tag_end_self_close(gen.printer);
             close_tag(gen.printer, "span");
