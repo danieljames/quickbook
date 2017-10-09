@@ -136,7 +136,6 @@ namespace quickbook { namespace detail {
                 ++it;
                 attribute_value = read_attribute_value(it, start, end);
             }
-            // TODO: Decode attribute value
             node->attributes_.push_back(std::make_pair(
                 std::string(attribute_name.begin(), attribute_name.end()),
                 quickbook::detail::decode_string(attribute_value)
