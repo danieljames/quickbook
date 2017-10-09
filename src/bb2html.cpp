@@ -136,22 +136,36 @@ namespace quickbook
             unsigned number;
         };
 
+        struct chunk_state
+        {
+            std::vector<xml_element*> footnotes;
+            boost::unordered_map<string_view, callout_data> callout_numbers;
+        };
+
         struct html_gen
         {
             html_printer printer;
             html_state& state;
+            chunk_state& chunk;
             string_view path;
             bool in_toc;
-            boost::unordered_map<string_view, callout_data> callout_numbers;
-            std::vector<xml_element*> footnotes;
 
-            explicit html_gen(html_state& state_, string_view p)
-                : printer(), state(state_), path(p), in_toc(false)
+            explicit html_gen(
+                html_state& state_, chunk_state& chunk_, string_view p)
+                : printer()
+                , state(state_)
+                , chunk(chunk_)
+                , path(p)
+                , in_toc(false)
             {
             }
 
             html_gen(html_gen const& x)
-                : printer(), state(x.state), path(x.path), in_toc(false)
+                : printer()
+                , state(x.state)
+                , chunk(x.chunk)
+                , path(x.path)
+                , in_toc(false)
             {
             }
         };
@@ -215,7 +229,8 @@ namespace quickbook
 
         void generate_chunks(html_state& state, chunk* x)
         {
-            html_gen gen(state, x->path_);
+            chunk_state c_state;
+            html_gen gen(state, c_state, x->path_);
             gen.printer.html += "<!DOCTYPE html>\n";
             open_tag(gen.printer, "html");
             open_tag(gen.printer, "head");
@@ -340,7 +355,7 @@ namespace quickbook
 
         void generate_chunk_body(html_gen& gen, chunk* x)
         {
-            gen.callout_numbers.clear();
+            gen.chunk.callout_numbers.clear();
 
             number_callouts(gen, x->title_.root());
             number_callouts(gen, x->info_.root());
@@ -426,15 +441,15 @@ namespace quickbook
 
         void generate_footnotes_html(html_gen& gen)
         {
-            if (!gen.footnotes.empty()) {
+            if (!gen.chunk.footnotes.empty()) {
                 tag_start(gen.printer, "div");
                 tag_attribute(gen.printer, "class", "footnotes");
                 tag_end(gen.printer);
                 gen.printer.html += "<br/>";
                 gen.printer.html += "<hr/>";
                 for (std::vector<xml_element*>::iterator it =
-                         gen.footnotes.begin();
-                     it != gen.footnotes.end(); ++it) {
+                         gen.chunk.footnotes.begin();
+                     it != gen.chunk.footnotes.end(); ++it) {
                     std::string footnote_label =
                         *(*it)->get_attribute("(((footnote-label)))");
                     tag_start(gen.printer, "div");
@@ -466,7 +481,7 @@ namespace quickbook
                     std::string* linkends = x->get_attribute("linkends");
                     std::string* id = x->get_attribute("id");
                     if (id && linkends) {
-                        gen.callout_numbers[*linkends].link_id = *id;
+                        gen.chunk.callout_numbers[*linkends].link_id = *id;
                     }
                 }
             }
@@ -483,7 +498,7 @@ namespace quickbook
                     it->name_ == "callout") {
                     std::string* id = it->get_attribute("id");
                     if (id) {
-                        gen.callout_numbers[*id].number = ++count;
+                        gen.chunk.callout_numbers[*id].number = ++count;
                     }
                 }
                 number_calloutlist_children(gen, count, it);
@@ -1066,12 +1081,12 @@ namespace quickbook
         {
             std::string* id = x->get_attribute("id");
             boost::unordered_map<string_view, callout_data>::const_iterator
-                data = gen.callout_numbers.end();
+                data = gen.chunk.callout_numbers.end();
             auto link = gen.state.ids.end();
             if (id) {
-                data = gen.callout_numbers.find(*id);
+                data = gen.chunk.callout_numbers.find(*id);
             }
-            if (data != gen.callout_numbers.end() &&
+            if (data != gen.chunk.callout_numbers.end() &&
                 !data->second.link_id.empty()) {
                 link = gen.state.ids.find(data->second.link_id);
             }
@@ -1103,10 +1118,10 @@ namespace quickbook
         {
             std::string* linkends = x->get_attribute("linkends");
             boost::unordered_map<string_view, callout_data>::const_iterator
-                data = gen.callout_numbers.end();
+                data = gen.chunk.callout_numbers.end();
             auto link = gen.state.ids.end();
             if (linkends) {
-                data = gen.callout_numbers.find(*linkends);
+                data = gen.chunk.callout_numbers.find(*linkends);
                 link = gen.state.ids.find(*linkends);
             }
 
@@ -1117,7 +1132,7 @@ namespace quickbook
                                              link->second.path(), gen.path));
                 tag_end(gen.printer);
             }
-            if (data != gen.callout_numbers.end()) {
+            if (data != gen.chunk.callout_numbers.end()) {
                 graphics_tag(
                     gen,
                     "/callouts/" +
@@ -1193,7 +1208,7 @@ namespace quickbook
 
             x->attributes_.push_back(
                 std::make_pair("(((footnote-label)))", footnote_label));
-            gen.footnotes.push_back(x);
+            gen.chunk.footnotes.push_back(x);
         }
     }
 }
