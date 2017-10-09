@@ -1157,11 +1157,32 @@ namespace quickbook
             printer.html += "[" + footnote_label + "]";
             close_tag(printer, "sup");
             close_tag(printer, "a");
-
-            // Add HTML to footnote.
+            printer.html += ' ';
             xml_tree_builder builder;
             builder.add_element(xml_element::html_node(printer.html));
-            x->add_first_child(builder.release());
+
+            // Find position to insert.
+            auto pos = x->children();
+            for (; pos && pos->type_ == xml_element::element_text;
+                 pos = pos->next()) {
+                if (pos->contents_.find_first_not_of("\t\n ") !=
+                    std::string::npos) {
+                    break;
+                }
+            }
+            if (!pos) {
+                x->add_first_child(builder.release());
+            }
+            else
+                switch (pos->type_) {
+                case xml_element::element_node:
+                    // TODO: Check type of node? Recurse?
+                    pos->add_first_child(builder.release());
+                    break;
+                default:
+                    pos->add_before(builder.release());
+                    break;
+                }
 
             x->attributes_.push_back(
                 std::make_pair("(((footnote-label)))", footnote_label));
