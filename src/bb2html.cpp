@@ -34,6 +34,7 @@ namespace quickbook { namespace detail {
     struct html_state;
     struct html_gen;
     struct id_info;
+    struct fragment_id_generator;
 
     typedef boost::unordered_map<string_view, id_info> ids_type;
 
@@ -43,8 +44,9 @@ namespace quickbook { namespace detail {
 
     void generate_chunked_documentation(chunk*, ids_type const&, html_options const&);
     void generate_chunks(html_state&, chunk*);
-    void generate_inline_chunks(html_gen& gen, chunk*);
-    void generate_chunk_html(html_gen&, chunk*);
+    void generate_chunk_navigation(html_gen&, chunk*);
+    void generate_inline_chunks(html_gen&, chunk*);
+    void generate_chunk_body(html_gen&, chunk*);
     void generate_toc_html(html_gen& gen, chunk*);
     void generate_toc_subtree(html_gen& gen, chunk* page, chunk*, unsigned section_depth);
     void generate_toc_item_html(html_gen&, xml_element*);
@@ -186,6 +188,40 @@ namespace quickbook { namespace detail {
     }
 
     void generate_chunks(html_state& state, chunk* x) {
+        html_gen gen(state, x->path_);
+        gen.printer.html += "<!DOCTYPE html>\n";
+        open_tag(gen.printer, "html");
+        open_tag(gen.printer, "head");
+        if (!state.options.css_path.empty()) {
+            tag_start(gen.printer, "link");
+            tag_attribute(gen.printer, "rel", "stylesheet");
+            tag_attribute(gen.printer, "type", "text/css");
+            tag_attribute(gen.printer, "href",
+                relative_path_from_fs_paths(state.options.css_path,
+                    state.options.home_path.parent_path() / x->path_));
+            tag_end_self_close(gen.printer);
+        }
+        close_tag(gen.printer, "head");
+        open_tag(gen.printer, "body");
+        generate_chunk_navigation(gen, x);
+        generate_chunk_body(gen, x);
+        chunk* it = x->children();
+        for (; it && it->inline_; it = it->next())
+        {
+            generate_inline_chunks(gen, it);
+        }
+        generate_footnotes_html(gen);
+        close_tag(gen.printer, "body");
+        close_tag(gen.printer, "html");
+        write_file(state, x->path_, gen.printer.html);
+        for (; it; it = it->next())
+        {
+            assert(!it->inline_);
+            generate_chunks(state, it);
+        }
+    }
+
+    void generate_chunk_navigation(html_gen& gen, chunk* x) {
         chunk* next = 0;
         for (chunk* it = x->children(); it; it = it->next()) {
             if (!it->inline_) {
@@ -204,21 +240,6 @@ namespace quickbook { namespace detail {
             prev = x->parent();
         }
 
-        html_gen gen(state, x->path_);
-        gen.printer.html += "<!DOCTYPE html>\n";
-        open_tag(gen.printer, "html");
-        open_tag(gen.printer, "head");
-        if (!state.options.css_path.empty()) {
-            tag_start(gen.printer, "link");
-            tag_attribute(gen.printer, "rel", "stylesheet");
-            tag_attribute(gen.printer, "type", "text/css");
-            tag_attribute(gen.printer, "href",
-                relative_path_from_fs_paths(state.options.css_path,
-                    state.options.home_path.parent_path() / x->path_));
-            tag_end_self_close(gen.printer);
-        }
-        close_tag(gen.printer, "head");
-        open_tag(gen.printer, "body");
         if (next || prev || x->parent()) {
             tag_start(gen.printer, "div");
             tag_attribute(gen.printer, "class", "spirit-nav");
@@ -259,28 +280,13 @@ namespace quickbook { namespace detail {
             }
             close_tag(gen.printer, "div");
         }
-        generate_chunk_html(gen, x);
-        chunk* it = x->children();
-        for (; it && it->inline_; it = it->next())
-        {
-            generate_inline_chunks(gen, it);
-        }
-        generate_footnotes_html(gen);
-        close_tag(gen.printer, "body");
-        close_tag(gen.printer, "html");
-        write_file(state, x->path_, gen.printer.html);
-        for (; it; it = it->next())
-        {
-            assert(!it->inline_);
-            generate_chunks(state, it);
-        }
     }
 
     void generate_inline_chunks(html_gen& gen, chunk* x) {
         tag_start(gen.printer, "div");
         tag_attribute(gen.printer, "id", x->id_);
         tag_end(gen.printer);
-        generate_chunk_html(gen, x);
+        generate_chunk_body(gen, x);
         for (chunk* it = x->children(); it; it = it->next())
         {
             assert(it->inline_);
@@ -289,7 +295,7 @@ namespace quickbook { namespace detail {
         close_tag(gen.printer, "div");
     }
 
-    void generate_chunk_html(html_gen& gen, chunk* x) {
+    void generate_chunk_body(html_gen& gen, chunk* x) {
         gen.callout_numbers.clear();
 
         number_callouts(gen, x->title_.root());
