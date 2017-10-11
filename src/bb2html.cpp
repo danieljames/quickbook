@@ -849,13 +849,29 @@ namespace quickbook
 
         NODE_MAP(title, h3)
 
-        NODE_MAP_CLASS(sidebar, div, sidebar) // TODO: sidebar role="blurb"
         NODE_MAP_CLASS(warning, div, warning)
         NODE_MAP_CLASS(caution, div, caution)
         NODE_MAP_CLASS(important, div, important)
         NODE_MAP_CLASS(note, div, note)
         NODE_MAP_CLASS(tip, div, tip)
         NODE_MAP_CLASS(replaceable, em, replaceable)
+
+        NODE_RULE(sidebar, gen, x)
+        {
+            std::string* role = x->get_attribute("role");
+
+            tag_start_with_id(gen, "div", x);
+            if (role && *role == "blurb") {
+                tag_attribute(gen.printer, "class", "blurb");
+            }
+            else {
+                tag_attribute(gen.printer, "class", "sidebar");
+            }
+
+            tag_end(gen.printer);
+            generate_children_html(gen, x);
+            close_tag(gen.printer, "div");
+        }
 
         NODE_RULE(sbr, gen, x)
         {
