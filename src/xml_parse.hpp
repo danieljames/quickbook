@@ -9,8 +9,8 @@ http://www.boost.org/LICENSE_1_0.txt)
 #if !defined(BOOST_QUICKBOOK_XML_PARSE_HPP)
 #define BOOST_QUICKBOOK_XML_PARSE_HPP
 
+#include <list>
 #include <string>
-#include <vector>
 #include "string_view.hpp"
 #include "tree.hpp"
 
@@ -32,7 +32,7 @@ namespace quickbook
                 element_html
             } type_;
             std::string name_;
-            std::vector<std::pair<std::string, std::string> > attributes_;
+            std::list<std::pair<std::string, std::string> > attributes_;
             std::string contents_;
 
             explicit xml_element(element_type n) : type_(n) {}
@@ -63,9 +63,7 @@ namespace quickbook
 
             std::string* get_attribute(quickbook::string_view name)
             {
-                for (std::vector<std::pair<std::string, std::string> >::iterator
-                         it = attributes_.begin(),
-                         end = attributes_.end();
+                for (auto it = attributes_.begin(), end = attributes_.end();
                      it != end; ++it) {
                     if (name == it->first) {
                         return &it->second;
