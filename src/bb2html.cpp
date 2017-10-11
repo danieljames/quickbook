@@ -38,7 +38,6 @@ namespace quickbook
         struct html_state;
         struct html_gen;
         struct id_info;
-        struct fragment_id_generator;
 
         typedef boost::unordered_map<string_view, id_info> ids_type;
 
@@ -140,6 +139,7 @@ namespace quickbook
         {
             std::vector<xml_element*> footnotes;
             boost::unordered_map<string_view, callout_data> callout_numbers;
+            boost::unordered_set<string_view> fragment_ids;
         };
 
         struct html_gen
@@ -227,9 +227,56 @@ namespace quickbook
             return state.error_count;
         }
 
+        void gather_chunk_ids(chunk_state& c_state, xml_element* x)
+        {
+            if (!x) {
+                return;
+            }
+            std::string* id = x->get_attribute("id");
+            if (id) {
+                c_state.fragment_ids.emplace(*id);
+            }
+            for (auto it = x->children(); it; it = it->next()) {
+                gather_chunk_ids(c_state, it);
+            }
+        }
+
+        void gather_chunk_ids(chunk_state& c_state, chunk* x)
+        {
+            gather_chunk_ids(c_state, x->contents_.root());
+            gather_chunk_ids(c_state, x->title_.root());
+            gather_chunk_ids(c_state, x->info_.root());
+
+            for (chunk* it = x->children(); it && it->inline_;
+                 it = it->next()) {
+                gather_chunk_ids(c_state, it);
+            }
+        }
+
+        std::string generate_id(
+            chunk_state& c_state, quickbook::string_view base)
+        {
+            std::string result;
+            result.reserve(base.size() + 2);
+            result.assign(base.begin(), base.end());
+            result += '-';
+            // TODO: Share implementation with id_generation.cpp?
+            for (unsigned count = 1;; ++count) {
+                auto num = boost::lexical_cast<std::string>(count);
+                result.reserve(base.size() + 1 + num.size());
+                result.erase(base.size() + 1);
+                result += num;
+                if (c_state.fragment_ids.find(result) ==
+                    c_state.fragment_ids.end()) {
+                    return result;
+                }
+            }
+        }
+
         void generate_chunks(html_state& state, chunk* x)
         {
             chunk_state c_state;
+            gather_chunk_ids(c_state, x);
             html_gen gen(state, c_state, x->path_);
             gen.printer.html += "<!DOCTYPE html>\n";
             open_tag(gen.printer, "html");
@@ -450,11 +497,10 @@ namespace quickbook
                 for (std::vector<xml_element*>::iterator it =
                          gen.chunk.footnotes.begin();
                      it != gen.chunk.footnotes.end(); ++it) {
-                    std::string footnote_label =
-                        *(*it)->get_attribute("(((footnote-label)))");
+                    std::string* footnote_id =
+                        (*it)->get_attribute("(((footnote-id)))");
                     tag_start(gen.printer, "div");
-                    tag_attribute(
-                        gen.printer, "id", "footnote-" + footnote_label);
+                    tag_attribute(gen.printer, "id", *footnote_id);
                     tag_attribute(gen.printer, "class", "footnote");
                     tag_end(gen.printer);
 
@@ -477,10 +523,16 @@ namespace quickbook
                     number_calloutlist_children(gen, count, x);
                 }
                 else if (x->name_ == "co") {
-                    // TODO: Set id if missing?
                     std::string* linkends = x->get_attribute("linkends");
                     std::string* id = x->get_attribute("id");
-                    if (id && linkends) {
+                    if (linkends) {
+                        if (!id) {
+                            x->attributes_.push_back(std::make_pair(
+                                "id", generate_id(gen.chunk, *linkends)));
+                            id = x->get_attribute("id");
+                            assert(id);
+                            gen.chunk.fragment_ids.emplace(*id);
+                        }
                         gen.chunk.callout_numbers[*linkends].link_id = *id;
                     }
                 }
@@ -1157,9 +1209,10 @@ namespace quickbook
             ++footnote_number;
             std::string footnote_label =
                 boost::lexical_cast<std::string>(footnote_number);
+            std::string footnote_id = generate_id(gen.chunk, "footnote");
 
             tag_start_with_id(gen, "a", x);
-            tag_attribute(gen.printer, "href", "#footnote-" + footnote_label);
+            tag_attribute(gen.printer, "href", "#" + footnote_id);
             tag_end(gen.printer);
             tag_start(gen.printer, "sup");
             tag_attribute(gen.printer, "class", "footnote");
@@ -1207,7 +1260,9 @@ namespace quickbook
                 }
 
             x->attributes_.push_back(
-                std::make_pair("(((footnote-label)))", footnote_label));
+                std::make_pair("(((footnote-id)))", footnote_id));
+            gen.chunk.fragment_ids.emplace(
+                *x->get_attribute("(((footnote-id)))"));
             gen.chunk.footnotes.push_back(x);
         }
     }
