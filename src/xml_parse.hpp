@@ -12,7 +12,7 @@ http://www.boost.org/LICENSE_1_0.txt)
 #include "tree.hpp"
 #include "string_view.hpp"
 #include <string>
-#include <vector>
+#include <list>
 
 namespace quickbook { namespace detail {
     struct xml_element;
@@ -23,7 +23,7 @@ namespace quickbook { namespace detail {
     struct xml_element : tree_node<xml_element> {
         enum element_type { element_node, element_text, element_html } type_;
         std::string name_;
-        std::vector<std::pair<std::string, std::string> > attributes_;
+        std::list<std::pair<std::string, std::string> > attributes_;
         std::string contents_;
 
         explicit xml_element(element_type n) : type_(n) {}
@@ -49,8 +49,7 @@ namespace quickbook { namespace detail {
         }
 
         std::string* get_attribute(quickbook::string_view name) {
-            for (std::vector<std::pair<std::string, std::string> >::iterator
-                it = attributes_.begin(), end = attributes_.end();
+            for (auto it = attributes_.begin(), end = attributes_.end();
                 it != end; ++it) {
                 if (name == it->first) { return &it->second; }
             }
