@@ -830,7 +830,6 @@ namespace quickbook
     }
 
         // TODO: For some reason 'hr' generates an empty paragraph?
-        NODE_MAP(para, p)
         NODE_MAP(simpara, div)
         NODE_MAP(orderedlist, ol)
         NODE_MAP(itemizedlist, ul)
@@ -946,28 +945,50 @@ namespace quickbook
             close_tag(gen.printer, "span");
         }
 
+        NODE_RULE(para, gen, x)
+        {
+            std::string* value = x->get_attribute("role");
+
+            tag_start_with_id(gen, "p", x);
+            if (value) {
+                tag_attribute(gen.printer, "class", *value);
+            }
+            tag_end(gen.printer);
+            generate_children_html(gen, x);
+            close_tag(gen.printer, "p");
+        }
+
         NODE_RULE(emphasis, gen, x)
         {
             std::string* value = x->get_attribute("role");
-            quickbook::string_view tag_name = "em";
-            quickbook::string_view class_name = "";
-            // TODO: case insensitive?
-            if (value) {
-                if (*value == "bold" || *value == "strong") {
-                    tag_name = "strong";
-                }
-                else {
-                    tag_name = "span";
-                    class_name = *value;
-                }
+            quickbook::string_view tag_name;
+            quickbook::string_view class_name;
+
+            if (!value) {
+                tag_name = "em";
+                class_name = "emphasis";
             }
-            tag_start_with_id(gen, tag_name, x);
+            else if (*value == "bold" || *value == "strong") {
+                tag_name = "strong";
+                class_name = *value;
+            }
+            else {
+                class_name = *value;
+            }
+            tag_start_with_id(gen, "span", x);
             if (!class_name.empty()) {
                 tag_attribute(gen.printer, "class", class_name);
             }
             tag_end(gen.printer);
-            generate_children_html(gen, x);
-            close_tag(gen.printer, tag_name);
+            if (!tag_name.empty()) {
+                open_tag(gen.printer, tag_name);
+                generate_children_html(gen, x);
+                close_tag(gen.printer, tag_name);
+            }
+            else {
+                generate_children_html(gen, x);
+            }
+            close_tag(gen.printer, "span");
         }
 
         NODE_RULE(inlinemediaobject, gen, x)
@@ -1076,7 +1097,12 @@ namespace quickbook
                     for (xml_element* j = i->children(); j; j = j->next()) {
                         if (j->type_ == xml_element::element_node &&
                             j->name_ == "entry") {
-                            open_tag_with_id(gen, td_tag, j);
+                            std::string* role = x->get_attribute("role");
+                            tag_start_with_id(gen, td_tag, j);
+                            if (role) {
+                                tag_attribute(gen.printer, "class", *role);
+                            }
+                            tag_end(gen.printer);
                             generate_children_html(gen, j);
                             close_tag(gen.printer, td_tag);
                         }
