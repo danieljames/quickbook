@@ -21,8 +21,8 @@
       </h3>
       <div id="simple_markup_test.simple_markup">
         <p>
-          <em>italic</em> <strong>bold</strong> <span class="underline">underline</span>
-          <tt>teletype</tt>
+          <span class="emphasis"><em>italic</em></span> <span class="bold"><strong>bold</strong></span>
+          <span class="underline">underline</span> <tt>teletype</tt>
         </p>
         <p>
           //not italic// **not bold** __not underline__ ==not teletype==
@@ -34,13 +34,13 @@
           not__underlined__hopefully
         </p>
         <p>
-          (<strong>bold</strong>) <span class="underline">und/er/lined</span>
+          (<span class="bold"><strong>bold</strong></span>) <span class="underline">und/er/lined</span>
         </p>
         <p>
-          <em>all/italic</em> * not bold*
+          <span class="emphasis"><em>all/italic</em></span> * not bold*
         </p>
         <p>
-          /not italic <a href="http://www.boost.org/"><strong>bold</strong></a>
+          /not italic <a href="http://www.boost.org/"><span class="bold"><strong>bold</strong></span></a>
         </p>
         <p>
           not_underlined_
@@ -61,7 +61,7 @@
           <tt>_mac\ ro_</tt>
         </p>
         <p>
-          <em>italic\</em>
+          <span class="emphasis"><em>italic\</em></span>
         </p>
         <p>
           These shouldn't be interepted as markup: == // **

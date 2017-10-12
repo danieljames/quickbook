@@ -10,7 +10,7 @@
       Distributed under the Boost Software License, Version 1.0. (See accompanying
       file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</a>)
     </p>
-    <em>WikiWiki</em> style documentation tool
+    <span class="emphasis"><em>WikiWiki</em></span> style documentation tool
     <div class="toc">
       <p>
         <b>Table of contents</b>
@@ -46,8 +46,8 @@
       <div id="quickbook.intro">
         <blockquote>
           <p>
-            <strong><em><q>Why program by hand in five days what you can spend five
-            years of your life automating?</q></em></strong>
+            <span class="bold"><strong><span class="emphasis"><em><q>Why program
+            by hand in five days what you can spend five years of your life automating?</q></em></span></strong></span>
           </p>
           <p>
             -- Terrence Parr, author ANTLR/PCCTS
@@ -358,8 +358,9 @@
               will generate:
             </p>
             <p>
-              <em>italic</em>, <strong>bold</strong>, <span class="underline">underline</span>,
-              <tt>teletype</tt>, <span class="strikethrough">strikethrough</span>
+              <span class="emphasis"><em>italic</em></span>, <span class="bold"><strong>bold</strong></span>,
+              <span class="underline">underline</span>, <tt>teletype</tt>, <span
+              class="strikethrough">strikethrough</span>
             </p>
             <p>
               Like all non-terminal phrase level elements, this can of course be
@@ -371,7 +372,7 @@
               will generate:
             </p>
             <p>
-              <strong><em>bold-italic</em></strong>
+              <span class="bold"><strong><span class="emphasis"><em>bold-italic</em></span></strong></span>
             </p>
           </div>
         </div>
@@ -443,8 +444,8 @@ the true business precept.]
               will generate:
             </p>
             <p>
-              <em>italic</em>, <strong>bold</strong>, <span class="underline">underline</span>,
-              <tt>teletype</tt>
+              <span class="emphasis"><em>italic</em></span>, <span class="bold"><strong>bold</strong></span>,
+              <span class="underline">underline</span>, <tt>teletype</tt>
             </p>
             <p>
               Unlike QuickBook's standard formatting scheme, the rules for simpler
@@ -522,7 +523,7 @@ the true business precept.]
                     </td>
                     <td>
                       <p>
-                        <strong>Bold</strong>
+                        <span class="bold"><strong>Bold</strong></span>
                       </p>
                     </td>
                   </tr>
@@ -534,7 +535,7 @@ the true business precept.]
                     </td>
                     <td>
                       <p>
-                        <strong>Is bold</strong>
+                        <span class="bold"><strong>Is bold</strong></span>
                       </p>
                     </td>
                   </tr>
@@ -570,7 +571,8 @@ the true business precept.]
                     </td>
                     <td>
                       <p>
-                        (<strong>Bold Inside</strong>) (parenthesis not bold)
+                        (<span class="bold"><strong>Bold Inside</strong></span>)
+                        (parenthesis not bold)
                       </p>
                     </td>
                   </tr>
@@ -582,7 +584,8 @@ the true business precept.]
                     </td>
                     <td>
                       <p>
-                        <strong>(Bold Outside)</strong> (parenthesis bold)
+                        <span class="bold"><strong>(Bold Outside)</strong></span>
+                        (parenthesis bold)
                       </p>
                     </td>
                   </tr>
@@ -618,7 +621,8 @@ the true business precept.]
                     </td>
                     <td>
                       <p>
-                        3 <strong>4</strong> 5 = 60 (4 is bold)
+                        3 <span class="bold"><strong>4</strong></span> 5 = 60 (4
+                        is bold)
                       </p>
                     </td>
                   </tr>
@@ -630,8 +634,8 @@ the true business precept.]
                     </td>
                     <td>
                       <p>
-                        <strong>This is bold</strong> this is not <strong>but this
-                        is</strong>
+                        <span class="bold"><strong>This is bold</strong></span> this
+                        is not <span class="bold"><strong>but this is</strong></span>
                       </p>
                     </td>
                   </tr>
@@ -643,7 +647,7 @@ the true business precept.]
                     </td>
                     <td>
                       <p>
-                        <strong>This is bold</strong>.
+                        <span class="bold"><strong>This is bold</strong></span>.
                       </p>
                     </td>
                   </tr>
@@ -655,7 +659,7 @@ the true business precept.]
                     </td>
                     <td>
                       <p>
-                        <strong>B</strong>. (bold B)
+                        <span class="bold"><strong>B</strong></span>. (bold B)
                       </p>
                     </td>
                   </tr>
@@ -667,7 +671,7 @@ the true business precept.]
                     </td>
                     <td>
                       <p>
-                        <em><strong>Bold-Italic</strong></em>
+                        <span class="emphasis"><em><span class="bold"><strong>Bold-Italic</strong></span></em></span>
                       </p>
                     </td>
                   </tr>
@@ -679,7 +683,7 @@ the true business precept.]
                     </td>
                     <td>
                       <p>
-                        <strong>side-by</strong><em>-side</em>
+                        <span class="bold"><strong>side-by</strong></span><span class="emphasis"><em>-side</em></span>
                       </p>
                     </td>
                   </tr>
@@ -697,9 +701,9 @@ One for the master, one for the dame,
 And one for the little boy who lives down the lane.
 </pre>
             <p>
-              Baa baa black sheep, <strong>have you any wool? Yes sir, yes sir, three
-              bags full!</strong> One for the master, one for the dame, And one for
-              the little boy who lives down the lane.
+              Baa baa black sheep, <span class="bold"><strong>have you any wool?
+              Yes sir, yes sir, three bags full!</strong></span> One for the master,
+              one for the dame, And one for the little boy who lives down the lane.
             </p>
             <p>
               But in the following paragraph, bold is not applied:
@@ -916,7 +920,8 @@ C++ comment `// looks like this` whereas a Python comment [python]
               will generate:
             </p>
             <p>
-              <a href="http://www.boost.org">this is <strong>boost's</strong> website....</a>
+              <a href="http://www.boost.org">this is <span class="bold"><strong>boost's</strong></span>
+              website....</a>
             </p>
             <p>
               URL links where the link text is the link itself is common. Example:
@@ -1028,7 +1033,7 @@ escape (no processing/formatting)
 '''
 </pre>
             <p>
-              <strong>This is direct XML markup</strong>
+              <span class="bold"><strong>This is direct XML markup</strong></span>
             </p>
             <div class="important">
               <p>
@@ -1240,12 +1245,13 @@ escape (no processing/formatting)
 <pre class="programlisting">[section:id The Section Title]
 </pre>
             <p>
-              where <em>id</em> is optional. id will be the filename of the generated
-              section. If it is not present, &quot;The Section Title&quot; will be
-              normalized and become the id. Valid characters are <tt>a-Z</tt>, <tt>A-Z</tt>,
-              <tt>0-9</tt> and <tt>_</tt>. All non-valid characters are converted
-              to underscore and all upper-case are converted to lower case. Thus:
-              &quot;The Section Title&quot; will be normalized to &quot;the_section_title&quot;.
+              where <span class="emphasis"><em>id</em></span> is optional. id will
+              be the filename of the generated section. If it is not present, &quot;The
+              Section Title&quot; will be normalized and become the id. Valid characters
+              are <tt>a-Z</tt>, <tt>A-Z</tt>, <tt>0-9</tt> and <tt>_</tt>. All non-valid
+              characters are converted to underscore and all upper-case are converted
+              to lower case. Thus: &quot;The Section Title&quot; will be normalized
+              to &quot;the_section_title&quot;.
             </p>
             <p>
               End a section with:
@@ -1685,9 +1691,9 @@ escape (no processing/formatting)
               Inside code, code blocks and inline code, QuickBook does not allow
               any markup to avoid conflicts with the target syntax (e.g. c++). In
               case you need to switch back to QuickBook markup inside code, you can
-              do so using a language specific <em>escape-back</em> delimiter. In
-              C++ and Python, the delimiter is the double tick (back-quote): &quot;``&quot;
-              and &quot;``&quot;. Example:
+              do so using a language specific <span class="emphasis"><em>escape-back</em></span>
+              delimiter. In C++ and Python, the delimiter is the double tick (back-quote):
+              &quot;``&quot; and &quot;``&quot;. Example:
             </p>
 <pre class="programlisting">void ``[@http://en.wikipedia.org/wiki/Foo#Foo.2C_Bar_and_Baz foo]``()
 {
@@ -1730,11 +1736,11 @@ escape (no processing/formatting)
               block level markup, pre (and Code) are the only ones that allow multiple
               newlines. The markup above will generate:
             </p>
-<pre class="programlisting">Some <strong>preformatted</strong> text                    Some <strong>preformatted</strong> text
+<pre class="programlisting">Some <span class="bold"><strong>preformatted</strong></span> text                    Some <span class="bold"><strong>preformatted</strong></span> text
 
-    Some <strong>preformatted</strong> text            Some <strong>preformatted</strong> text
+    Some <span class="bold"><strong>preformatted</strong></span> text            Some <span class="bold"><strong>preformatted</strong></span> text
 
-        Some <strong>preformatted</strong> text    Some <strong>preformatted</strong> text
+        Some <span class="bold"><strong>preformatted</strong></span> text    Some <span class="bold"><strong>preformatted</strong></span> text
 
 </pre>
             <p>
@@ -1858,14 +1864,15 @@ escape (no processing/formatting)
           <div id="quickbook.syntax.block.generic_heading">
             <p>
               In cases when you don't want to care about the heading level (1 to
-              6), you can use the <em>Generic Heading</em>:
+              6), you can use the <span class="emphasis"><em>Generic Heading</em></span>:
             </p>
 <pre class="programlisting">[heading Heading]
 </pre>
             <p>
-              The <em>Generic Heading</em> assumes the level, plus one, of the innermost
-              section where it is placed. For example, if it is placed in the outermost
-              section, then, it assumes <em>h2</em>.
+              The <span class="emphasis"><em>Generic Heading</em></span> assumes
+              the level, plus one, of the innermost section where it is placed. For
+              example, if it is placed in the outermost section, then, it assumes
+              <span class="emphasis"><em>h2</em></span>.
             </p>
             <p>
               Headings are often used as an alternative to sections. It is used particularly
@@ -1894,9 +1901,11 @@ escape (no processing/formatting)
             <p>
               They work well regardless where you place them. You can rearrange sections
               at will without any extra work to ensure correct heading levels. In
-              fact, with <em>section</em> and <em>heading</em>, you have all you
-              need. <em>h1</em>..<em>h6</em> becomes redundant. <em>h1</em>..<em>h6</em>
-              might be deprecated in the future.
+              fact, with <span class="emphasis"><em>section</em></span> and <span
+              class="emphasis"><em>heading</em></span>, you have all you need. <span
+              class="emphasis"><em>h1</em></span>..<span class="emphasis"><em>h6</em></span>
+              becomes redundant. <span class="emphasis"><em>h1</em></span>..<span
+              class="emphasis"><em>h6</em></span> might be deprecated in the future.
             </p>
           </div>
         </div>
@@ -1933,11 +1942,11 @@ sf_logo
               </p>
             </div>
             <p>
-              Links (URLS) and images are good candidates for macros. <strong>1</strong>)
+              Links (URLS) and images are good candidates for macros. <span class="bold"><strong>1</strong></span>)
               They tend to change a lot. It is a good idea to place all links and
               images in one place near the top to make it easy to make changes.
-              <strong>2</strong>) The syntax is not pretty. It's easier to read and
-              write, e.g. <tt>__spirit__</tt> than <tt>[@http://spirit.sourceforge.net
+              <span class="bold"><strong>2</strong></span>) The syntax is not pretty.
+              It's easier to read and write, e.g. <tt>__spirit__</tt> than <tt>[@http://spirit.sourceforge.net
               Spirit]</tt>.
             </p>
             <p>
@@ -2190,7 +2199,7 @@ replacement text...
               We have:
             </p>
             <p>
-              Some squiggles...<strong>&#945;&#946;</strong>
+              Some squiggles...<span class="bold"><strong>&#945;&#946;</strong></span>
             </p>
             <p>
               The difference with macros are
@@ -2230,8 +2239,8 @@ for the journey to old age.]]]
               We have:
             </p>
             <p>
-              Here's a quote from Aristotle: <strong><em>Education is the best provision
-              for the journey to old age.</em></strong>.
+              Here's a quote from Aristotle: <span class="bold"><strong><span class="emphasis"><em>Education
+              is the best provision for the journey to old age.</em></span></strong></span>.
             </p>
             <p>
               The disadvantage is that you can't avoid the space between the template
@@ -2373,7 +2382,7 @@ for the journey to old age.]]]
             <div class="blurb">
               <p>
                 <span class="inlinemediaobject"><img src="images/smiley.png" alt="[]"/></span>
-                <strong>An eye catching advertisement or note...</strong>
+                <span class="bold"><strong>An eye catching advertisement or note...</strong></span>
               </p>
               <p>
                 <a href="http://spirit.sourceforge.net">Spirit</a> is an object-oriented
@@ -2768,7 +2777,8 @@ for the journey to old age.]]]
               And the result is:
             </p>
             <p>
-              This is the <strong><em>foo</em></strong> function.
+              This is the <span class="bold"><strong><span class="emphasis"><em>foo</em></span></strong></span>
+              function.
             </p>
             <p>
               This description can have paragraphs...
@@ -2797,7 +2807,8 @@ for the journey to old age.]]]
 </pre>
             </p>
             <p>
-              This is the <strong><em>bar</em></strong> function
+              This is the <span class="bold"><strong><span class="emphasis"><em>bar</em></span></strong></span>
+              function
             </p>
             <p>
 <pre class="programlisting"><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="identifier">bar</span><span class="special">()</span>
@@ -2825,9 +2836,10 @@ for the journey to old age.]]]
               The first comment line above initiates a named code-snippet. This prefix
               will not be visible in quickbook. The entire code-snippet in between
               <code><span class="comment">//[id</span></code> and <code><span class="comment">//]</span></code>
-              will be inserted as a template in quickbook with name <em><em>id</em></em>.
-              The comment <code><span class="comment">//]</span></code> ends a code-snippet
-              This too will not be visible in quickbook.
+              will be inserted as a template in quickbook with name <span class="emphasis"><em><span
+              class="emphasis"><em>id</em></span></em></span>. The comment <code><span
+              class="comment">//]</span></code> ends a code-snippet This too will
+              not be visible in quickbook.
             </p>
             <h5 id="quickbook.syntax.block.import.special_comments">
               Special Comments
@@ -2843,7 +2855,7 @@ for the journey to old age.]]]
 <pre class="programlisting"><span class="comment">/*` some [*quickbook] markup here */</span>
 </pre>
             <p>
-              will be parsed by QuickBook. This can contain quickbook <em>blocks</em>
+              will be parsed by QuickBook. This can contain quickbook <span class="emphasis"><em>blocks</em></span>
               (e.g. sections, paragraphs, tables, etc). In the first case, the initial
               slash-slash, tick and white-space shall be ignored. In the second,
               the initial slash-star-tick and the final star-slash shall be ignored.
@@ -2874,8 +2886,8 @@ for the journey to old age.]]]
               <div id="quickbook.syntax.block.import.c1">
                 <a href="#quickbook.syntax.block.import.c0">(1)</a>
                 <p>
-                  The <em>Mythical</em> FooBar. See <a href="http://en.wikipedia.org/wiki/Foobar">Foobar
-                  for details</a>
+                  The <span class="emphasis"><em>Mythical</em></span> FooBar. See
+                  <a href="http://en.wikipedia.org/wiki/Foobar">Foobar for details</a>
                 </p>
               </div>
               <div id="quickbook.syntax.block.import.c3">
@@ -2919,7 +2931,7 @@ for the journey to old age.]]]
         <div id="quickbook.install.windows">
           <blockquote>
             <p>
-              <em>Section contributed by Julio M. Merino Vidal</em>
+              <span class="emphasis"><em>Section contributed by Julio M. Merino Vidal</em></span>
             </p>
           </blockquote>
           <p>
@@ -3184,7 +3196,7 @@ for the journey to old age.]]]
         <div id="quickbook.editors.scite">
           <blockquote>
             <p>
-              <em>Section contributed by Dean Michael Berris</em>
+              <span class="emphasis"><em>Section contributed by Dean Michael Berris</em></span>
             </p>
           </blockquote>
           <p>
@@ -3235,7 +3247,7 @@ comment.box.end.props=]
         </p>
         <blockquote>
           <p>
-            <em>Faq contributed by Michael Marcin</em>
+            <span class="emphasis"><em>Faq contributed by Michael Marcin</em></span>
           </p>
         </blockquote>
         <p>
@@ -3317,7 +3329,7 @@ boostbook standalone
               <tr>
                 <td>
                   <p>
-                    <em>italics</em>
+                    <span class="emphasis"><em>italics</em></span>
                   </p>
                 </td>
                 <td>
@@ -3336,7 +3348,7 @@ boostbook standalone
               <tr>
                 <td>
                   <p>
-                    <strong>bold</strong>
+                    <span class="bold"><strong>bold</strong></span>
                   </p>
                 </td>
                 <td>
@@ -3509,7 +3521,7 @@ boostbook standalone
                 <td>
                   <p>
                     <a href="#quickbook.syntax.phrase.line_break">line-break</a>
-                    <strong>DEPRECATED</strong>
+                    <span class="bold"><strong>DEPRECATED</strong></span>
                   </p>
                 </td>
               </tr>
