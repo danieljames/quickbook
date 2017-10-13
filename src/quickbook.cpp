@@ -503,7 +503,10 @@ main(int argc, char* argv[])
                 vm["input-file"].as<command_line_string>());
 
             if (!fs::exists(filein)) {
-                quickbook::detail::outerr() << "file not found: " << filein;
+                quickbook::detail::outerr()
+                    << "file not found: "
+                    << filein
+                    << std::endl;
                 ++error_count;
             }
 
@@ -575,22 +578,26 @@ main(int argc, char* argv[])
                     options.output_path = quickbook::detail::command_line_to_path(
                         vm["output-file"].as<command_line_string>());
 
-                    if (!fs::is_directory(options.output_path.parent_path()))
+                    fs::path parent = options.output_path.parent_path();
+                    if (!parent.empty() && !fs::is_directory(parent))
                     {
                         quickbook::detail::outerr()
-                            << "parent directory not found for output file";
+                            << "parent directory not found for output file"
+                            << std::endl;
                         ++error_count;
                     }
                     break;
                 }
                 case quickbook::parse_document_options::output_chunked:
                     quickbook::detail::outerr()
-                        << "output-file give for chunked output";
+                        << "output-file give for chunked output"
+                        << std::endl;
                     ++error_count;
                     break;
                 case quickbook::parse_document_options::output_none:
                     quickbook::detail::outerr()
-                        << "output-file given for no output";
+                        << "output-file given for no output"
+                        << std::endl;
                     ++error_count;
                     break;
                 default:
@@ -609,18 +616,21 @@ main(int argc, char* argv[])
                     if (!fs::is_directory(options.output_path.parent_path()))
                     {
                         quickbook::detail::outerr()
-                            << "parent directory not found for output directory";
+                            << "parent directory not found for output directory"
+                            << std::endl;
                         ++error_count;
                     }
                 }
                 case quickbook::parse_document_options::output_file:
                     quickbook::detail::outerr()
-                        << "output-dir give for file output";
+                        << "output-dir give for file output"
+                        << std::endl;
                     ++error_count;
                     break;
                 case quickbook::parse_document_options::output_none:
                     quickbook::detail::outerr()
-                        << "output-dir given for no output";
+                        << "output-dir given for no output"
+                        << std::endl;
                     ++error_count;
                     break;
                 default:
@@ -675,7 +685,8 @@ main(int argc, char* argv[])
                 if (!fs::is_directory(options.xinclude_base))
                 {
                     quickbook::detail::outerr()
-                        << "xinclude-base is not a directory";
+                        << "xinclude-base is not a directory"
+                        << std::endl;
                     ++error_count;
                 }
             }
@@ -683,8 +694,9 @@ main(int argc, char* argv[])
             {
                 // TODO: What if format != output_file?
                 options.xinclude_base = options.output_path.parent_path();
-                if (options.xinclude_base.empty())
+                if (options.xinclude_base.empty()) {
                     options.xinclude_base = ".";
+                }
 
                 // If output_path was implicitly created from filein, then it should be in filein's directory.
                 // If output_path was explicitly specified, then it's already been checked.
