@@ -667,8 +667,10 @@ int main(int argc, char* argv[])
                 }
             }
             else {
-                // TODO: What if format != output_file?
-                options.xinclude_base = options.output_path.parent_path();
+                options.xinclude_base =
+                    options.style == parse_document_options::output_chunked
+                        ? options.output_path
+                        : options.output_path.parent_path();
                 if (options.xinclude_base.empty()) {
                     options.xinclude_base = ".";
                 }
