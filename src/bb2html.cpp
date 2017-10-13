@@ -1252,6 +1252,15 @@ namespace quickbook
             std::string footnote_label =
                 boost::lexical_cast<std::string>(footnote_number);
             std::string footnote_id = generate_id(gen.chunk, "footnote");
+            x->attributes_.push_back(
+                std::make_pair("(((footnote-id)))", footnote_id));
+            gen.chunk.fragment_ids.emplace(
+                *x->get_attribute("(((footnote-id)))"));
+            if (!x->get_attribute("id")) {
+                x->attributes_.push_back(
+                    std::make_pair("id", generate_id(gen.chunk, "footnote")));
+                gen.chunk.fragment_ids.emplace(*x->get_attribute("id"));
+            }
 
             tag_start_with_id(gen, "a", x);
             tag_attribute(gen.printer, "href", "#" + footnote_id);
@@ -1266,7 +1275,6 @@ namespace quickbook
             // Generate HTML to add to footnote.
             html_printer printer;
             tag_start(printer, "a");
-            // TODO: Might not have an id.
             tag_attribute(printer, "href", "#" + *x->get_attribute("id"));
             tag_end(printer);
             tag_start(printer, "sup");
@@ -1301,10 +1309,6 @@ namespace quickbook
                     break;
                 }
 
-            x->attributes_.push_back(
-                std::make_pair("(((footnote-id)))", footnote_id));
-            gen.chunk.fragment_ids.emplace(
-                *x->get_attribute("(((footnote-id)))"));
             gen.chunk.footnotes.push_back(x);
         }
     }
