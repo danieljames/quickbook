@@ -173,6 +173,10 @@ namespace quickbook { namespace detail {
         }
 
         chunk_tree chunked = chunk_document(tree);
+
+        // TODO: Generate empty document?
+        if (!chunked.root()) { return 0; }
+
         // Overwrite paths depending on whether output is chunked or not.
         // Really want to do something better, e.g. incorporate many section chunks into their parent.
         chunked.root()->path_ = path_to_generic(options.home_path.filename());
