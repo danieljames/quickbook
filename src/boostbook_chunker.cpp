@@ -132,8 +132,9 @@ namespace quickbook
                 chunk* chunk_node = new chunk(tree.extract(node));
                 builder.add_element(chunk_node);
 
-                std::string* id = node->get_attribute("id");
-                chunk_node->id_ = id ? *id : builder.next_path_name();
+                chunk_node->id_ = node->has_attribute("id")
+                                      ? node->get_attribute("id").to_s()
+                                      : builder.next_path_name();
                 chunk_node->path_ = id_to_path(chunk_node->id_);
 
                 builder.start_children();

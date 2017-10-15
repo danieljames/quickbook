@@ -165,9 +165,9 @@ namespace quickbook
                     ++it;
                     attribute_value = read_attribute_value(it, start, end);
                 }
-                node->attributes_.push_back(std::make_pair(
-                    std::string(attribute_name.begin(), attribute_name.end()),
-                    quickbook::detail::decode_string(attribute_value)));
+                node->set_attribute(
+                    attribute_name,
+                    quickbook::detail::decode_string(attribute_value));
             }
         }
 
