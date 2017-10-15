@@ -1,0 +1,1 @@
+afl-fuzz -d -i tests/ -o results/ ./run_bb2html

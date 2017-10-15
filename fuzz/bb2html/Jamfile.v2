@@ -1,0 +1,23 @@
+# Should I use debug or release build?
+
+install .
+    : run_bb2html
+    : <install-type>EXE <location>.
+    : debug
+    ;
+
+exe run_bb2html
+    :
+    run_bb2html.cpp
+    ../../src/bb2html.cpp
+    ../../src/xml_parse.cpp
+    ../../src/boostbook_chunker.cpp
+    ../../src/tree.cpp
+    ../../src/html_printer.cpp
+    ../../src/utils.cpp
+    ../../src/stream.cpp
+    ../../src/path.cpp
+    ../../src/files.cpp
+    ../../src/post_process.cpp
+    /boost//filesystem/<link>static
+    ;
