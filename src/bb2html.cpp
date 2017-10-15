@@ -79,7 +79,7 @@ namespace quickbook { namespace detail {
             : chunk_(c), element_(x)
         {
             assert(c);
-            assert(!x || x->get_attribute("id"));
+            assert(!x || x->has_attribute("id"));
         }
 
         std::string path() const {
@@ -87,7 +87,7 @@ namespace quickbook { namespace detail {
 
             if (element_) {
                 p += '#';
-                p += *element_->get_attribute("id");
+                p += element_->get_attribute("id");
             } else if (chunk_->inline_) {
                 p += '#';
                 p += chunk_->id_;
@@ -195,8 +195,9 @@ namespace quickbook { namespace detail {
 
     void gather_chunk_ids(chunk_state& c_state, xml_element* x) {
         if (!x) { return; }
-        std::string* id = x->get_attribute("id");
-        if (id) { c_state.fragment_ids.emplace(*id); }
+        if (x->has_attribute("id")) {
+            c_state.fragment_ids.emplace(x->get_attribute("id"));
+        }
         for (auto it = x->children(); it; it = it->next()) {
             gather_chunk_ids(c_state, it);
         }
@@ -213,7 +214,9 @@ namespace quickbook { namespace detail {
         }
     }
 
-    std::string generate_id(chunk_state& c_state, quickbook::string_view base) {
+    string_view generate_id(chunk_state& c_state, xml_element* x,
+        string_view name, string_view base)
+    {
         std::string result;
         result.reserve(base.size() + 2);
         result.assign(base.begin(), base.end());
@@ -225,7 +228,9 @@ namespace quickbook { namespace detail {
             result.erase(base.size() + 1);
             result += num;
             if (c_state.fragment_ids.find(result) == c_state.fragment_ids.end()) {
-                return result;
+                auto r = x->set_attribute(name, result);
+                c_state.fragment_ids.emplace(r);
+                return r;
             }
         }
     }
@@ -424,9 +429,9 @@ namespace quickbook { namespace detail {
             gen.printer.html += "<br/>";
             gen.printer.html += "<hr/>";
             for (std::vector<xml_element*>::iterator it = gen.chunk.footnotes.begin(); it != gen.chunk.footnotes.end(); ++it) {
-                std::string* footnote_id = (*it)->get_attribute("(((footnote-id)))");
+                auto footnote_id = (*it)->get_attribute("(((footnote-id)))");
                 tag_start(gen.printer, "div");
-                tag_attribute(gen.printer, "id", *footnote_id);
+                tag_attribute(gen.printer, "id", footnote_id);
                 tag_attribute(gen.printer, "class", "footnote");
                 tag_end(gen.printer);
 
@@ -445,16 +450,12 @@ namespace quickbook { namespace detail {
                 unsigned count = 0;
                 number_calloutlist_children(gen, count, x);
             } else if (x->name_ == "co") {
-                std::string* linkends = x->get_attribute("linkends");
-                std::string* id = x->get_attribute("id");
-                if (linkends) {
-                    if (!id) {
-                        x->attributes_.push_back(std::make_pair("id", generate_id(gen.chunk, *linkends)));
-                        id = x->get_attribute("id");
-                        assert(id);
-                        gen.chunk.fragment_ids.emplace(*id);
+                if (x->has_attribute("linkends")) {
+                    auto linkends = x->get_attribute("linkends");
+                    if (!x->has_attribute("id")) {
+                        generate_id(gen.chunk, x, "id", linkends);
                     }
-                    gen.chunk.callout_numbers[*linkends].link_id = *id;
+                    gen.chunk.callout_numbers[linkends].link_id = x->get_attribute("id");
                 }
             }
         }
@@ -466,9 +467,8 @@ namespace quickbook { namespace detail {
     void number_calloutlist_children(html_gen& gen, unsigned& count, xml_element* x) {
         for (xml_element* it=x->children(); it; it=it->next()) {
             if (it->type_ == xml_element::element_node && it->name_ == "callout") {
-                std::string* id = it->get_attribute("id");
-                if (id) {
-                    gen.chunk.callout_numbers[*id].number = ++count;
+                if (it->has_attribute("id")) {
+                    gen.chunk.callout_numbers[it->get_attribute("id")].number = ++count;
                 }
             }
             number_calloutlist_children(gen, count, it);
@@ -632,9 +632,8 @@ namespace quickbook { namespace detail {
 
     void get_id_paths_impl2(ids_type& ids, chunk* c, xml_element* node) {
         if (!node) { return; }
-        std::string* id = node->get_attribute("id");
-        if (id) {
-            ids.emplace(*id, id_info(c, node));
+        if (node->has_attribute("id")) {
+            ids.emplace(node->get_attribute("id"), id_info(c, node));
         }
         for (xml_element* i = node->children(); i; i = i->next()) {
             get_id_paths_impl2(ids, c, i);
@@ -674,9 +673,8 @@ namespace quickbook { namespace detail {
     void tag_start_with_id(html_gen& gen, quickbook::string_view name, xml_element* x) {
         tag_start(gen.printer, name);
         if (!gen.in_toc) {
-            std::string* id = x->get_attribute("id");
-            if (id) {
-                tag_attribute(gen.printer, "id", *id);
+            if (x->has_attribute("id")) {
+                tag_attribute(gen.printer, "id", x->get_attribute("id"));
             }
         }
     }
@@ -734,10 +732,10 @@ namespace quickbook { namespace detail {
     NODE_MAP_CLASS(replaceable, em, replaceable)
 
     NODE_RULE(sidebar, gen, x) {
-        std::string* role = x->get_attribute("role");
+        auto role = x->get_attribute("role");
 
         tag_start_with_id(gen, "div", x);
-        if (role && *role == "blurb") {
+        if (role == "blurb") {
             tag_attribute(gen.printer, "class", "blurb");
         } else {
             tag_attribute(gen.printer, "class", "sidebar");
@@ -757,32 +755,33 @@ namespace quickbook { namespace detail {
     }
 
     NODE_RULE(bridgehead, gen, x) {
-        std::string* renderas = x->get_attribute("renderas");
+        auto renderas = x->get_attribute("renderas");
         char header[3] = "h3";
-        if (renderas && renderas->size() == 5 && boost::starts_with(*renderas, "sect")) {
-            char l = (*renderas)[4];
+        if (renderas.size() == 5 && boost::starts_with(renderas, "sect")) {
+            char l = renderas[4];
             if (l >= '1' && l <= '6') { header[1] = l; }
         }
         return tag(gen, header, x);
     }
 
     NODE_RULE(ulink, gen, x) {
-        // TODO: error if missing?
-        std::string* value = x->get_attribute("url");
-
         tag_start_with_id(gen, "a", x);
-        if (value) { tag_attribute(gen.printer, "href", get_link_from_path(*value, gen.path)); }
+        // TODO: error if missing?
+        if (x->has_attribute("url")) {
+            tag_attribute(gen.printer, "href",
+                get_link_from_path(x->get_attribute("url"), gen.path));
+        }
         tag_end(gen.printer);
         generate_children_html(gen, x);
         close_tag(gen.printer, "a");
     }
 
     NODE_RULE(link, gen, x) {
-        // TODO: error if missing?
-        std::string* value = x->get_attribute("linkend");
-
+        // TODO: error if missing or not found?
         auto it = gen.state.ids.end();
-        if (value) { it = gen.state.ids.find(*value); }
+        if (x->has_attribute("linkend")) {
+            it = gen.state.ids.find(x->get_attribute("linkend"));
+        }
 
         tag_start_with_id(gen, "a", x);
         if (it != gen.state.ids.end()) {
@@ -794,38 +793,38 @@ namespace quickbook { namespace detail {
     }
 
     NODE_RULE(phrase, gen, x) {
-        std::string* value = x->get_attribute("role");
+        auto role = x->get_attribute("role");
 
         tag_start_with_id(gen, "span", x);
-        if (value) { tag_attribute(gen.printer, "class", *value); }
+        if (!role.empty()) { tag_attribute(gen.printer, "class", role); }
         tag_end(gen.printer);
         generate_children_html(gen, x);
         close_tag(gen.printer, "span");
     }
 
     NODE_RULE(para, gen, x) {
-        std::string* value = x->get_attribute("role");
+        auto role = x->get_attribute("role");
 
         tag_start_with_id(gen, "p", x);
-        if (value) { tag_attribute(gen.printer, "class", *value); }
+        if (!role.empty()) { tag_attribute(gen.printer, "class", role); }
         tag_end(gen.printer);
         generate_children_html(gen, x);
         close_tag(gen.printer, "p");
     }
 
     NODE_RULE(emphasis, gen, x) {
-        std::string* value = x->get_attribute("role");
+        auto role = x->get_attribute("role");
         quickbook::string_view tag_name;
         quickbook::string_view class_name;
 
-        if (!value) {
+        if (role.empty()) {
             tag_name = "em";
             class_name = "emphasis";
-        } else if (*value == "bold" || *value == "strong") {
+        } else if (role == "bold" || role == "strong") {
             tag_name = "strong";
-            class_name = *value;
+            class_name = role;
         } else {
-            class_name = *value;
+            class_name = role;
         }
         tag_start_with_id(gen, "span", x);
         if (!class_name.empty()) { tag_attribute(gen.printer, "class", class_name); }
@@ -841,15 +840,19 @@ namespace quickbook { namespace detail {
     }
 
     NODE_RULE(inlinemediaobject, gen, x) {
-        std::string* image;
+        bool has_image = false;
+        string_view image;
 
         // Get image link
         for(xml_element* i = x->children(); i; i = i->next()) {
             if (i->type_ == xml_element::element_node && i->name_ == "imageobject") {
                 for(xml_element* j = i->children(); j; j = j->next()) {
                     if (j->type_ == xml_element::element_node && j->name_ == "imagedata") {
-                        image = j->get_attribute("fileref");
-                        if (image) { break; }
+                        if (j->has_attribute("fileref")) {
+                            has_image = true;
+                            image = j->get_attribute("fileref");
+                            break;
+                        }
                     }
                 }
             }
@@ -860,8 +863,7 @@ namespace quickbook { namespace detail {
             if (i->type_ == xml_element::element_node && i->name_ == "textobject") {
                 for(xml_element* j = i->children(); j; j = j->next()) {
                     if (j->type_ == xml_element::element_node && j->name_ == "phrase") {
-                        std::string* role = j->get_attribute("role");
-                        if (role && *role == "alt") {
+                        if (j->get_attribute("role") == "alt") {
                             html_gen gen2(gen);
                             generate_tree_html(gen2, j);
                             alt = gen2.printer.html;
@@ -872,12 +874,12 @@ namespace quickbook { namespace detail {
         }
         // TODO: This was in the original php code, not sure why.
         if (alt.empty()) { alt = "[]"; }
-        if (image) {
+        if (has_image) {
             tag_start(gen.printer, "span");
             tag_attribute(gen.printer, "class", "inlinemediaobject");
             tag_end(gen.printer);
             tag_start_with_id(gen, "img", x);
-            tag_attribute(gen.printer, "src", get_link_from_path(*image, gen.path));
+            tag_attribute(gen.printer, "src", get_link_from_path(image, gen.path));
             tag_attribute(gen.printer, "alt", alt);
             tag_end_self_close(gen.printer);
             close_tag(gen.printer, "span");
@@ -928,9 +930,9 @@ namespace quickbook { namespace detail {
                 open_tag_with_id(gen, "tr", i);
                 for(xml_element* j = i->children(); j; j = j->next()) {
                     if (j->type_ == xml_element::element_node && j->name_ == "entry") {
-                        std::string* role = x->get_attribute("role");
+                        auto role = x->get_attribute("role");
                         tag_start_with_id(gen, td_tag, j);
-                        if (role) { tag_attribute(gen.printer, "class", *role); }
+                        if (!role.empty()) { tag_attribute(gen.printer, "class", role); }
                         tag_end(gen.printer);
                         generate_children_html(gen, j);
                         close_tag(gen.printer, td_tag);
@@ -992,11 +994,10 @@ namespace quickbook { namespace detail {
     NODE_MAP(calloutlist, div)
 
     NODE_RULE(callout, gen, x) {
-        std::string* id = x->get_attribute("id");
         boost::unordered_map<string_view, callout_data>::const_iterator data = gen.chunk.callout_numbers.end();
         auto link = gen.state.ids.end();
-        if (id) {
-            data = gen.chunk.callout_numbers.find(*id);
+        if (x->has_attribute("id")) {
+            data = gen.chunk.callout_numbers.find(x->get_attribute("id"));
         }
         if (data != gen.chunk.callout_numbers.end() && !data->second.link_id.empty()) {
             link = gen.state.ids.find(data->second.link_id);
@@ -1021,12 +1022,12 @@ namespace quickbook { namespace detail {
     }
 
     NODE_RULE(co, gen, x) {
-        std::string* linkends = x->get_attribute("linkends");
         boost::unordered_map<string_view, callout_data>::const_iterator data = gen.chunk.callout_numbers.end();
         auto link = gen.state.ids.end();
-        if (linkends) {
-            data = gen.chunk.callout_numbers.find(*linkends);
-            link = gen.state.ids.find(*linkends);
+        if (x->has_attribute("linkends")) {
+            auto linkends = x->get_attribute("linkends");
+            data = gen.chunk.callout_numbers.find(linkends);
+            link = gen.state.ids.find(linkends);
         }
 
         if (link != gen.state.ids.end()) {
@@ -1052,16 +1053,15 @@ namespace quickbook { namespace detail {
         static int footnote_number = 0;
         ++footnote_number;
         std::string footnote_label = boost::lexical_cast<std::string>(footnote_number);
-        std::string footnote_id = generate_id(gen.chunk, "footnote");
-        x->attributes_.push_back(std::make_pair("(((footnote-id)))", footnote_id));
-        gen.chunk.fragment_ids.emplace(*x->get_attribute("(((footnote-id)))"));
-        if (!x->get_attribute("id")) {
-            x->attributes_.push_back(std::make_pair("id", generate_id(gen.chunk, "footnote")));
-            gen.chunk.fragment_ids.emplace(*x->get_attribute("id"));
+        auto footnote_id = generate_id(gen.chunk, x, "(((footnote-id)))", "footnote");
+        if (!x->has_attribute("id")) {
+            generate_id(gen.chunk, x, "id", "footnote");
         }
 
         tag_start_with_id(gen, "a", x);
-        tag_attribute(gen.printer, "href", "#" + footnote_id);
+        std::string href = "#";
+        href += footnote_id;
+        tag_attribute(gen.printer, "href", href);
         tag_end(gen.printer);
         tag_start(gen.printer, "sup");
         tag_attribute(gen.printer, "class", "footnote");
@@ -1073,7 +1073,9 @@ namespace quickbook { namespace detail {
         // Generate HTML to add to footnote.
         html_printer printer;
         tag_start(printer, "a");
-        tag_attribute(printer, "href", "#" + *x->get_attribute("id"));
+        std::string href2 = "#";
+        href2 += x->get_attribute("id");
+        tag_attribute(printer, "href", href2);
         tag_end(printer);
         tag_start(printer, "sup");
         tag_end(printer);

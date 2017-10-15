@@ -23,7 +23,9 @@ namespace quickbook { namespace detail {
     struct xml_element : tree_node<xml_element> {
         enum element_type { element_node, element_text, element_html } type_;
         std::string name_;
+    private:
         std::list<std::pair<std::string, std::string> > attributes_;
+    public:
         std::string contents_;
 
         explicit xml_element(element_type n) : type_(n) {}
@@ -48,12 +50,33 @@ namespace quickbook { namespace detail {
             return new xml_element(element_node, x);
         }
 
-        std::string* get_attribute(quickbook::string_view name) {
+        bool has_attribute(quickbook::string_view name) {
             for (auto it = attributes_.begin(), end = attributes_.end();
                 it != end; ++it) {
-                if (name == it->first) { return &it->second; }
+                if (name == it->first) { return true; }
             }
-            return 0;
+            return false;
+        }
+
+        string_view get_attribute(quickbook::string_view name) {
+            for (auto it = attributes_.begin(), end = attributes_.end();
+                it != end; ++it) {
+                if (name == it->first) { return it->second; }
+            }
+            return string_view();
+        }
+
+        string_view set_attribute(quickbook::string_view name, quickbook::string_view value) {
+            for (auto it = attributes_.begin(), end = attributes_.end();
+                it != end; ++it) {
+                if (name == it->first) {
+                    it->second.assign(value.begin(), value.end());
+                    return it->second;
+                }
+            }
+
+            attributes_.push_back(std::make_pair(name.to_s(), value.to_s()));
+            return attributes_.back().second;
         }
     };
 

@@ -34,6 +34,10 @@ namespace quickbook {
     inline std::size_t hash_value(string_view const& x) {
         return boost::hash_range(x.begin(), x.end());
     }
+
+    inline std::string& operator+=(std::string& x, string_view const& y) {
+        return x.append(y.begin(), y.end());
+    }
 }
 
 #endif
