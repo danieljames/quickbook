@@ -178,6 +178,9 @@ namespace quickbook
         int column;
         bool in_string;
         int linewidth;
+
+    private:
+        pretty_printer& operator=(pretty_printer const&);
     };
 
     char const* html_block_tags_[] =
@@ -300,6 +303,9 @@ namespace quickbook
         int current_indent;
         pretty_printer printer;
         std::string current_tag;
+
+    private:
+        tidy_compiler& operator=(tidy_compiler const&);
     };
 
     struct tidy_grammar : cl::grammar<tidy_grammar>
@@ -468,7 +474,7 @@ namespace quickbook
         {
             if (state.tags.empty())
                 throw quickbook::post_process_failure("Mismatched tags.");
-        
+
             bool is_flow_tag = state.is_flow_tag(state.tags.top());
             if (!is_flow_tag)
             {
@@ -484,6 +490,9 @@ namespace quickbook
         tidy_compiler& state;
         int indent;
         bool is_html;
+
+    private:
+        tidy_grammar& operator=(tidy_grammar const&);
     };
 
     std::string post_process(

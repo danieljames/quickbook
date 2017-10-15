@@ -92,6 +92,9 @@ namespace quickbook { namespace detail
             cl::rule<Scanner> const& start() { return xml_encoded; }
             cl::rule<Scanner> xml_encoded;
         };
+
+    private:
+        xml_decode_grammar& operator=(xml_decode_grammar const&);
     };
 
     std::string decode_string(quickbook::string_view str)
