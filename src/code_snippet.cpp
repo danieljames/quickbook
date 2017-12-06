@@ -109,68 +109,86 @@ namespace quickbook
 
             definition(python_code_snippet_grammar const& self)
             {
+                // clang-format off
 
-                start_ = (*code_elements)[boost::bind(
-                    &actions_type::end_file, &self.actions, _1, _2)];
+                start_ = (*code_elements)           [boost::bind(&actions_type::end_file, &self.actions, _1, _2)]
+                    ;
 
-                identifier = (cl::alpha_p | '_') >> *(cl::alnum_p | '_');
+                identifier =
+                    (cl::alpha_p | '_') >> *(cl::alnum_p | '_')
+                    ;
 
                 code_elements =
-                    start_snippet[boost::bind(
-                        &actions_type::start_snippet, &self.actions, _1, _2)] |
-                    end_snippet[boost::bind(
-                        &actions_type::end_snippet, &self.actions, _1, _2)] |
-                    escaped_comment[boost::bind(
-                        &actions_type::escaped_comment, &self.actions, _1,
-                        _2)] |
-                    pass_thru_comment[boost::bind(
-                        &actions_type::pass_thru, &self.actions, _1, _2)] |
-                    ignore[boost::bind(
-                        &actions_type::append_code, &self.actions, _1, _2)] |
-                    cl::anychar_p;
+                        start_snippet               [boost::bind(&actions_type::start_snippet, &self.actions, _1, _2)]
+                    |   end_snippet                 [boost::bind(&actions_type::end_snippet, &self.actions, _1, _2)]
+                    |   escaped_comment             [boost::bind(&actions_type::escaped_comment, &self.actions, _1, _2)]
+                    |   pass_thru_comment           [boost::bind(&actions_type::pass_thru, &self.actions, _1, _2)]
+                    |   ignore                      [boost::bind(&actions_type::append_code, &self.actions, _1, _2)]
+                    |   cl::anychar_p
+                    ;
 
                 start_snippet =
-                    *cl::blank_p >> !(cl::eol_p >> *cl::blank_p) >> "#[" >>
-                    *cl::blank_p >>
-                    identifier[boost::bind(
-                        &actions_type::mark, &self.actions, _1, _2)] >>
-                    *(cl::anychar_p - cl::eol_p);
+                        *cl::blank_p
+                    >>  !(cl::eol_p >> *cl::blank_p)
+                    >>  "#["
+                    >>  *cl::blank_p
+                    >>  identifier                  [boost::bind(&actions_type::mark, &self.actions, _1, _2)]
+                    >>  *(cl::anychar_p - cl::eol_p)
+                    ;
 
-                end_snippet = *cl::blank_p >> !(cl::eol_p >> *cl::blank_p) >>
-                              "#]" >> *(cl::anychar_p - cl::eol_p);
+                end_snippet =
+                        *cl::blank_p
+                    >>  !(cl::eol_p >> *cl::blank_p)
+                    >>  "#]"
+                    >>  *(cl::anychar_p - cl::eol_p)
+                    ;
 
-                ignore =
-                    cl::confix_p(
-                        *cl::blank_p >> "#<-", *cl::anychar_p,
-                        "#->" >> *cl::blank_p >> (cl::eol_p | cl::end_p)) |
-                    cl::confix_p(
-                        "\"\"\"<-\"\"\"", *cl::anychar_p, "\"\"\"->\"\"\"") |
-                    cl::confix_p("\"\"\"<-", *cl::anychar_p, "->\"\"\"");
+                ignore
+                    =   cl::confix_p(
+                            *cl::blank_p >> "#<-",
+                            *cl::anychar_p,
+                            "#->" >> *cl::blank_p >> (cl::eol_p | cl::end_p)
+                        )
+                    |   cl::confix_p(
+                            "\"\"\"<-\"\"\"",
+                            *cl::anychar_p,
+                            "\"\"\"->\"\"\""
+                        )
+                    |   cl::confix_p(
+                            "\"\"\"<-",
+                            *cl::anychar_p,
+                            "->\"\"\""
+                        )
+                    ;
 
                 escaped_comment =
-                    cl::confix_p(
-                        *cl::space_p >> "#`",
-                        (*cl::anychar_p)[boost::bind(
-                            &actions_type::mark, &self.actions, _1, _2)],
-                        (cl::eol_p | cl::end_p)) |
-                    cl::confix_p(
-                        *cl::space_p >> "\"\"\"`",
-                        (*cl::anychar_p)[boost::bind(
-                            &actions_type::mark, &self.actions, _1, _2)],
-                        "\"\"\"");
+                        cl::confix_p(
+                            *cl::space_p >> "#`",
+                            (*cl::anychar_p)        [boost::bind(&actions_type::mark, &self.actions, _1, _2)],
+                            (cl::eol_p | cl::end_p)
+                        )
+                    |   cl::confix_p(
+                            *cl::space_p >> "\"\"\"`",
+                            (*cl::anychar_p)        [boost::bind(&actions_type::mark, &self.actions, _1, _2)],
+                            "\"\"\""
+                        )
+                    ;
 
                 // Note: Unlike escaped_comment and ignore, this doesn't
                 // swallow preceeding whitespace.
-                pass_thru_comment =
-                    "#=" >> (cl::eps_p - '=') >>
-                        (*(cl::anychar_p - cl::eol_p) >>
-                         (cl::eol_p | cl::end_p))[boost::bind(
-                            &actions_type::mark, &self.actions, _1, _2)] |
-                    cl::confix_p(
-                        "\"\"\"=" >> (cl::eps_p - '='),
-                        (*cl::anychar_p)[boost::bind(
-                            &actions_type::mark, &self.actions, _1, _2)],
-                        "\"\"\"");
+                pass_thru_comment
+                    =   "#=" >> (cl::eps_p - '=')
+                    >>  (   *(cl::anychar_p - cl::eol_p)
+                        >>  (cl::eol_p | cl::end_p)
+                        )                           [boost::bind(&actions_type::mark, &self.actions, _1, _2)]
+                    |   cl::confix_p(
+                            "\"\"\"=" >> (cl::eps_p - '='),
+                            (*cl::anychar_p)        [boost::bind(&actions_type::mark, &self.actions, _1, _2)],
+                            "\"\"\""
+                        )
+                    ;
+
+                // clang-format on
             }
 
             cl::rule<Scanner> start_, identifier, code_elements, start_snippet,
@@ -192,79 +210,114 @@ namespace quickbook
         {
             definition(cpp_code_snippet_grammar const& self)
             {
-                start_ = (*code_elements)[boost::bind(
-                    &actions_type::end_file, &self.actions, _1, _2)];
+                // clang-format off
 
-                identifier = (cl::alpha_p | '_') >> *(cl::alnum_p | '_');
+                start_ = (*code_elements)           [boost::bind(&actions_type::end_file, &self.actions, _1, _2)]
+                    ;
+
+                identifier =
+                    (cl::alpha_p | '_') >> *(cl::alnum_p | '_')
+                    ;
 
                 code_elements =
-                    start_snippet[boost::bind(
-                        &actions_type::start_snippet, &self.actions, _1, _2)] |
-                    end_snippet[boost::bind(
-                        &actions_type::end_snippet, &self.actions, _1, _2)] |
-                    escaped_comment[boost::bind(
-                        &actions_type::escaped_comment, &self.actions, _1,
-                        _2)] |
-                    ignore[boost::bind(
-                        &actions_type::append_code, &self.actions, _1, _2)] |
-                    pass_thru_comment[boost::bind(
-                        &actions_type::pass_thru, &self.actions, _1, _2)] |
-                    cl::anychar_p;
+                        start_snippet               [boost::bind(&actions_type::start_snippet, &self.actions, _1, _2)]
+                    |   end_snippet                 [boost::bind(&actions_type::end_snippet, &self.actions, _1, _2)]
+                    |   escaped_comment             [boost::bind(&actions_type::escaped_comment, &self.actions, _1, _2)]
+                    |   ignore                      [boost::bind(&actions_type::append_code, &self.actions, _1, _2)]
+                    |   pass_thru_comment           [boost::bind(&actions_type::pass_thru, &self.actions, _1, _2)]
+                    |   cl::anychar_p
+                    ;
 
                 start_snippet =
-                    *cl::blank_p >> !(cl::eol_p >> *cl::blank_p) >> "//[" >>
-                        *cl::blank_p >>
-                        identifier[boost::bind(
-                            &actions_type::mark, &self.actions, _1, _2)] >>
-                        *(cl::anychar_p - cl::eol_p) |
-                    *cl::blank_p >> cl::eol_p >> *cl::blank_p >> "/*[" >>
-                        *cl::space_p >>
-                        identifier[boost::bind(
-                            &actions_type::mark, &self.actions, _1, _2)] >>
-                        *cl::space_p >> "*/" >> *cl::blank_p >>
-                        cl::eps_p(cl::eol_p) |
-                    "/*[" >> *cl::space_p >>
-                        identifier[boost::bind(
-                            &actions_type::mark, &self.actions, _1, _2)] >>
-                        *cl::space_p >> "*/";
+                            *cl::blank_p
+                        >>  !(cl::eol_p >> *cl::blank_p)
+                        >>  "//["
+                        >>  *cl::blank_p
+                        >>  identifier              [boost::bind(&actions_type::mark, &self.actions, _1, _2)]
+                        >>  *(cl::anychar_p - cl::eol_p)
+                    |
+                            *cl::blank_p
+                        >>  cl::eol_p
+                        >>  *cl::blank_p
+                        >>  "/*["
+                        >>  *cl::space_p
+                        >>  identifier              [boost::bind(&actions_type::mark, &self.actions, _1, _2)]
+                        >>  *cl::space_p
+                        >>  "*/"
+                        >>  *cl::blank_p
+                        >>  cl::eps_p(cl::eol_p)
+                    |
+                            "/*["
+                        >>  *cl::space_p
+                        >>  identifier              [boost::bind(&actions_type::mark, &self.actions, _1, _2)]
+                        >>  *cl::space_p
+                        >>  "*/"
+                    ;
 
-                end_snippet = *cl::blank_p >> !(cl::eol_p >> *cl::blank_p) >>
-                                  "//]" >> *(cl::anychar_p - cl::eol_p) |
-                              *cl::blank_p >> cl::eol_p >> *cl::blank_p >>
-                                  "/*]*/" >> *cl::blank_p >>
-                                  cl::eps_p(cl::eol_p) |
-                              "/*[*/";
+                end_snippet =
+                            *cl::blank_p
+                        >>  !(cl::eol_p >> *cl::blank_p)
+                        >>  "//]"
+                        >>  *(cl::anychar_p - cl::eol_p)
+                    |
+                            *cl::blank_p
+                        >>  cl::eol_p
+                        >>  *cl::blank_p
+                        >>  "/*]*/"
+                        >>  *cl::blank_p
+                        >>  cl::eps_p(cl::eol_p)
+                    |
+                            "/*[*/"
+                    ;
 
-                ignore = cl::confix_p(
-                             *cl::blank_p >> "//<-", *cl::anychar_p, "//->") >>
-                             *cl::blank_p >> cl::eol_p |
-                         cl::confix_p("/*<-*/", *cl::anychar_p, "/*->*/") |
-                         cl::confix_p("/*<-", *cl::anychar_p, "->*/");
+                ignore
+                    =   cl::confix_p(
+                            *cl::blank_p >> "//<-",
+                            *cl::anychar_p,
+                            "//->"
+                        )
+                    >>  *cl::blank_p
+                    >>  cl::eol_p
+                    |   cl::confix_p(
+                            "/*<-*/",
+                            *cl::anychar_p,
+                            "/*->*/"
+                        )
+                    |   cl::confix_p(
+                            "/*<-",
+                            *cl::anychar_p,
+                            "->*/"
+                        )
+                    ;
 
-                escaped_comment =
-                    cl::confix_p(
-                        *cl::space_p >> "//`",
-                        (*cl::anychar_p)[boost::bind(
-                            &actions_type::mark, &self.actions, _1, _2)],
-                        (cl::eol_p | cl::end_p)) |
-                    cl::confix_p(
-                        *cl::space_p >> "/*`",
-                        (*cl::anychar_p)[boost::bind(
-                            &actions_type::mark, &self.actions, _1, _2)],
-                        "*/");
+                escaped_comment
+                    =   cl::confix_p(
+                            *cl::space_p >> "//`",
+                            (*cl::anychar_p)        [boost::bind(&actions_type::mark, &self.actions, _1, _2)],
+                            (cl::eol_p | cl::end_p)
+                        )
+                    |   cl::confix_p(
+                            *cl::space_p >> "/*`",
+                            (*cl::anychar_p)        [boost::bind(&actions_type::mark, &self.actions, _1, _2)],
+                            "*/"
+                        )
+                    ;
 
                 // Note: Unlike escaped_comment and ignore, this doesn't
                 // swallow preceeding whitespace.
-                pass_thru_comment =
-                    "//=" >> (cl::eps_p - '=') >>
-                        (*(cl::anychar_p - cl::eol_p) >>
-                         (cl::eol_p | cl::end_p))[boost::bind(
-                            &actions_type::mark, &self.actions, _1, _2)] |
-                    cl::confix_p(
-                        "/*=" >> (cl::eps_p - '='),
-                        (*cl::anychar_p)[boost::bind(
-                            &actions_type::mark, &self.actions, _1, _2)],
-                        "*/");
+                pass_thru_comment
+                    =   "//=" >> (cl::eps_p - '=')
+                    >>  (   *(cl::anychar_p - cl::eol_p)
+                        >>  (cl::eol_p | cl::end_p)
+                        )                           [boost::bind(&actions_type::mark, &self.actions, _1, _2)]
+                    |   cl::confix_p(
+                            "/*=" >> (cl::eps_p - '='),
+                            (*cl::anychar_p)        [boost::bind(&actions_type::mark, &self.actions, _1, _2)],
+                            "*/"
+                        )
+                    ;
+
+                // clang-format on
             }
 
             cl::rule<Scanner> start_, identifier, code_elements, start_snippet,

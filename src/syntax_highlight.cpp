@@ -149,31 +149,45 @@ namespace quickbook
 
         keywords_holder()
         {
-            cpp = "alignas", "alignof", "and_eq", "and", "asm", "auto",
-            "bitand", "bitor", "bool", "break", "case", "catch", "char",
-            "char16_t", "char32_t", "class", "compl", "const", "const_cast",
-            "constexpr", "continue", "decltype", "default", "delete", "do",
-            "double", "dynamic_cast", "else", "enum", "explicit", "export",
-            "extern", "false", "float", "for", "friend", "goto", "if", "inline",
-            "int", "long", "mutable", "namespace", "new", "noexcept", "not_eq",
-            "not", "nullptr", "operator", "or_eq", "or", "private", "protected",
-            "public", "register", "reinterpret_cast", "return", "short",
-            "signed", "sizeof", "static", "static_assert", "static_cast",
-            "struct", "switch", "template", "this", "thread_local", "throw",
-            "true", "try", "typedef", "typeid", "typename", "union", "unsigned",
-            "using", "virtual", "void", "volatile", "wchar_t", "while",
-            "xor_eq", "xor";
+            // clang-format off
 
-            python = "and", "del", "for", "is", "raise", "assert", "elif",
-            "from", "lambda", "return", "break", "else", "global", "not", "try",
-            "class", "except", "if", "or", "while", "continue", "exec",
-            "import", "pass", "yield", "def", "finally", "in", "print",
+            cpp
+                    =   "alignas", "alignof", "and_eq", "and", "asm", "auto",
+                        "bitand", "bitor", "bool", "break", "case", "catch",
+                        "char", "char16_t", "char32_t", "class", "compl",
+                        "const", "const_cast", "constexpr", "continue",
+                        "decltype", "default", "delete", "do", "double",
+                        "dynamic_cast",  "else", "enum", "explicit", "export",
+                        "extern", "false", "float", "for", "friend", "goto",
+                        "if", "inline", "int", "long", "mutable", "namespace",
+                        "new", "noexcept", "not_eq", "not", "nullptr",
+                        "operator", "or_eq", "or", "private", "protected",
+                        "public", "register", "reinterpret_cast", "return",
+                        "short", "signed", "sizeof", "static", "static_assert",
+                        "static_cast", "struct", "switch", "template", "this",
+                        "thread_local", "throw", "true", "try", "typedef",
+                        "typeid", "typename", "union", "unsigned", "using",
+                        "virtual", "void", "volatile", "wchar_t", "while",
+                        "xor_eq", "xor"
+                    ;
 
-            // Technically "as" and "None" are not yet keywords (at Python
-                // 2.4). They are destined to become keywords, and we treat them
-                // as such for syntax highlighting purposes.
+            python
+                    =
+                    "and",       "del",       "for",       "is",        "raise",
+                    "assert",    "elif",      "from",      "lambda",    "return",
+                    "break",     "else",      "global",    "not",       "try",
+                    "class",     "except",    "if",        "or",        "while",
+                    "continue",  "exec",      "import",    "pass",      "yield",
+                    "def",       "finally",   "in",        "print",
 
-                "as", "None";
+                    // Technically "as" and "None" are not yet keywords (at Python
+                    // 2.4). They are destined to become keywords, and we treat them
+                    // as such for syntax highlighting purposes.
+
+                    "as", "None"
+                    ;
+
+            // clang-format on
         }
     };
 
@@ -195,102 +209,148 @@ namespace quickbook
             definition(cpp_highlight const& self)
                 : g(self.actions.state.grammar())
             {
-                member_action1<syntax_highlight_actions, char const*> span(
-                    self.actions, &syntax_highlight_actions::span),
-                    span_start(
-                        self.actions, &syntax_highlight_actions::span_start);
-                member_action<syntax_highlight_actions> span_end(
-                    self.actions, &syntax_highlight_actions::span_end),
-                    unexpected_char(
-                        self.actions,
-                        &syntax_highlight_actions::unexpected_char),
-                    plain_char(
-                        self.actions, &syntax_highlight_actions::plain_char),
-                    pre_escape_back(
-                        self.actions,
-                        &syntax_highlight_actions::pre_escape_back),
-                    post_escape_back(
-                        self.actions,
-                        &syntax_highlight_actions::post_escape_back),
-                    mark_text(
-                        self.actions, &syntax_highlight_actions::mark_text),
+                // clang-format off
+
+                member_action1<syntax_highlight_actions, char const*>
+                    span(self.actions, &syntax_highlight_actions::span),
+                    span_start(self.actions, &syntax_highlight_actions::span_start);
+                member_action<syntax_highlight_actions>
+                    span_end(self.actions, &syntax_highlight_actions::span_end),
+                    unexpected_char(self.actions, &syntax_highlight_actions::unexpected_char),
+                    plain_char(self.actions, &syntax_highlight_actions::plain_char),
+                    pre_escape_back(self.actions, &syntax_highlight_actions::pre_escape_back),
+                    post_escape_back(self.actions, &syntax_highlight_actions::post_escape_back),
+                    mark_text(self.actions, &syntax_highlight_actions::mark_text),
                     callout(self.actions, &syntax_highlight_actions::callout);
-                member_action_value<
-                    syntax_highlight_actions, std::string const&>
+                member_action_value<syntax_highlight_actions, std::string const&>
                     do_macro(self.actions, &syntax_highlight_actions::do_macro);
                 error_action error(self.actions.state);
 
                 program =
-                    *((*cl::space_p)[plain_char] >>
-                      (line_start | rest_of_line) >> *rest_of_line);
+                    *(  (*cl::space_p)                  [plain_char]
+                    >>  (line_start | rest_of_line)
+                    >>  *rest_of_line
+                    )
+                    ;
 
-                line_start = preprocessor[span("preprocessor")];
+                line_start =
+                        preprocessor                    [span("preprocessor")]
+                    ;
 
                 rest_of_line =
-                    (+cl::blank_p)[plain_char] | macro | escape |
-                    cl::eps_p(ph::var(self.actions.support_callouts)) >>
-                        (line_callout[callout] | inline_callout[callout]) |
-                    comment | keyword[span("keyword")] |
-                    identifier[span("identifier")] | special[span("special")] |
-                    string_[span("string")] | char_[span("char")] |
-                    number[span("number")] |
-                    ~cl::eps_p(cl::eol_p) >> u8_codepoint_p[unexpected_char];
+                        (+cl::blank_p)                  [plain_char]
+                    |   macro
+                    |   escape
+                    |   cl::eps_p(ph::var(self.actions.support_callouts))
+                    >>  (   line_callout                [callout]
+                        |   inline_callout              [callout]
+                        )
+                    |   comment
+                    |   keyword                         [span("keyword")]
+                    |   identifier                      [span("identifier")]
+                    |   special                         [span("special")]
+                    |   string_                         [span("string")]
+                    |   char_                           [span("char")]
+                    |   number                          [span("number")]
+                    |   ~cl::eps_p(cl::eol_p)
+                    >>  u8_codepoint_p                  [unexpected_char]
+                    ;
 
                 macro =
                     // must not be followed by alpha or underscore
-                    cl::eps_p(
-                        self.actions.state.macro >>
-                        (cl::eps_p - (cl::alpha_p | '_'))) >>
-                    self.actions.state.macro[do_macro];
+                    cl::eps_p(self.actions.state.macro
+                        >> (cl::eps_p - (cl::alpha_p | '_')))
+                    >> self.actions.state.macro
+                                                        [do_macro]
+                    ;
 
                 escape =
-                    cl::str_p("``")[pre_escape_back] >>
-                    ((((+(cl::anychar_p - "``") >> cl::eps_p("``")) &
-                       g.phrase_start) >>
-                      cl::str_p("``")) |
-                     (cl::eps_p[error] >> *cl::anychar_p))[post_escape_back];
+                    cl::str_p("``")                     [pre_escape_back]
+                    >>
+                    (
+                        (
+                            (
+                                (+(cl::anychar_p - "``") >> cl::eps_p("``"))
+                                & g.phrase_start
+                            )
+                            >>  cl::str_p("``")
+                        )
+                        |
+                        (
+                            cl::eps_p                   [error]
+                            >> *cl::anychar_p
+                        )
+                    )                                   [post_escape_back]
+                    ;
 
-                preprocessor = '#' >> *cl::space_p >>
-                               ((cl::alpha_p | '_') >> *(cl::alnum_p | '_'));
+                preprocessor
+                    =   '#' >> *cl::space_p >> ((cl::alpha_p | '_') >> *(cl::alnum_p | '_'))
+                    ;
 
-                inline_callout = cl::confix_p(
-                    "/*<" >> *cl::space_p, (*cl::anychar_p)[mark_text], ">*/");
+                inline_callout
+                    =   cl::confix_p(
+                            "/*<" >> *cl::space_p,
+                            (*cl::anychar_p)            [mark_text],
+                            ">*/"
+                        )
+                        ;
 
-                line_callout = cl::confix_p(
-                                   "/*<<" >> *cl::space_p,
-                                   (*cl::anychar_p)[mark_text], ">>*/") >>
-                               *cl::space_p;
+                line_callout
+                    =   cl::confix_p(
+                            "/*<<" >> *cl::space_p,
+                            (*cl::anychar_p)            [mark_text],
+                            ">>*/"
+                        )
+                    >>  *cl::space_p
+                    ;
 
-                comment =
-                    cl::str_p("//")[span_start("comment")] >>
-                        *(escape | (+(cl::anychar_p -
-                                      (cl::eol_p | "``")))[plain_char]) >>
-                        cl::eps_p[span_end] |
-                    cl::str_p("/*")[span_start("comment")] >>
-                        *(escape | (+(cl::anychar_p -
-                                      (cl::str_p("*/") | "``")))[plain_char]) >>
-                        (!cl::str_p("*/"))[span_end];
+                comment
+                    =   cl::str_p("//")                 [span_start("comment")]
+                    >>  *(  escape
+                        |   (+(cl::anychar_p - (cl::eol_p | "``")))
+                                                        [plain_char]
+                        )
+                    >>  cl::eps_p                       [span_end]
+                    |   cl::str_p("/*")                 [span_start("comment")]
+                    >>  *(  escape
+                        |   (+(cl::anychar_p - (cl::str_p("*/") | "``")))
+                                                        [plain_char]
+                        )
+                    >>  (!cl::str_p("*/"))              [span_end]
+                    ;
 
-                keyword = keywords.cpp >>
-                          (cl::eps_p -
-                           (cl::alnum_p |
-                            '_')); // make sure we recognize whole words only
+                keyword
+                    =   keywords.cpp >> (cl::eps_p - (cl::alnum_p | '_'))
+                    ;   // make sure we recognize whole words only
 
-                special = +cl::chset_p("~!%^&*()+={[}]:;,<.>?/|\\#-");
+                special
+                    =   +cl::chset_p("~!%^&*()+={[}]:;,<.>?/|\\#-")
+                    ;
 
                 string_char = ('\\' >> u8_codepoint_p) | (cl::anychar_p - '\\');
 
-                string_ = !cl::as_lower_d['l'] >>
-                          cl::confix_p('"', *string_char, '"');
+                string_
+                    =   !cl::as_lower_d['l'] >> cl::confix_p('"', *string_char, '"')
+                    ;
 
-                char_ = !cl::as_lower_d['l'] >>
-                        cl::confix_p('\'', *string_char, '\'');
+                char_
+                    =   !cl::as_lower_d['l'] >> cl::confix_p('\'', *string_char, '\'')
+                    ;
 
-                number = (cl::as_lower_d["0x"] >> cl::hex_p | '0' >> cl::oct_p |
-                          cl::real_p) >>
-                         *cl::as_lower_d[cl::chset_p("ldfu")];
+                number
+                    =   (
+                            cl::as_lower_d["0x"] >> cl::hex_p
+                        |   '0' >> cl::oct_p
+                        |   cl::real_p
+                        )
+                        >>  *cl::as_lower_d[cl::chset_p("ldfu")]
+                    ;
 
-                identifier = (cl::alpha_p | '_') >> *(cl::alnum_p | '_');
+                identifier
+                    =   (cl::alpha_p | '_') >> *(cl::alnum_p | '_')
+                    ;
+
+                // clang-format on
             }
 
             cl::rule<Scanner> program, line_start, rest_of_line, macro,
@@ -321,95 +381,135 @@ namespace quickbook
             definition(python_highlight const& self)
                 : g(self.actions.state.grammar())
             {
-                member_action1<syntax_highlight_actions, char const*> span(
-                    self.actions, &syntax_highlight_actions::span),
-                    span_start(
-                        self.actions, &syntax_highlight_actions::span_start);
-                member_action<syntax_highlight_actions> span_end(
-                    self.actions, &syntax_highlight_actions::span_end),
-                    unexpected_char(
-                        self.actions,
-                        &syntax_highlight_actions::unexpected_char),
-                    plain_char(
-                        self.actions, &syntax_highlight_actions::plain_char),
-                    pre_escape_back(
-                        self.actions,
-                        &syntax_highlight_actions::pre_escape_back),
-                    post_escape_back(
-                        self.actions,
-                        &syntax_highlight_actions::post_escape_back),
-                    mark_text(
-                        self.actions, &syntax_highlight_actions::mark_text),
+                // clang-format off
+
+                member_action1<syntax_highlight_actions, char const*>
+                    span(self.actions, &syntax_highlight_actions::span),
+                    span_start(self.actions, &syntax_highlight_actions::span_start);
+                member_action<syntax_highlight_actions>
+                    span_end(self.actions, &syntax_highlight_actions::span_end),
+                    unexpected_char(self.actions, &syntax_highlight_actions::unexpected_char),
+                    plain_char(self.actions, &syntax_highlight_actions::plain_char),
+                    pre_escape_back(self.actions, &syntax_highlight_actions::pre_escape_back),
+                    post_escape_back(self.actions, &syntax_highlight_actions::post_escape_back),
+                    mark_text(self.actions, &syntax_highlight_actions::mark_text),
                     callout(self.actions, &syntax_highlight_actions::callout);
-                member_action_value<
-                    syntax_highlight_actions, std::string const&>
+                member_action_value<syntax_highlight_actions, std::string const&>
                     do_macro(self.actions, &syntax_highlight_actions::do_macro);
                 error_action error(self.actions.state);
 
-                program =
-                    *((+cl::space_p)[plain_char] | macro | escape |
-                      cl::eps_p(ph::var(self.actions.support_callouts)) >>
-                          (line_callout[callout] | inline_callout[callout]) |
-                      comment | keyword[span("keyword")] |
-                      identifier[span("identifier")] |
-                      special[span("special")] | string_[span("string")] |
-                      number[span("number")] | u8_codepoint_p[unexpected_char]);
+                program
+                    =
+                    *(  (+cl::space_p)                  [plain_char]
+                    |   macro
+                    |   escape
+                    |   cl::eps_p(ph::var(self.actions.support_callouts))
+                    >>  (   line_callout                [callout]
+                        |   inline_callout              [callout]
+                        )
+                    |   comment
+                    |   keyword                         [span("keyword")]
+                    |   identifier                      [span("identifier")]
+                    |   special                         [span("special")]
+                    |   string_                         [span("string")]
+                    |   number                          [span("number")]
+                    |   u8_codepoint_p                  [unexpected_char]
+                    )
+                    ;
 
                 macro =
                     // must not be followed by alpha or underscore
-                    cl::eps_p(
-                        self.actions.state.macro >>
-                        (cl::eps_p - (cl::alpha_p | '_'))) >>
-                    self.actions.state.macro[do_macro];
+                    cl::eps_p(self.actions.state.macro
+                        >> (cl::eps_p - (cl::alpha_p | '_')))
+                    >> self.actions.state.macro
+                                                        [do_macro]
+                    ;
 
                 escape =
-                    cl::str_p("``")[pre_escape_back] >>
-                    ((((+(cl::anychar_p - "``") >> cl::eps_p("``")) &
-                       g.phrase_start) >>
-                      cl::str_p("``")) |
-                     (cl::eps_p[error] >> *cl::anychar_p))[post_escape_back];
+                    cl::str_p("``")                     [pre_escape_back]
+                    >>
+                    (
+                        (
+                            (
+                                (+(cl::anychar_p - "``") >> cl::eps_p("``"))
+                                & g.phrase_start
+                            )
+                            >>  cl::str_p("``")
+                        )
+                        |
+                        (
+                            cl::eps_p                   [error]
+                            >> *cl::anychar_p
+                        )
+                    )                                   [post_escape_back]
+                    ;
 
-                inline_callout = "#<" >> *cl::space_p >>
-                                 (*(cl::anychar_p - cl::eol_p))[mark_text];
+                inline_callout
+                    =   "#<" >> *cl::space_p >>
+                        (*(cl::anychar_p - cl::eol_p))  [mark_text]
+                    ;
 
-                line_callout = cl::confix_p(
-                    "#<<" >> *cl::space_p, (*cl::anychar_p)[mark_text],
-                    (cl::eol_p | cl::end_p));
+                line_callout
+                    =   cl::confix_p(
+                            "#<<" >> *cl::space_p,
+                            (*cl::anychar_p)            [mark_text],
+                            (cl::eol_p | cl::end_p)
+                        )
+                    ;
 
-                comment =
-                    cl::str_p("#")[span_start("comment")] >>
-                    *(escape |
-                      (+(cl::anychar_p - (cl::eol_p | "``")))[plain_char]) >>
-                    cl::eps_p[span_end];
+                comment
+                    =   cl::str_p("#")                  [span_start("comment")]
+                    >>  *(  escape
+                        |   (+(cl::anychar_p - (cl::eol_p | "``")))
+                                                        [plain_char]
+                        )
+                    >>  cl::eps_p                       [span_end]
+                    ;
 
-                keyword = keywords.python >>
-                          (cl::eps_p -
-                           (cl::alnum_p |
-                            '_')); // make sure we recognize whole words only
+                keyword
+                    =   keywords.python >> (cl::eps_p - (cl::alnum_p | '_'))
+                    ;   // make sure we recognize whole words only
 
-                special = +cl::chset_p("~!%^&*()+={[}]:;,<.>/|\\-");
+                special
+                    =   +cl::chset_p("~!%^&*()+={[}]:;,<.>/|\\-")
+                    ;
 
-                string_prefix =
-                    cl::as_lower_d[cl::str_p("u") >> !cl::str_p("r")];
+                string_prefix
+                    =    cl::as_lower_d[cl::str_p("u") >> ! cl::str_p("r")]
+                    ;
 
-                string_ = !string_prefix >> (long_string | short_string);
+                string_
+                    =   ! string_prefix >> (long_string | short_string)
+                    ;
 
                 string_char = ('\\' >> u8_codepoint_p) | (cl::anychar_p - '\\');
 
-                short_string = cl::confix_p('\'', *string_char, '\'') |
-                               cl::confix_p('"', *string_char, '"');
+                short_string
+                    =   cl::confix_p('\'', * string_char, '\'') |
+                        cl::confix_p('"', * string_char, '"')
+                    ;
 
                 long_string
                     // Note: the "cl::str_p" on the next two lines work around
                     // an INTERNAL COMPILER ERROR when using VC7.1
-                    = cl::confix_p(cl::str_p("'''"), *string_char, "'''") |
-                      cl::confix_p(cl::str_p("\"\"\""), *string_char, "\"\"\"");
+                    =   cl::confix_p(cl::str_p("'''"), * string_char, "'''") |
+                        cl::confix_p(cl::str_p("\"\"\""), * string_char, "\"\"\"")
+                    ;
 
-                number = (cl::as_lower_d["0x"] >> cl::hex_p | '0' >> cl::oct_p |
-                          cl::real_p) >>
-                         *cl::as_lower_d[cl::chset_p("lj")];
+                number
+                    =   (
+                            cl::as_lower_d["0x"] >> cl::hex_p
+                        |   '0' >> cl::oct_p
+                        |   cl::real_p
+                        )
+                        >>  *cl::as_lower_d[cl::chset_p("lj")]
+                    ;
 
-                identifier = (cl::alpha_p | '_') >> *(cl::alnum_p | '_');
+                identifier
+                    =   (cl::alpha_p | '_') >> *(cl::alnum_p | '_')
+                    ;
+
+                // clang-format on
             }
 
             cl::rule<Scanner> program, macro, inline_callout, line_callout,
@@ -450,21 +550,44 @@ namespace quickbook
                     do_macro(self.actions, &syntax_highlight_actions::do_macro);
                 error_action error(self.actions.state);
 
-                program = *(macro | escape | u8_codepoint_p[plain_char]);
+                // clang-format off
+
+                program
+                    =
+                    *(  macro
+                    |   escape
+                    |   u8_codepoint_p                  [plain_char]
+                    )
+                    ;
 
                 macro =
                     // must not be followed by alpha or underscore
-                    cl::eps_p(
-                        self.actions.state.macro >>
-                        (cl::eps_p - (cl::alpha_p | '_'))) >>
-                    self.actions.state.macro[do_macro];
+                    cl::eps_p(self.actions.state.macro
+                        >> (cl::eps_p - (cl::alpha_p | '_')))
+                    >> self.actions.state.macro
+                                                        [do_macro]
+                    ;
 
                 escape =
-                    cl::str_p("``")[pre_escape_back] >>
-                    ((((+(cl::anychar_p - "``") >> cl::eps_p("``")) &
-                       g.phrase_start) >>
-                      cl::str_p("``")) |
-                     (cl::eps_p[error] >> *cl::anychar_p))[post_escape_back];
+                    cl::str_p("``")                     [pre_escape_back]
+                    >>
+                    (
+                        (
+                            (
+                                (+(cl::anychar_p - "``") >> cl::eps_p("``"))
+                                & g.phrase_start
+                            )
+                            >>  cl::str_p("``")
+                        )
+                        |
+                        (
+                            cl::eps_p                   [error]
+                            >> *cl::anychar_p
+                        )
+                    )                                   [post_escape_back]
+                    ;
+
+                // clang-format on
             }
 
             cl::rule<Scanner> program, macro, escape;

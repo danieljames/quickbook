@@ -369,27 +369,44 @@ namespace quickbook
         member_action<main_grammar_local> end_blocks(
             local, &main_grammar_local::end_blocks_impl);
 
+        // clang-format off
+
         // phrase/phrase_start is used for an entirely self-contained
         // phrase. For example, any remaining anchors are written out
         // at the end instead of being saved for any following content.
-        phrase_start = inline_phrase[end_phrase];
+        phrase_start =
+            inline_phrase                       [end_phrase]
+            ;
 
         // nested_phrase is used for a phrase nested inside square
         // brackets.
-        nested_phrase = state.values.save()[scoped_context(
-            element_info::in_phrase)[*(~cl::eps_p(']') >> local.common)]];
+        nested_phrase =
+            state.values.save()
+            [
+                scoped_context(element_info::in_phrase)
+                [*(~cl::eps_p(']') >> local.common)]
+            ]
+            ;
 
         // paragraph_phrase is like a nested_phrase but is also terminated
         // by a paragraph end.
         paragraph_phrase =
-            state.values.save()[scoped_context(element_info::in_phrase)[*(
-                ~cl::eps_p(phrase_end) >> local.common)]];
+            state.values.save()
+            [
+                scoped_context(element_info::in_phrase)
+                [*(~cl::eps_p(phrase_end) >> local.common)]
+            ]
+            ;
 
         // extended_phrase is like a paragraph_phrase but allows some block
         // elements.
         extended_phrase =
-            state.values.save()[scoped_context(element_info::in_conditional)[*(
-                ~cl::eps_p(phrase_end) >> local.common)]];
+            state.values.save()
+            [
+                scoped_context(element_info::in_conditional)
+                [*(~cl::eps_p(phrase_end) >> local.common)]
+            ]
+            ;
 
         // inline_phrase is used a phrase that isn't nested inside
         // brackets, but is not self contained. An example of this
@@ -397,78 +414,123 @@ namespace quickbook
         // is part of the paragraph that contains it.
         inline_phrase =
             state.values.save()
-                [qbk_ver(107u) >> local.template_phrase |
-                 qbk_ver(0, 107u) >>
-                     scoped_context(element_info::in_phrase)[*local.common]];
+            [   qbk_ver(107u)
+            >>  local.template_phrase
+            |   qbk_ver(0, 107u)
+            >>  scoped_context(element_info::in_phrase)
+                [*local.common]
+            ]
+            ;
 
-        table_title_phrase = state.values.save()[scoped_context(
-            element_info::in_phrase)[*(
-            ~cl::eps_p(space >> (']' | '[' >> space >> '[')) >> local.common)]];
+        table_title_phrase =
+            state.values.save()
+            [
+                scoped_context(element_info::in_phrase)
+                [   *( ~cl::eps_p(space >> (']' | '[' >> space >> '['))
+                    >>  local.common
+                    )
+                ]
+            ]
+            ;
 
-        inside_preformatted = scoped_no_eols(false)[paragraph_phrase];
+        inside_preformatted =
+            scoped_no_eols(false)
+            [   paragraph_phrase
+            ]
+            ;
 
         // Phrase templates can contain block tags, but can't contain
         // syntatic blocks.
-        local.template_phrase = scoped_context(element_info::in_top_level)[*(
-            (local.paragraph_separator >> space >>
-             cl::anychar_p)[error("Paragraph in phrase template.")] |
-            local.common)];
+        local.template_phrase =
+                scoped_context(element_info::in_top_level)
+                [   *(  (local.paragraph_separator >> space >> cl::anychar_p)
+                                        [error("Paragraph in phrase template.")]
+                    |   local.common
+                    )
+                ]
+            ;
 
         // Top level blocks
         block_start =
-            (*eol)[start_blocks] >>
-            (*(local.top_level >>
-               !(qbk_ver(106u) >> cl::ch_p(']') >>
-                 cl::eps_p[error("Mismatched close bracket")])))[end_blocks];
+                (*eol)                  [start_blocks]
+            >>  (   *(  local.top_level
+                    >>  !(  qbk_ver(106u)
+                        >>  cl::ch_p(']')
+                        >>  cl::eps_p   [error("Mismatched close bracket")]
+                        )
+                    )
+                )                       [end_blocks]
+            ;
 
         // Blocks contains within an element, e.g. a table cell or a footnote.
         inside_paragraph =
             state.values.save()
-                [cl::eps_p[start_nested_blocks] >>
-                 (qbk_ver(107u) >> (*eol) >> (*local.top_level) |
-                  qbk_ver(0, 107u) >> local.inside_paragraph)[end_blocks]];
+            [   cl::eps_p               [start_nested_blocks]
+            >>  (   qbk_ver(107u)
+                >>  (*eol)
+                >>  (*local.top_level)
+                |   qbk_ver(0, 107u)
+                >>  local.inside_paragraph
+                )                       [end_blocks]
+            ]
+            ;
 
         local.top_level =
-            cl::eps_p(local.indent_check) >>
-            (cl::eps_p(ph::var(local.block_type) == block_types::code) >>
-                 local.code |
-             cl::eps_p(ph::var(local.block_type) == block_types::list) >>
-                 local.list |
-             cl::eps_p(ph::var(local.block_type) == block_types::paragraph) >>
-                 (local.hr | local.paragraph)) >>
-            *eol;
+                cl::eps_p(local.indent_check)
+            >>  (   cl::eps_p(ph::var(local.block_type) == block_types::code)
+                >>  local.code
+                |   cl::eps_p(ph::var(local.block_type) == block_types::list)
+                >>  local.list
+                |   cl::eps_p(ph::var(local.block_type) == block_types::paragraph)
+                >>  (   local.hr
+                    |   local.paragraph
+                    )
+                )
+            >>  *eol
+            ;
 
         local.indent_check =
-            (*cl::blank_p >>
-             !((cl::ch_p('*') | '#') >> *cl::blank_p))[check_indentation];
+            (   *cl::blank_p
+            >>  !(  (cl::ch_p('*') | '#')
+                >> *cl::blank_p)
+            )                                   [check_indentation]
+            ;
 
         local.paragraph =
-            // Usually superfluous call
-            // for paragraphs in lists.
-            cl::eps_p[paragraph_action] >>
-            scope_paragraph()
-                [scoped_context(element_info::in_top_level)
-                     [scoped_still_in_block(true)
-                          [local.syntactic_block_item(
-                               element_info::is_contextual_block) >>
-                           *(cl::eps_p(ph::var(local.still_in_block)) >>
-                             local.syntactic_block_item(
-                                 element_info::is_block))]]][paragraph_action];
+                                                // Usually superfluous call
+                                                // for paragraphs in lists.
+            cl::eps_p                           [paragraph_action]
+        >>  scope_paragraph()
+            [
+                scoped_context(element_info::in_top_level)
+                [   scoped_still_in_block(true)
+                    [   local.syntactic_block_item(element_info::is_contextual_block)
+                    >>  *(  cl::eps_p(ph::var(local.still_in_block))
+                        >>  local.syntactic_block_item(element_info::is_block)
+                        )
+                    ]
+                ]
+            ]                                   [paragraph_action]
+            ;
 
         local.list =
-            *cl::blank_p >> (cl::ch_p('*') | '#') >> (*cl::blank_p) >>
-            scoped_context(
-                element_info::in_list_block)[scoped_still_in_block(true)[*(
-                cl::eps_p(ph::var(local.still_in_block)) >>
-                local.syntactic_block_item(element_info::is_block))]];
+                *cl::blank_p
+            >>  (cl::ch_p('*') | '#')
+            >>  (*cl::blank_p)
+            >>  scoped_context(element_info::in_list_block)
+                [   scoped_still_in_block(true)
+                    [   *(  cl::eps_p(ph::var(local.still_in_block))
+                        >>  local.syntactic_block_item(element_info::is_block)
+                        )
+                    ]
+                ]
+            ;
 
         local.syntactic_block_item =
-            local.paragraph_separator[ph::var(local.still_in_block) = false] |
-            (cl::eps_p(~cl::ch_p(']')) |
-             qbk_ver(
-                 0,
-                 107u))[ph::var(local.element_type) = element_info::nothing] >>
-                local.common
+                local.paragraph_separator       [ph::var(local.still_in_block) = false]
+            |   (cl::eps_p(~cl::ch_p(']')) | qbk_ver(0, 107u))
+                                                [ph::var(local.element_type) = element_info::nothing]
+            >>  local.common
 
                 // If the element is a block, then a newline will end the
                 // current syntactic block.
@@ -477,351 +539,500 @@ namespace quickbook
                 // the list block to end. The support for nested syntactic
                 // blocks in 1.7 will fix that. Although it does mean the
                 // following line will need to be indented.
-                >> !(cl::eps_p(in_list) >> qbk_ver(106u, 107u) |
-                     cl::eps_p(
-                         ph::static_cast_<int>(
-                             local.syntactic_block_item.is_block_mask) &
-                         ph::static_cast_<int>(ph::var(local.element_type))) >>
-                         eol[ph::var(local.still_in_block) = false]);
+            >>  !(  cl::eps_p(in_list) >> qbk_ver(106u, 107u)
+                |   cl::eps_p
+                    (
+                        ph::static_cast_<int>(local.syntactic_block_item.is_block_mask) &
+                        ph::static_cast_<int>(ph::var(local.element_type))
+                    )
+                >>  eol                         [ph::var(local.still_in_block) = false]
+                )
+            ;
 
         local.paragraph_separator =
-            cl::eol_p >> cl::eps_p(
-                             *cl::blank_p >>
-                             (cl::eol_p | cl::end_p |
-                              cl::eps_p(in_list) >> (cl::ch_p('*') | '#'))) >>
-            *eol;
+                cl::eol_p
+            >>  cl::eps_p
+                (   *cl::blank_p
+                >>  (   cl::eol_p
+                    |   cl::end_p
+                    |   cl::eps_p(in_list) >> (cl::ch_p('*') | '#')
+                    )
+                )
+            >>  *eol
+            ;
 
         // Blocks contains within an element, e.g. a table cell or a footnote.
         local.inside_paragraph =
-            scoped_context(element_info::in_nested_block)[*(
-                local.paragraph_separator[paragraph_action] |
-                ~cl::eps_p(']') >> local.common)][paragraph_action];
+            scoped_context(element_info::in_nested_block)
+            [   *(  local.paragraph_separator   [paragraph_action]
+                |   ~cl::eps_p(']')
+                >>  local.common
+                )
+            ]                                   [paragraph_action]
+            ;
 
         local.hr =
-            cl::str_p("----") >>
-            state.values.list(block_tags::hr)
-                [(qbk_ver(106u) >> *(line_comment | (cl::anychar_p -
-                                                     (cl::eol_p | '[' | ']'))) |
-                  qbk_ver(0, 106u) >>
-                      *(line_comment | (cl::anychar_p - (cl::eol_p | "[/")))) >>
-                 *eol][element_action];
+                cl::str_p("----")
+            >>  state.values.list(block_tags::hr)
+                [   (   qbk_ver(106u)
+                    >>  *(line_comment | (cl::anychar_p - (cl::eol_p | '[' | ']')))
+                    |   qbk_ver(0, 106u)
+                    >>  *(line_comment | (cl::anychar_p - (cl::eol_p | "[/")))
+                    )
+                >>  *eol
+                ]                               [element_action]
+            ;
 
-        local.element =
-            '[' >> (cl::eps_p(cl::punct_p) >>
-                        elements[ph::var(local.info) = ph::arg1] |
-                    elements[ph::var(local.info) = ph::arg1] >>
-                        (cl::eps_p - (cl::alnum_p | '_'))) >>
-            process_element()[state.values.list(ph::var(local.info.tag))
-                                  [cl::lazy_p(*ph::var(local.info.rule)) >>
-                                   space >> ']'][element_action]];
+        local.element
+            =   '['
+            >>  (   cl::eps_p(cl::punct_p)
+                >>  elements                    [ph::var(local.info) = ph::arg1]
+                |   elements                    [ph::var(local.info) = ph::arg1]
+                >>  (cl::eps_p - (cl::alnum_p | '_'))
+                )
+            >>  process_element()
+                [   state.values.list(ph::var(local.info.tag))
+                    [   cl::lazy_p(*ph::var(local.info.rule))
+                    >>  space
+                    >>  ']'
+                    ]                           [element_action]
+                ]
+            ;
 
         local.code =
-            state.values.list(code_tags::code_block)[(
-                local.code_line >>
-                *(*local.blank_line >> local.code_line))[state.values.entry(
-                ph::arg1, ph::arg2)]][element_action] >>
-            *eol;
+            state.values.list(code_tags::code_block)
+            [(  local.code_line
+                >> *(*local.blank_line >> local.code_line)
+            )                                   [state.values.entry(ph::arg1, ph::arg2)]
+            ]                                   [element_action]
+            >> *eol
+            ;
 
         local.code_line =
-            (*cl::blank_p >> ~cl::eps_p(cl::eol_p))[check_code_block] >>
-            cl::eps_p(ph::var(local.block_type) == block_types::code) >>
-            *(cl::anychar_p - cl::eol_p) >> (cl::eol_p | cl::end_p);
+            (   *cl::blank_p
+            >>  ~cl::eps_p(cl::eol_p)
+            )                                   [check_code_block]
+        >>  cl::eps_p(ph::var(local.block_type) == block_types::code)
+        >>  *(cl::anychar_p - cl::eol_p)
+        >>  (cl::eol_p | cl::end_p)
+            ;
 
-        local.blank_line = *cl::blank_p >> cl::eol_p;
+        local.blank_line =
+            *cl::blank_p >> cl::eol_p
+            ;
 
         local.common =
-            local.macro | local.element | local.template_ | local.break_ |
-            local.code_block | local.inline_code | local.simple_markup |
-            escape | comment |
-            strict_mode >>
-                (local.error_brackets[error(
-                     "Invalid template/tag (strict mode)")] |
-                 cl::eps_p(
-                     '[')[error("Mismatched open bracket (strict mode)")] >>
-                     cl::anychar_p |
-                 cl::eps_p(
-                     ']')[error("Mismatched close bracket (strict mode)")] >>
-                     cl::anychar_p) |
-            qbk_ver(106u) >> local.square_brackets | cl::space_p[raw_char] |
-            cl::anychar_p[plain_char];
+                local.macro
+            |   local.element
+            |   local.template_
+            |   local.break_
+            |   local.code_block
+            |   local.inline_code
+            |   local.simple_markup
+            |   escape
+            |   comment
+            |   strict_mode
+            >>  (   local.error_brackets    [error("Invalid template/tag (strict mode)")]
+                |   cl::eps_p('[')          [error("Mismatched open bracket (strict mode)")]
+                >>  cl::anychar_p
+                |   cl::eps_p(']')          [error("Mismatched close bracket (strict mode)")]
+                >>  cl::anychar_p
+                )
+            |   qbk_ver(106u)
+            >>  local.square_brackets
+            |   cl::space_p                 [raw_char]
+            |   cl::anychar_p               [plain_char]
+            ;
 
-        skip_entity = '['
-                          // For escaped templates:
-                          >> !(space >> cl::ch_p('`') >> (cl::alpha_p | '_')) >>
-                          *(~cl::eps_p(']') >> skip_entity) >> !cl::ch_p(']') |
-                      local.skip_code_block | local.skip_inline_code |
-                      local.skip_escape | comment | (cl::anychar_p - '[' - ']');
+        skip_entity =
+                '['
+                // For escaped templates:
+            >>  !(space >> cl::ch_p('`') >> (cl::alpha_p | '_'))
+            >>  *(~cl::eps_p(']') >> skip_entity)
+            >>  !cl::ch_p(']')
+            |   local.skip_code_block
+            |   local.skip_inline_code
+            |   local.skip_escape
+            |   comment
+            |   (cl::anychar_p - '[' - ']')
+            ;
 
         local.square_brackets =
-            (cl::ch_p('[')[plain_char] >> paragraph_phrase >>
-                 (cl::ch_p(']')[plain_char] |
-                  cl::eps_p[error("Missing close bracket")]) |
-             cl::ch_p(']')[plain_char] >>
-                 cl::eps_p[error("Mismatched close bracket")]);
+            (   cl::ch_p('[')           [plain_char]
+            >>  paragraph_phrase
+            >>  (   cl::ch_p(']')       [plain_char]
+                |   cl::eps_p           [error("Missing close bracket")]
+                )
+            |   cl::ch_p(']')           [plain_char]
+            >>  cl::eps_p               [error("Mismatched close bracket")]
+            )
+            ;
 
-        local.error_brackets = cl::ch_p('[')[plain_char] >>
-                               (local.error_brackets | (cl::anychar_p - ']')) >>
-                               cl::ch_p(']');
+        local.error_brackets =
+                cl::ch_p('[')           [plain_char]
+            >>  (   local.error_brackets
+                |   (cl::anychar_p - ']')
+                )
+            >>  cl::ch_p(']')
+            ;
 
-        local.macro = cl::eps_p(
-                          (state.macro >> ~cl::eps_p(cl::alpha_p | '_')
-                           // must not be followed by alpha or underscore
-                           ) &
-                          macro_identifier // must be a valid macro for the
-                                           // current version
-                          ) >>
-                      state.macro[do_macro];
+        local.macro =
+            cl::eps_p
+            (   (   state.macro
+                >>  ~cl::eps_p(cl::alpha_p | '_')
+                                                // must not be followed by alpha or underscore
+                )
+                &   macro_identifier            // must be a valid macro for the current version
+            )
+            >>  state.macro                     [do_macro]
+            ;
 
         local.template_ =
-            ('[' >> space >> state.values.list(template_tags::template_)
-                                 [local.template_body >> ']'])[element_action];
+            (   '['
+            >>  space
+            >>  state.values.list(template_tags::template_)
+                [   local.template_body
+                >>  ']'
+                ]
+            )                                   [element_action]
+            ;
 
         local.attribute_template =
-            ('[' >> space >>
-             state.values.list(template_tags::attribute_template)
-                 [local.template_body >> ']'])[element_action];
+            (   '['
+            >>  space
+            >>  state.values.list(template_tags::attribute_template)
+                [   local.template_body
+                >>  ']'
+                ]
+            )                                   [element_action]
+            ;
 
         local.template_body =
-            (cl::str_p('`') >> cl::eps_p(cl::punct_p) >>
-                 state.templates.scope[state.values.entry(
-                     ph::arg1, ph::arg2, template_tags::escape)]
-                                      [state.values.entry(
-                                          ph::arg1, ph::arg2,
-                                          template_tags::identifier)] >>
-                 !(qbk_ver(106u)[error("Templates with punctuation names can't "
-                                       "be escaped in quickbook 1.6+")] |
-                   strict_mode[error("Templates with punctuation names can't "
-                                     "be escaped (strict mode)")]) |
-             cl::str_p('`') >>
-                 state.templates
-                     .scope[state.values.entry(
-                         ph::arg1, ph::arg2, template_tags::escape)]
-                           [state.values.entry(
-                               ph::arg1, ph::arg2, template_tags::identifier)]
+                    (   cl::str_p('`')
+                    >>  cl::eps_p(cl::punct_p)
+                    >>  state.templates.scope
+                            [state.values.entry(ph::arg1, ph::arg2, template_tags::escape)]
+                            [state.values.entry(ph::arg1, ph::arg2, template_tags::identifier)]
+                    >>  !(  qbk_ver(106u)
+                            [error("Templates with punctuation names can't be escaped in quickbook 1.6+")]
+                        |   strict_mode
+                            [error("Templates with punctuation names can't be escaped (strict mode)")]
+                        )
+                    |   cl::str_p('`')
+                    >>  state.templates.scope
+                            [state.values.entry(ph::arg1, ph::arg2, template_tags::escape)]
+                            [state.values.entry(ph::arg1, ph::arg2, template_tags::identifier)]
 
-             |
-             cl::eps_p(cl::punct_p) >>
-                 state.templates.scope[state.values.entry(
-                     ph::arg1, ph::arg2, template_tags::identifier)]
+                    |   cl::eps_p(cl::punct_p)
+                    >>  state.templates.scope
+                            [state.values.entry(ph::arg1, ph::arg2, template_tags::identifier)]
 
-             |
-             state.templates.scope[state.values.entry(
-                 ph::arg1, ph::arg2, template_tags::identifier)] >>
-                 cl::eps_p(hard_space)) >>
-            space >> !local.template_args;
+                    |   state.templates.scope
+                            [state.values.entry(ph::arg1, ph::arg2, template_tags::identifier)]
+                    >>  cl::eps_p(hard_space)
+                    )
+                >>  space
+                >>  !local.template_args
+            ;
 
-        local.template_args = qbk_ver(106u) >> local.template_args_1_6 |
-                              qbk_ver(105u, 106u) >> local.template_args_1_5 |
-                              qbk_ver(0, 105u) >> local.template_args_1_4;
+        local.template_args =
+                qbk_ver(106u) >> local.template_args_1_6
+            |   qbk_ver(105u, 106u) >> local.template_args_1_5
+            |   qbk_ver(0, 105u) >> local.template_args_1_4
+            ;
 
-        local.template_args_1_4 =
-            local.template_arg_1_4 >> *(".." >> local.template_arg_1_4);
+        local.template_args_1_4 = local.template_arg_1_4 >> *(".." >> local.template_arg_1_4);
 
         local.template_arg_1_4 =
-            (cl::eps_p(*cl::blank_p >> cl::eol_p) >>
-                 local.template_inner_arg_1_4[state.values.entry(
-                     ph::arg1, ph::arg2, template_tags::block)] |
-             local.template_inner_arg_1_4[state.values.entry(
-                 ph::arg1, ph::arg2, template_tags::phrase)]);
+            (   cl::eps_p(*cl::blank_p >> cl::eol_p)
+            >>  local.template_inner_arg_1_4    [state.values.entry(ph::arg1, ph::arg2, template_tags::block)]
+            |   local.template_inner_arg_1_4    [state.values.entry(ph::arg1, ph::arg2, template_tags::phrase)]
+            )
+            ;
 
         local.template_inner_arg_1_4 =
-            +(local.brackets_1_4 | (cl::anychar_p - (cl::str_p("..") | ']')));
+            +(local.brackets_1_4 | (cl::anychar_p - (cl::str_p("..") | ']')))
+            ;
 
-        local.brackets_1_4 = '[' >> local.template_inner_arg_1_4 >> ']';
+        local.brackets_1_4 =
+            '[' >> local.template_inner_arg_1_4 >> ']'
+            ;
 
-        local.template_args_1_5 =
-            local.template_arg_1_5 >> *(".." >> local.template_arg_1_5);
+        local.template_args_1_5 = local.template_arg_1_5 >> *(".." >> local.template_arg_1_5);
 
         local.template_arg_1_5 =
-            (cl::eps_p(*cl::blank_p >> cl::eol_p) >>
-                 local.template_arg_1_5_content[state.values.entry(
-                     ph::arg1, ph::arg2, template_tags::block)] |
-             local.template_arg_1_5_content[state.values.entry(
-                 ph::arg1, ph::arg2, template_tags::phrase)]);
+            (   cl::eps_p(*cl::blank_p >> cl::eol_p)
+            >>  local.template_arg_1_5_content  [state.values.entry(ph::arg1, ph::arg2, template_tags::block)]
+            |   local.template_arg_1_5_content  [state.values.entry(ph::arg1, ph::arg2, template_tags::phrase)]
+            )
+            ;
 
         local.template_arg_1_5_content =
-            +(local.brackets_1_5 | ('\\' >> cl::anychar_p) |
-              (cl::anychar_p - (cl::str_p("..") | '[' | ']')));
+            +(local.brackets_1_5 | ('\\' >> cl::anychar_p) | (cl::anychar_p - (cl::str_p("..") | '[' | ']')))
+            ;
 
         local.template_inner_arg_1_5 =
-            +(local.brackets_1_5 | ('\\' >> cl::anychar_p) |
-              (cl::anychar_p - (cl::str_p('[') | ']')));
+            +(local.brackets_1_5 | ('\\' >> cl::anychar_p) | (cl::anychar_p - (cl::str_p('[') | ']')))
+            ;
 
-        local.brackets_1_5 = '[' >> local.template_inner_arg_1_5 >> ']';
+        local.brackets_1_5 =
+            '[' >> local.template_inner_arg_1_5 >> ']'
+            ;
 
-        local.template_args_1_6 =
-            local.template_arg_1_6 >> *(".." >> local.template_arg_1_6);
+        local.template_args_1_6 = local.template_arg_1_6 >> *(".." >> local.template_arg_1_6);
 
         local.template_arg_1_6 =
-            (cl::eps_p(*cl::blank_p >> cl::eol_p) >>
-                 local.template_arg_1_6_content[state.values.entry(
-                     ph::arg1, ph::arg2, template_tags::block)] |
-             local.template_arg_1_6_content[state.values.entry(
-                 ph::arg1, ph::arg2, template_tags::phrase)]);
+            (   cl::eps_p(*cl::blank_p >> cl::eol_p)
+            >>  local.template_arg_1_6_content  [state.values.entry(ph::arg1, ph::arg2, template_tags::block)]
+            |   local.template_arg_1_6_content  [state.values.entry(ph::arg1, ph::arg2, template_tags::phrase)]
+            )
+            ;
 
-        local.template_arg_1_6_content = +(~cl::eps_p("..") >> skip_entity);
+        local.template_arg_1_6_content =
+            + ( ~cl::eps_p("..") >> skip_entity )
+            ;
 
-        local.break_ = ('[' >> space >> "br" >> space >> ']')[break_];
+        local.break_
+            =   (   '['
+                >>  space
+                >>  "br"
+                >>  space
+                >>  ']'
+                )                               [break_]
+                ;
 
         local.inline_code =
-            '`' >>
-            state.values.list(code_tags::inline_code)
-                [(*(cl::anychar_p -
-                    ('`' | (cl::eol_p >> *cl::blank_p >> cl::eol_p)
-                     // Make sure that we don't go
-                     ) // past a single block
-                    ) >>
-                  cl::eps_p('`'))[state.values.entry(ph::arg1, ph::arg2)] >>
-                 '`'][element_action];
+            '`' >> state.values.list(code_tags::inline_code)
+            [(
+               *(cl::anychar_p -
+                    (   '`'
+                    |   (cl::eol_p >> *cl::blank_p >> cl::eol_p)
+                                                // Make sure that we don't go
+                    )                           // past a single block
+                ) >> cl::eps_p('`')
+            )                                   [state.values.entry(ph::arg1, ph::arg2)]
+            >>  '`'
+            ]                                   [element_action]
+            ;
 
         local.skip_inline_code =
-            '`' >>
-            *(cl::anychar_p - ('`' | (cl::eol_p >> *cl::blank_p >> cl::eol_p)
-                               // Make sure that we don't go
-                               ) // past a single block
-              ) >>
-            !cl::ch_p('`');
+                '`'
+            >>  *(cl::anychar_p -
+                    (   '`'
+                    |   (cl::eol_p >> *cl::blank_p >> cl::eol_p)
+                                                // Make sure that we don't go
+                    )                           // past a single block
+                )
+            >>  !cl::ch_p('`')
+            ;
 
         local.skip_code_block =
-            "```" >> ~cl::eps_p("`") >>
-                ((!(*(*cl::blank_p >> cl::eol_p) >>
-                    (*("````" >> *cl::ch_p('`') |
-                       (cl::anychar_p -
-                        (*cl::space_p >> "```" >> ~cl::eps_p("`")))) >>
-                     !(*cl::blank_p >> cl::eol_p)) >>
-                    (*cl::space_p >> "```"))) |
-                 *cl::anychar_p) |
-            "``" >> ~cl::eps_p("`") >>
-                ((*(*cl::blank_p >> cl::eol_p) >>
-                  (*("```" >> *cl::ch_p('`') |
-                     (cl::anychar_p -
-                      (*cl::space_p >> "``" >> ~cl::eps_p("`")))) >>
-                   !(*cl::blank_p >> cl::eol_p)) >>
-                  (*cl::space_p >> "``")) |
-                 *cl::anychar_p);
+                "```"
+            >>  ~cl::eps_p("`")
+            >>  (   (!( *(*cl::blank_p >> cl::eol_p)
+                    >>  (   *(  "````" >> *cl::ch_p('`')
+                            |   (   cl::anychar_p
+                                -   (*cl::space_p >> "```" >> ~cl::eps_p("`"))
+                                )
+                            )
+                            >>  !(*cl::blank_p >> cl::eol_p)
+                        )
+                    >>  (*cl::space_p >> "```")
+                    ))
+                |   *cl::anychar_p
+                )
+            |   "``"
+            >>  ~cl::eps_p("`")
+            >>  (   (   *(*cl::blank_p >> cl::eol_p)
+                    >>  (   *(  "```" >> *cl::ch_p('`')
+                            |   (   cl::anychar_p
+                                -   (*cl::space_p >> "``" >> ~cl::eps_p("`"))
+                                )
+                            )
+                            >>  !(*cl::blank_p >> cl::eol_p)
+                        )
+                    >>  (*cl::space_p >> "``")
+                    )
+                |   *cl::anychar_p
+                )
+            ;
 
         local.code_block =
-            "```" >> ~cl::eps_p("`") >>
-                (state.values.list(code_tags::inline_code_block)
-                     [*(*cl::blank_p >> cl::eol_p) >>
-                      (*("````" >> *cl::ch_p('`') |
-                         (cl::anychar_p -
-                          (*cl::space_p >> "```" >> ~cl::eps_p("`")))) >>
-                       !(*cl::blank_p >>
-                         cl::eol_p))[state.values.entry(ph::arg1, ph::arg2)] >>
-                      (*cl::space_p >> "```")][element_action] |
-                 cl::eps_p[error("Unfinished code block")] >> *cl::anychar_p) |
-            "``" >> ~cl::eps_p("`") >>
-                (state.values.list(code_tags::inline_code_block)
-                     [*(*cl::blank_p >> cl::eol_p) >>
-                      (*("```" >> *cl::ch_p('`') |
-                         (cl::anychar_p -
-                          (*cl::space_p >> "``" >> ~cl::eps_p("`")))) >>
-                       !(*cl::blank_p >>
-                         cl::eol_p))[state.values.entry(ph::arg1, ph::arg2)] >>
-                      (*cl::space_p >> "``")][element_action] |
-                 cl::eps_p[error("Unfinished code block")] >> *cl::anychar_p);
+                "```"
+            >>  ~cl::eps_p("`")
+            >>  (   state.values.list(code_tags::inline_code_block)
+                    [   *(*cl::blank_p >> cl::eol_p)
+                    >>  (   *(  "````" >> *cl::ch_p('`')
+                            |   (   cl::anychar_p
+                                -   (*cl::space_p >> "```" >> ~cl::eps_p("`"))
+                                )
+                            )
+                            >>  !(*cl::blank_p >> cl::eol_p)
+                        )                   [state.values.entry(ph::arg1, ph::arg2)]
+                    >>  (*cl::space_p >> "```")
+                    ]                       [element_action]
+                |   cl::eps_p               [error("Unfinished code block")]
+                >>  *cl::anychar_p
+                )
+            |   "``"
+            >>  ~cl::eps_p("`")
+            >>  (   state.values.list(code_tags::inline_code_block)
+                    [   *(*cl::blank_p >> cl::eol_p)
+                    >>  (   *(  "```" >> *cl::ch_p('`')
+                            |   (   cl::anychar_p
+                                -   (*cl::space_p >> "``" >> ~cl::eps_p("`"))
+                                )
+                            )
+                            >>  !(*cl::blank_p >> cl::eol_p)
+                        )                   [state.values.entry(ph::arg1, ph::arg2)]
+                    >>  (*cl::space_p >> "``")
+                    ]                       [element_action]
+                |   cl::eps_p               [error("Unfinished code block")]
+                >>  *cl::anychar_p
+                )
+            ;
 
         local.simple_markup =
-            cl::chset<>("*/_=")[ph::var(local.mark) = ph::arg1] >>
-            cl::eps_p(cl::graph_p) // graph_p must follow first mark
-            >> lookback
-                   [cl::anychar_p // skip back over the markup
-                    >> ~cl::eps_p(cl::ch_p(boost::ref(local.mark)))
-                    // first mark not be preceeded by
-                    // the same character.
-                    >> (cl::space_p | cl::punct_p | cl::end_p)
-                    // first mark must be preceeded
-                    // by space or punctuation or the
-                    // mark character or a the start.
-        ] >> state.values.save()
-                 [to_value()
-                      [cl::eps_p(
-                           (state.macro & macro_identifier) >>
-                           local.simple_markup_end) >>
-                           state.macro[do_macro] |
-                       ~cl::eps_p(cl::ch_p(boost::ref(local.mark))) >>
-                           +(~cl::eps_p(
-                                 lookback[~cl::ch_p(boost::ref(local.mark))] >>
-                                 local.simple_markup_end) >>
-                             cl::anychar_p[plain_char])] >>
-                  cl::ch_p(boost::ref(local.mark))[simple_markup]];
+                cl::chset<>("*/_=")             [ph::var(local.mark) = ph::arg1]
+            >>  cl::eps_p(cl::graph_p)          // graph_p must follow first mark
+            >>  lookback
+                [   cl::anychar_p               // skip back over the markup
+                >>  ~cl::eps_p(cl::ch_p(boost::ref(local.mark)))
+                                                // first mark not be preceeded by
+                                                // the same character.
+                >>  (cl::space_p | cl::punct_p | cl::end_p)
+                                                // first mark must be preceeded
+                                                // by space or punctuation or the
+                                                // mark character or a the start.
+                ]
+            >>  state.values.save()
+                [
+                    to_value()
+                    [
+                        cl::eps_p((state.macro & macro_identifier) >> local.simple_markup_end)
+                    >>  state.macro       [do_macro]
+                    |   ~cl::eps_p(cl::ch_p(boost::ref(local.mark)))
+                    >>  +(  ~cl::eps_p
+                            (   lookback [~cl::ch_p(boost::ref(local.mark))]
+                            >>  local.simple_markup_end
+                            )
+                        >>  cl::anychar_p   [plain_char]
+                        )
+                    ]
+                >>  cl::ch_p(boost::ref(local.mark))
+                                                [simple_markup]
+                ]
+            ;
 
-        local.simple_markup_end =
-            (lookback[cl::graph_p] // final mark must be preceeded by
-                                   // graph_p
-             >> cl::ch_p(boost::ref(local.mark)) >>
-             ~cl::eps_p(cl::ch_p(boost::ref(local.mark)))
-             // final mark not be followed by
-             // the same character.
-             >> (cl::space_p | cl::punct_p | cl::end_p)
-             // final mark must be followed by
-             // space or punctuation
-             ) |
-            '[' | "'''" | '`' | phrase_end;
+        local.simple_markup_end
+            =   (   lookback[cl::graph_p]       // final mark must be preceeded by
+                                                // graph_p
+                >>  cl::ch_p(boost::ref(local.mark))
+                >>  ~cl::eps_p(cl::ch_p(boost::ref(local.mark)))
+                                                // final mark not be followed by
+                                                // the same character.
+                >>  (cl::space_p | cl::punct_p | cl::end_p)
+                                                 // final mark must be followed by
+                                                 // space or punctuation
+                )
+            |   '['
+            |   "'''"
+            |   '`'
+            |   phrase_end
+                ;
 
         escape =
-            cl::str_p("\\n")[break_] |
-            cl::str_p("\\ ") // ignore an escaped space
-            | '\\' >> cl::punct_p[plain_char] |
-            "\\u" >> cl::repeat_p(4)[cl::chset<>("0-9a-fA-F")][escape_unicode] |
-            "\\U" >> cl::repeat_p(8)[cl::chset<>("0-9a-fA-F")][escape_unicode] |
-            ("'''" >> !eol) >>
-                state.values.save()
-                    [(*(cl::anychar_p - "'''"))[state.values.entry(
-                         ph::arg1, ph::arg2, phrase_tags::escape)] >>
-                     (cl::str_p("'''") |
-                      cl::eps_p[error(
-                          "Unclosed boostbook escape.")])[element_action]];
+                cl::str_p("\\n")                [break_]
+            |   cl::str_p("\\ ")                // ignore an escaped space
+            |   '\\' >> cl::punct_p             [plain_char]
+            |   "\\u" >> cl::repeat_p(4) [cl::chset<>("0-9a-fA-F")]
+                                                [escape_unicode]
+            |   "\\U" >> cl::repeat_p(8) [cl::chset<>("0-9a-fA-F")]
+                                                [escape_unicode]
+            |   ("'''" >> !eol)
+            >>  state.values.save()
+                [   (*(cl::anychar_p - "'''"))  [state.values.entry(ph::arg1, ph::arg2, phrase_tags::escape)]
+                >>  (   cl::str_p("'''")
+                    |   cl::eps_p               [error("Unclosed boostbook escape.")]
+                    )                           [element_action]
+                ]
+            ;
 
-        local.skip_escape = cl::str_p("\\n") | cl::str_p("\\ ") |
-                            '\\' >> cl::punct_p |
-                            "\\u" >> cl::repeat_p(4)[cl::chset<>("0-9a-fA-F")] |
-                            "\\U" >> cl::repeat_p(8)[cl::chset<>("0-9a-fA-F")] |
-                            ("'''" >> !eol) >> (*(cl::anychar_p - "'''")) >>
-                                (cl::str_p("'''") | cl::eps_p);
+        local.skip_escape =
+                cl::str_p("\\n")
+            |   cl::str_p("\\ ")
+            |   '\\' >> cl::punct_p
+            |   "\\u" >> cl::repeat_p(4) [cl::chset<>("0-9a-fA-F")]
+            |   "\\U" >> cl::repeat_p(8) [cl::chset<>("0-9a-fA-F")]
+            |   ("'''" >> !eol)
+            >>  (*(cl::anychar_p - "'''"))
+            >>  (   cl::str_p("'''")
+                |   cl::eps_p
+                )
+            ;
 
         raw_escape =
-            cl::str_p("\\n")[error("Newlines invalid here.")] |
-            cl::str_p("\\ ") // ignore an escaped space
-            | '\\' >> cl::punct_p[raw_char] |
-            "\\u" >> cl::repeat_p(4)[cl::chset<>("0-9a-fA-F")][escape_unicode] |
-            "\\U" >> cl::repeat_p(8)[cl::chset<>("0-9a-fA-F")][escape_unicode] |
-            ('\\' >> cl::anychar_p)[error("Invalid escape.")][raw_char] |
-            ("'''" >> !eol)[error("Boostbook escape invalid here.")] >>
-                (*(cl::anychar_p - "'''")) >>
-                (cl::str_p("'''") |
-                 cl::eps_p[error("Unclosed boostbook escape.")]);
+                cl::str_p("\\n")                [error("Newlines invalid here.")]
+            |   cl::str_p("\\ ")                // ignore an escaped space
+            |   '\\' >> cl::punct_p             [raw_char]
+            |   "\\u" >> cl::repeat_p(4) [cl::chset<>("0-9a-fA-F")]
+                                                [escape_unicode]
+            |   "\\U" >> cl::repeat_p(8) [cl::chset<>("0-9a-fA-F")]
+                                                [escape_unicode]
+            |   ('\\' >> cl::anychar_p)         [error("Invalid escape.")]
+                                                [raw_char]
+            |   ("'''" >> !eol)                 [error("Boostbook escape invalid here.")]
+            >>  (*(cl::anychar_p - "'''"))
+            >>  (   cl::str_p("'''")
+                |   cl::eps_p                   [error("Unclosed boostbook escape.")]
+                )
+            ;
 
         attribute_template_body =
-            space >>
-            *(~cl::eps_p(space >> cl::end_p | comment) >>
-              (cl::eps_p(
-                   cl::ch_p('[') >> space >>
-                   (cl::eps_p(cl::punct_p) >> elements |
-                    elements >> (cl::eps_p - (cl::alnum_p | '_'))))
-                       [error("Elements not allowed in attribute values.")] >>
-                   local.square_brackets |
-               local.attribute_template |
-               cl::eps_p(cl::ch_p(
-                   '['))[error("Unmatched template in attribute value.")] >>
-                   local.square_brackets |
-               raw_escape | cl::anychar_p[raw_char])) >>
-            space;
+            space
+        >>  *(  ~cl::eps_p(space >> cl::end_p | comment)
+            >>  (   cl::eps_p
+                    (   cl::ch_p('[')
+                    >>  space
+                    >>  (   cl::eps_p(cl::punct_p)
+                        >>  elements
+                        |   elements
+                        >>  (cl::eps_p - (cl::alnum_p | '_'))
+                        )
+                    )                           [error("Elements not allowed in attribute values.")]
+                >>  local.square_brackets
+                |   local.attribute_template
+                |   cl::eps_p(cl::ch_p('['))    [error("Unmatched template in attribute value.")]
+                >>  local.square_brackets
+                |   raw_escape
+                |   cl::anychar_p               [raw_char]
+                )
+            )
+        >>  space
+            ;
 
-        attribute_value_1_7 = state.values.save()[+(
-            ~cl::eps_p(']' | cl::space_p | comment) >>
-            (cl::eps_p(
-                 cl::ch_p('[') >> space >>
-                 (cl::eps_p(cl::punct_p) >> elements |
-                  elements >> (cl::eps_p - (cl::alnum_p | '_'))))
-                     [error("Elements not allowed in attribute values.")] >>
-                 local.square_brackets |
-             local.attribute_template |
-             cl::eps_p(cl::ch_p(
-                 '['))[error("Unmatched template in attribute value.")] >>
-                 local.square_brackets |
-             raw_escape | cl::anychar_p[raw_char]))];
+        attribute_value_1_7 =
+            state.values.save() [
+                +(  ~cl::eps_p(']' | cl::space_p | comment)
+                >>  (   cl::eps_p
+                        (   cl::ch_p('[')
+                        >>  space
+                        >>  (   cl::eps_p(cl::punct_p)
+                            >>  elements
+                            |   elements
+                            >>  (cl::eps_p - (cl::alnum_p | '_'))
+                            )
+                        )                       [error("Elements not allowed in attribute values.")]
+                    >>  local.square_brackets
+                    |   local.attribute_template
+                    |   cl::eps_p(cl::ch_p('['))[error("Unmatched template in attribute value.")]
+                    >>  local.square_brackets
+                    |   raw_escape
+                    |   cl::anychar_p           [raw_char]
+                    )
+                )
+            ]
+            ;
 
         //
         // Command line
@@ -829,55 +1040,76 @@ namespace quickbook
 
         command_line =
             state.values.list(block_tags::macro_definition)
-                [*cl::space_p >>
-                 local.command_line_macro_identifier[state.values.entry(
-                     ph::arg1, ph::arg2)] >>
-                 *cl::space_p >> !('=' >> *cl::space_p >>
-                                   to_value()[inline_phrase] >> *cl::space_p) >>
-                 cl::end_p][element_action];
+            [   *cl::space_p
+            >>  local.command_line_macro_identifier
+                                                [state.values.entry(ph::arg1, ph::arg2)]
+            >>  *cl::space_p
+            >>  !(   '='
+                >>  *cl::space_p
+                >>  to_value() [ inline_phrase ]
+                >>  *cl::space_p
+                )
+            >>  cl::end_p
+            ]                                   [element_action]
+            ;
 
         local.command_line_macro_identifier =
-            qbk_ver(106u) >>
-                +(cl::anychar_p - (cl::space_p | '[' | '\\' | ']' | '=')) |
-            +(cl::anychar_p - (cl::space_p | ']' | '='));
+                qbk_ver(106u)
+            >>  +(cl::anychar_p - (cl::space_p | '[' | '\\' | ']' | '='))
+            |   +(cl::anychar_p - (cl::space_p | ']' | '='))
+            ;
 
         // Miscellaneous stuff
 
         // Follows an alphanumeric identifier - ensures that it doesn't
         // match an empty space in the middle of the identifier.
-        hard_space = (cl::eps_p - (cl::alnum_p | '_')) >> space;
+        hard_space =
+            (cl::eps_p - (cl::alnum_p | '_')) >> space
+            ;
 
-        space = *(cl::space_p | comment);
+        space =
+            *(cl::space_p | comment)
+            ;
 
-        blank = *(cl::blank_p | comment);
+        blank =
+            *(cl::blank_p | comment)
+            ;
 
-        eol = blank >> cl::eol_p;
+        eol = blank >> cl::eol_p
+            ;
 
-        phrase_end = ']' |
-                     cl::eps_p(ph::var(local.no_eols)) >> cl::eol_p >>
-                         *cl::blank_p >>
-                         cl::eol_p; // Make sure that we don't go
-                                    // past a single block, except
-                                    // when preformatted.
+        phrase_end =
+                ']'
+            |   cl::eps_p(ph::var(local.no_eols))
+            >>  cl::eol_p >> *cl::blank_p >> cl::eol_p
+            ;                                   // Make sure that we don't go
+                                                // past a single block, except
+                                                // when preformatted.
 
-        comment = "[/" >> *(local.dummy_block | (cl::anychar_p - ']')) >> ']';
+        comment =
+            "[/" >> *(local.dummy_block | (cl::anychar_p - ']')) >> ']'
+            ;
 
         local.dummy_block =
-            '[' >> *(local.dummy_block | (cl::anychar_p - ']')) >> ']';
+            '[' >> *(local.dummy_block | (cl::anychar_p - ']')) >> ']'
+            ;
 
-        line_comment = "[/" >> *(local.line_dummy_block |
-                                 (cl::anychar_p - (cl::eol_p | ']'))) >>
-                       ']';
+        line_comment =
+            "[/" >> *(local.line_dummy_block | (cl::anychar_p - (cl::eol_p | ']'))) >> ']'
+            ;
 
         local.line_dummy_block =
-            '[' >>
-            *(local.line_dummy_block | (cl::anychar_p - (cl::eol_p | ']'))) >>
-            ']';
+            '[' >> *(local.line_dummy_block | (cl::anychar_p - (cl::eol_p | ']'))) >> ']'
+            ;
 
         macro_identifier =
-            qbk_ver(106u) >>
-                +(cl::anychar_p - (cl::space_p | '[' | '\\' | ']')) |
-            qbk_ver(0, 106u) >> +(cl::anychar_p - (cl::space_p | ']'));
+                qbk_ver(106u)
+            >>  +(cl::anychar_p - (cl::space_p | '[' | '\\' | ']'))
+            |   qbk_ver(0, 106u)
+            >>  +(cl::anychar_p - (cl::space_p | ']'))
+            ;
+
+        // clang-format on
     }
 
     ////////////////////////////////////////////////////////////////////////////

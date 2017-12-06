@@ -7,6 +7,8 @@
     http://www.boost.org/LICENSE_1_0.txt)
 =============================================================================*/
 
+// clang-format off
+
 /*` This should appear when =stub.cpp= is included. */
 
 #include <string>
@@ -24,16 +26,16 @@ Some trailing text here
 //]
 
 //[ foo
-/*`
-This is the [*['foo]] function.
+    /*`
+    This is the [*['foo]] function.
 
-This description can have paragraphs...
+    This description can have paragraphs...
 
-* lists
-* etc.
+    * lists
+    * etc.
 
-And any quickbook block markup.
-*/
+    And any quickbook block markup.
+    */
 std::string foo()
 {
     // return 'em, foo man!
@@ -43,8 +45,7 @@ std::string foo()
 
 //[ foo_bar
 std::string foo_bar() /*< The /Mythical/ FooBar.
-                      See [@http://en.wikipedia.org/wiki/Foobar Foobar for
-                      details] >*/
+                      See [@http://en.wikipedia.org/wiki/Foobar Foobar for details] >*/
 {
     return "foo-bar"; /*< return 'em, foo-bar man! >*/
 }
@@ -53,21 +54,33 @@ std::string foo_bar() /*< The /Mythical/ FooBar.
 //[ class_
 class x
 {
-  public:
+public:
+
     /*<< Constructor >>*/
-    x() : n(0) {}
+    x() : n(0)
+    {
+    }
 
     /*<< Destructor >>*/
-    ~x() {}
+    ~x()
+    {
+    }
 
     /*<< Get the `n` member variable >>*/
-    int get() const { return n; /*<- this will be ignored by quickbook ->*/ }
+    int get() const
+    {
+        return n; /*<- this will be ignored by quickbook ->*/
+    }
 
     /*<< Set the `n` member variable >>*/
-    void set(int n_) { n = n_; }
-    //<- this will be ignored by quickbook
-  private:
+    void set(int n_)
+    {
+        n = n_;
+    }
+//<- this will be ignored by quickbook
+private:
+
     int n;
-    //->
+//->
 };
 //]

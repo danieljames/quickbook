@@ -13,11 +13,19 @@
 
 namespace quickbook
 {
-    QUICKBOOK_VALUE_TAGS(
-        template_tags,
-        0x100,
-        (template_)(attribute_template)(escape)(identifier)(block)(phrase)(
-            snippet))
+    // clang-format off
+
+    QUICKBOOK_VALUE_TAGS(template_tags, 0x100,
+        (template_)
+        (attribute_template)
+        (escape)
+        (identifier)
+        (block)
+        (phrase)
+        (snippet)
+    )
+
+    // clang-format on
 }
 
 #endif

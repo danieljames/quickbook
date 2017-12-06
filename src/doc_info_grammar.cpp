@@ -119,144 +119,205 @@ namespace quickbook
             default_source_mode(
                 state, &state::change_source_mode, source_mode_tags::cpp);
 
-        doc_info_details = cl::eps_p[ph::var(local.source_mode_unset) = true] >>
-                           *(space >> local.doc_attribute) >>
-                           !(space >> local.doc_info_block) >> *eol;
+        // clang-format off
+
+        doc_info_details =
+                cl::eps_p                   [ph::var(local.source_mode_unset) = true]
+            >>  *(  space
+                >>  local.doc_attribute
+                )
+            >>  !(  space
+                >>  local.doc_info_block
+                )
+            >>  *eol
+            ;
 
         local.doc_info_block =
-            '[' >> space >> (local.doc_types >> cl::eps_p)[state.values.entry(
-                                ph::arg1, ph::arg2, doc_info_tags::type)] >>
-            hard_space >>
-            to_value(doc_info_tags::title)
-                [*(~cl::eps_p(blank >> (cl::ch_p('[') | ']' | cl::eol_p)) >>
-                   local.char_)
-                 // Include 'blank' here so that it will be included in
-                 // id generation.
-                 >> blank] >>
-            space >> !(qbk_ver(106u) >>
-                       cl::eps_p(ph::var(
-                           local.source_mode_unset))[default_source_mode]) >>
-            (*((local.doc_info_attribute | local.doc_info_escaped_attributes) >>
-               space))[state.values.sort()] >>
-            (']' >> (eol | cl::end_p) | cl::eps_p[error]);
+                '['
+            >>  space
+            >>  (local.doc_types >> cl::eps_p)
+                                            [state.values.entry(ph::arg1, ph::arg2, doc_info_tags::type)]
+            >>  hard_space
+            >>  to_value(doc_info_tags::title)
+                [  *(   ~cl::eps_p(blank >> (cl::ch_p('[') | ']' | cl::eol_p))
+                    >>  local.char_
+                    )
+                    // Include 'blank' here so that it will be included in
+                    // id generation.
+                    >> blank
+                ]
+            >>  space
+            >>  !(qbk_ver(106u) >> cl::eps_p(ph::var(local.source_mode_unset))
+                                            [default_source_mode]
+                )
+            >>  (   *(  (  local.doc_info_attribute
+                        |  local.doc_info_escaped_attributes
+                        )
+                        >>  space
+                    )
+                )                           [state.values.sort()]
+            >>  (   ']'
+                >>  (eol | cl::end_p)
+                |   cl::eps_p               [error]
+                )
+            ;
 
         local.doc_attribute =
-            '[' >> space >> local.doc_attributes[local.assign_attribute] >>
-            hard_space >>
-            state.values.list(ph::var(local.attribute_tag))
-                [cl::eps_p[state.values.entry(
-                     ph::arg1, ph::arg2, doc_info_tags::before_docinfo)] >>
-                 local.attribute_rule] >>
-            space >> ']';
+                '['
+            >>  space
+            >>  local.doc_attributes        [local.assign_attribute]
+            >>  hard_space
+            >>  state.values.list(ph::var(local.attribute_tag))
+                [   cl::eps_p               [state.values.entry(ph::arg1, ph::arg2, doc_info_tags::before_docinfo)]
+                >>  local.attribute_rule
+                ]
+            >>  space
+            >>  ']'
+            ;
 
         local.doc_info_attribute =
-            '[' >> space >>
-            (local.doc_info_attributes[local.assign_attribute] |
-             (+(cl::alnum_p | '_' | '-'))[local.fallback_attribute][error(
-                 "Unrecognized document attribute: '%s'.")]) >>
-            hard_space >> state.values.list(ph::var(
-                              local.attribute_tag))[local.attribute_rule] >>
-            space >> ']';
+                '['
+            >>  space
+            >>  (   local.doc_info_attributes
+                                            [local.assign_attribute]
+                |   (+(cl::alnum_p | '_' | '-'))
+                                            [local.fallback_attribute]
+                                            [error("Unrecognized document attribute: '%s'.")]
+                )
+            >>  hard_space
+            >>  state.values.list(ph::var(local.attribute_tag))
+                [local.attribute_rule]
+            >>  space
+            >>  ']'
+            ;
 
-        local.doc_fallback = to_value()[*(~cl::eps_p(']') >> local.char_)];
+        local.doc_fallback = to_value() [
+            *(~cl::eps_p(']') >> local.char_)
+        ];
 
         local.doc_info_escaped_attributes =
-            ("'''" >> !eol) >>
-            (*(cl::anychar_p - "'''"))[state.values.entry(
-                ph::arg1, ph::arg2, doc_info_tags::escaped_attribute)] >>
-            (cl::str_p("'''") | cl::eps_p[error("Unclosed boostbook escape.")]);
+                ("'''" >> !eol)
+            >>  (*(cl::anychar_p - "'''"))      [state.values.entry(ph::arg1, ph::arg2, doc_info_tags::escaped_attribute)]
+            >>  (   cl::str_p("'''")
+                |   cl::eps_p                   [error("Unclosed boostbook escape.")]
+                )
+                ;
 
         // Document Attributes
 
-        local.quickbook_version = cl::uint_p[state.values.entry(ph::arg1)] >>
-                                  '.' >>
-                                  uint2_t()[state.values.entry(ph::arg1)];
+        local.quickbook_version =
+                cl::uint_p                  [state.values.entry(ph::arg1)]
+            >>  '.'
+            >>  uint2_t()                   [state.values.entry(ph::arg1)]
+            ;
 
-        local.attribute_rules[doc_attributes::qbk_version] =
-            &local.quickbook_version;
+        local.attribute_rules[doc_attributes::qbk_version] = &local.quickbook_version;
 
         local.doc_compatibility_mode =
-            cl::uint_p[state.values.entry(ph::arg1)] >> '.' >>
-            uint2_t()[state.values.entry(ph::arg1)];
+                cl::uint_p                  [state.values.entry(ph::arg1)]
+            >>  '.'
+            >>  uint2_t()                   [state.values.entry(ph::arg1)]
+            ;
 
-        local.attribute_rules[doc_attributes::compatibility_mode] =
-            &local.doc_compatibility_mode;
+        local.attribute_rules[doc_attributes::compatibility_mode] = &local.doc_compatibility_mode;
 
-        local.doc_source_mode =
-            source_modes[change_source_mode]
-                        [ph::var(local.source_mode_unset) = false];
+        local.doc_source_mode = source_modes
+                                            [change_source_mode]
+                                            [ph::var(local.source_mode_unset) = false]
+            ;
 
-        local.attribute_rules[doc_attributes::source_mode] =
-            &local.doc_source_mode;
+        local.attribute_rules[doc_attributes::source_mode] = &local.doc_source_mode;
 
         // Document Info Attributes
 
-        local.doc_simple = to_value()[*(~cl::eps_p(']') >> local.char_)];
+        local.doc_simple = to_value() [*(~cl::eps_p(']') >> local.char_)];
         local.attribute_rules[doc_info_attributes::version] = &local.doc_simple;
         local.attribute_rules[doc_info_attributes::id] = &local.doc_simple;
         local.attribute_rules[doc_info_attributes::dirname] = &local.doc_simple;
-        local.attribute_rules[doc_info_attributes::category] =
-            &local.doc_simple;
-        local.attribute_rules[doc_info_attributes::last_revision] =
-            &local.doc_simple;
+        local.attribute_rules[doc_info_attributes::category] = &local.doc_simple;
+        local.attribute_rules[doc_info_attributes::last_revision] = &local.doc_simple;
         local.attribute_rules[doc_info_attributes::lang] = &local.doc_simple;
         local.attribute_rules[doc_info_attributes::xmlbase] = &local.doc_simple;
 
-        local.doc_copyright_holder =
-            *(~cl::eps_p(']' | ',' >> space >> local.doc_copyright_year) >>
-              local.char_);
+        local.doc_copyright_holder
+            =   *(  ~cl::eps_p
+                    (   ']'
+                    |   ',' >> space >> local.doc_copyright_year
+                    )
+                >>  local.char_
+                );
 
         local.doc_copyright =
-            *(+(local.doc_copyright_year[state.values.entry(
-                    ph::arg1, doc_info_tags::copyright_year)] >>
-                space >> !('-' >> space >>
-                           local.doc_copyright_year[state.values.entry(
-                               ph::arg1, doc_info_tags::copyright_year_end)] >>
-                           space) >>
-                !cl::ch_p(',') >> space) >>
-              to_value(
-                  doc_info_tags::copyright_name)[local.doc_copyright_holder] >>
-              !cl::ch_p(',') >> space);
+            *(  +(  local.doc_copyright_year
+                                            [state.values.entry(ph::arg1, doc_info_tags::copyright_year)]
+                >>  space
+                >>  !(  '-'
+                    >>  space
+                    >>  local.doc_copyright_year
+                                            [state.values.entry(ph::arg1, doc_info_tags::copyright_year_end)]
+                    >>  space
+                    )
+                >>  !cl::ch_p(',')
+                >>  space
+                )
+            >>  to_value(doc_info_tags::copyright_name) [ local.doc_copyright_holder ]
+            >>  !cl::ch_p(',')
+            >>  space
+            )
+            ;
 
-        local.attribute_rules[doc_info_attributes::copyright] =
-            &local.doc_copyright;
+        local.attribute_rules[doc_info_attributes::copyright] = &local.doc_copyright;
 
-        local.doc_phrase = to_value()[nested_phrase];
+        local.doc_phrase = to_value() [ nested_phrase ];
         local.attribute_rules[doc_info_attributes::purpose] = &local.doc_phrase;
         local.attribute_rules[doc_info_attributes::license] = &local.doc_phrase;
 
         local.doc_author =
-            '[' >> space >> to_value(doc_info_tags::author_surname)[*(
-                                ~cl::eps_p(',') >> local.char_)] >>
-            ',' >> space >> to_value(doc_info_tags::author_first)[*(
-                                ~cl::eps_p(']') >> local.char_)] >>
-            ']';
+                '['
+            >>   space
+            >>  to_value(doc_info_tags::author_surname)
+                [*(~cl::eps_p(',') >> local.char_)]
+            >>  ',' >> space
+            >>  to_value(doc_info_tags::author_first)
+                [*(~cl::eps_p(']') >> local.char_)]
+            >>  ']'
+            ;
 
         local.doc_authors =
-            *(local.doc_author >> space >> !(cl::ch_p(',') >> space));
+            *(  local.doc_author
+            >>  space
+            >>  !(cl::ch_p(',') >> space)
+            )
+            ;
 
-        local.attribute_rules[doc_info_attributes::authors] =
-            &local.doc_authors;
+        local.attribute_rules[doc_info_attributes::authors] = &local.doc_authors;
 
         local.doc_biblioid =
-            (+cl::alnum_p)[state.values.entry(
-                ph::arg1, ph::arg2, doc_info_tags::biblioid_class)] >>
-            hard_space >> to_value(doc_info_tags::biblioid_value)[+(
-                              ~cl::eps_p(']') >> local.char_)];
+                (+cl::alnum_p)              [state.values.entry(ph::arg1, ph::arg2, doc_info_tags::biblioid_class)]
+            >>  hard_space
+            >>  to_value(doc_info_tags::biblioid_value)
+                [+(~cl::eps_p(']') >> local.char_)]
+            ;
 
-        local.attribute_rules[doc_info_attributes::biblioid] =
-            &local.doc_biblioid;
+        local.attribute_rules[doc_info_attributes::biblioid] = &local.doc_biblioid;
 
-        local.char_ = escape | local.macro | cl::anychar_p[plain_char];
-        ;
+        local.char_ =
+                escape
+            |   local.macro
+            |   cl::anychar_p[plain_char];
+            ;
 
-        local.macro = cl::eps_p(
-                          (state.macro >> ~cl::eps_p(cl::alpha_p | '_')
-                           // must not be followed by alpha or underscore
-                           ) &
-                          macro_identifier // must be a valid macro for the
-                                           // current version
-                          ) >>
-                      state.macro[do_macro];
+        local.macro =
+            cl::eps_p
+            (   (   state.macro
+                >>  ~cl::eps_p(cl::alpha_p | '_')
+                                                // must not be followed by alpha or underscore
+                )
+                &   macro_identifier            // must be a valid macro for the current version
+            )
+            >>  state.macro                     [do_macro]
+            ;
+
+        // clang-format on
     }
 }

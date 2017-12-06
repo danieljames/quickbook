@@ -234,12 +234,15 @@ namespace quickbook
         {
             definition(tidy_grammar const& self)
             {
-                tag = (cl::lexeme_d[+(cl::alpha_p | '_' | ':')])[boost::bind(
-                    &tidy_grammar::do_tag, &self, _1, _2)];
+                // clang-format off
 
-                code = "<programlisting>" >>
-                       *(cl::anychar_p - "</programlisting>") >>
-                       "</programlisting>";
+                tag = (cl::lexeme_d[+(cl::alpha_p | '_' | ':')])  [boost::bind(&tidy_grammar::do_tag, &self, _1, _2)];
+
+                code =
+                        "<programlisting>"
+                    >>  *(cl::anychar_p - "</programlisting>")
+                    >>  "</programlisting>"
+                    ;
 
                 // What's the business of cl::lexeme_d['>' >> *cl::space_p]; ?
                 // It is there to preserve the space after the tag that is
@@ -247,43 +250,42 @@ namespace quickbook
 
                 escape =
                     cl::str_p("<!--quickbook-escape-prefix-->") >>
-                    (*(cl::anychar_p -
-                       cl::str_p("<!--quickbook-escape-postfix-->")))
-                        [boost::bind(
-                            &tidy_grammar::do_escape, &self, _1, _2)] >>
-                    cl::lexeme_d
-                        [cl::str_p("<!--quickbook-escape-postfix-->") >>
-                         (*cl::space_p)[boost::bind(
-                             &tidy_grammar::do_escape_post, &self, _1, _2)]];
+                    (*(cl::anychar_p - cl::str_p("<!--quickbook-escape-postfix-->")))
+                    [
+                        boost::bind(&tidy_grammar::do_escape, &self, _1, _2)
+                    ]
+                    >>  cl::lexeme_d
+                        [
+                            cl::str_p("<!--quickbook-escape-postfix-->") >>
+                            (*cl::space_p)
+                            [
+                                boost::bind(&tidy_grammar::do_escape_post, &self, _1, _2)
+                            ]
+                        ]
+                    ;
 
-                start_tag = '<' >> tag >> *(cl::anychar_p - '>') >>
-                            cl::lexeme_d['>' >> *cl::space_p];
-                start_end_tag = '<' >> tag >>
-                                    *(cl::anychar_p - ("/>" | cl::ch_p('>'))) >>
-                                    cl::lexeme_d["/>" >> *cl::space_p] |
-                                "<?" >> tag >> *(cl::anychar_p - '?') >>
-                                    cl::lexeme_d["?>" >> *cl::space_p] |
-                                "<!--" >> *(cl::anychar_p - "-->") >>
-                                    cl::lexeme_d["-->" >> *cl::space_p] |
-                                "<!" >> tag >> *(cl::anychar_p - '>') >>
-                                    cl::lexeme_d['>' >> *cl::space_p];
-                content = cl::lexeme_d[+(cl::anychar_p - '<')];
-                end_tag = "</" >> +(cl::anychar_p - '>') >>
-                          cl::lexeme_d['>' >> *cl::space_p];
+                start_tag = '<' >> tag >> *(cl::anychar_p - '>') >> cl::lexeme_d['>' >> *cl::space_p];
+                start_end_tag =
+                        '<' >> tag >> *(cl::anychar_p - ("/>" | cl::ch_p('>'))) >> cl::lexeme_d["/>" >> *cl::space_p]
+                    |   "<?" >> tag >> *(cl::anychar_p - '?') >> cl::lexeme_d["?>" >> *cl::space_p]
+                    |   "<!--" >> *(cl::anychar_p - "-->") >> cl::lexeme_d["-->" >> *cl::space_p]
+                    |   "<!" >> tag >> *(cl::anychar_p - '>') >> cl::lexeme_d['>' >> *cl::space_p]
+                    ;
+                content = cl::lexeme_d[ +(cl::anychar_p - '<') ];
+                end_tag = "</" >> +(cl::anychar_p - '>') >> cl::lexeme_d['>' >> *cl::space_p];
 
                 markup =
-                    escape |
-                    code[boost::bind(&tidy_grammar::do_code, &self, _1, _2)] |
-                    start_end_tag[boost::bind(
-                        &tidy_grammar::do_start_end_tag, &self, _1, _2)] |
-                    start_tag[boost::bind(
-                        &tidy_grammar::do_start_tag, &self, _1, _2)] |
-                    end_tag[boost::bind(
-                        &tidy_grammar::do_end_tag, &self, _1, _2)] |
-                    content[boost::bind(
-                        &tidy_grammar::do_content, &self, _1, _2)];
+                        escape
+                    |   code            [boost::bind(&tidy_grammar::do_code, &self, _1, _2)]
+                    |   start_end_tag   [boost::bind(&tidy_grammar::do_start_end_tag, &self, _1, _2)]
+                    |   start_tag       [boost::bind(&tidy_grammar::do_start_tag, &self, _1, _2)]
+                    |   end_tag         [boost::bind(&tidy_grammar::do_end_tag, &self, _1, _2)]
+                    |   content         [boost::bind(&tidy_grammar::do_content, &self, _1, _2)]
+                    ;
 
                 tidy = +markup;
+
+                // clang-format on
             }
 
             cl::rule<Scanner> const& start() { return tidy; }
