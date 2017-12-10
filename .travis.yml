@@ -54,7 +54,7 @@ before_script:
             snapshot=stable
         fi
         # Delete this once 1.66.0 is released
-        snapshot=develop
+        snapshot=master
 
         if [ $snapshot == "stable" ]
         then
